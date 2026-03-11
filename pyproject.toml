@@ -1,0 +1,154 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "kinematic-morphospace"
+version = "0.1.0"
+authors = [
+  { name = "Lydia France", email = "lydia.france@biology.ox.ac.uk" },
+]
+description = "PCA-based decomposition of morphing shape changes in animal locomotion from motion capture data."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering",
+]
+keywords = [
+  "PCA",
+  "principal-component-analysis",
+  "bird-flight",
+  "morphing-wings",
+  "biomechanics",
+  "motion-capture",
+  "kinematics",
+]
+dependencies = [
+  "numpy>=1.24,<3",
+  "pandas>=1.5,<3",
+  "scikit-learn>=1.2,<2",
+  "pyyaml>=6.0",
+  "morphing_birds @ git+https://github.com/LydiaFrance/morphing_birds.git@restructure",
+  "ipykernel>=7.2.0",
+  "tqdm>=4.67.3",
+  "coloredlogs>=15.0.1",
+]
+
+[project.optional-dependencies]
+plot = [
+  "matplotlib>=3.6",
+  "seaborn>=0.12",
+  "plotly>=5.0",
+  "kaleido>=0.2",
+  "ipympl>=0.9",
+  "Pillow>=9.0",
+]
+notebook = [
+  "kinematic-morphospace[plot]",
+  "ipykernel",
+  "jupyter",
+  "notebook",
+]
+test = [
+  "pytest>=6",
+  "pytest-cov>=3",
+  "coloredlogs",
+]
+preprocessing = [
+  "scipy>=1.10",
+  "mat73>=0.60",
+  "h5py>=3.8",
+  "ezc3d>=1.5",
+]
+docs = [
+  "mkdocs>=1.6",
+  "mkdocs-material>=9.5",
+  "mkdocstrings[python]>=0.27",
+  "mkdocs-section-index>=0.3",
+]
+dev = [
+  "pytest>=6",
+  "pytest-cov>=3",
+  "pre-commit",
+]
+
+[project.urls]
+Homepage = "https://github.com/LydiaFrance/kinematic-morphospace"
+"Bug Tracker" = "https://github.com/LydiaFrance/kinematic-morphospace/issues"
+Discussions = "https://github.com/LydiaFrance/kinematic-morphospace/discussions"
+Changelog = "https://github.com/LydiaFrance/kinematic-morphospace/releases"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
+xfail_strict = true
+filterwarnings = [
+  "error",
+]
+log_cli_level = "INFO"
+testpaths = [
+  "tests",
+]
+
+[tool.coverage]
+run.source = ["kinematic_morphospace"]
+port.exclude_lines = [
+  'pragma: no cover',
+  '\.\.\.',
+  'if typing.TYPE_CHECKING:',
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["kinematic_morphospace", "kinematic_morphospace.plotting", "kinematic_morphospace.preprocessing"]
+
+[tool.ruff]
+src = ["src"]
+exclude = []
+line-length = 88  # how long you want lines to be
+
+[tool.ruff.format]
+docstring-code-format = true  # code snippets in docstrings will be formatted
+
+[tool.ruff.lint]
+select = [
+  "E", "F", "W", # flake8
+  "B",           # flake8-bugbear
+  "I",           # isort
+  "ARG",         # flake8-unused-arguments
+  "C4",          # flake8-comprehensions
+  "EM",          # flake8-errmsg
+  "ICN",         # flake8-import-conventions
+  "ISC",         # flake8-implicit-str-concat
+  "G",           # flake8-logging-format
+  "PGH",         # pygrep-hooks
+  "PIE",         # flake8-pie
+  "PL",          # pylint
+  "PT",          # flake8-pytest-style
+  "RET",         # flake8-return
+  "RUF",         # Ruff-specific
+  "SIM",         # flake8-simplify
+  "UP",          # pyupgrade
+  "YTT",         # flake8-2020
+  "EXE",         # flake8-executable
+]
+ignore = [
+  "PLR",    # Design related pylint codes
+  "ISC001", # Conflicts with formatter
+]
+unfixable = [
+  "F401",   # Would remove unused imports
+  "F841",   # Would remove unused variables
+]
+flake8-unused-arguments.ignore-variadic-names = true  # allow unused *args/**kwargs
+
