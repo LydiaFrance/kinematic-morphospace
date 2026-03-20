@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "server",
+  "dolt_database": "kinematic_morphospace",
+  "project_id": "8fd15376-ce79-4a51-9d7e-3a83c1b66be5"
+}
