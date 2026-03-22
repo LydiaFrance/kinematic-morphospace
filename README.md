@@ -1,8 +1,6 @@
 # kinematic-morphospace
 
-[![Actions Status][actions-badge]][actions-link]
-[![PyPI version][pypi-version]][pypi-link]
-[![PyPI platforms][pypi-platforms]][pypi-link]
+[![DOI](https://zenodo.org/badge/761292243.svg)](https://doi.org/10.5281/zenodo.19169770)
 
 Running PCA on bird wings and tails in flight.
 
