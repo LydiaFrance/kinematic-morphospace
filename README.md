@@ -1,6 +1,7 @@
 # kinematic-morphospace
 
-<a href="https://doi.org/10.5281/zenodo.19169770"><img src="https://zenodo.org/badge/761292243.svg" alt="DOI"></a>
+<a href="https://doi.org/10.5281/zenodo.19169784"><img src="https://zenodo.org/badge/1183862622.svg" alt="DOI"></a>
+
 
 Running PCA on bird wings and tails in flight.
 
