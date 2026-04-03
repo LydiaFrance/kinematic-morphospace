@@ -14,6 +14,10 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 
+[options]
+exclude-newer = "2026-03-27T12:50:31.36053Z"
+exclude-newer-span = "P7D"
+
 [[package]]
 name = "anyio"
 version = "4.12.1"
@@ -163,104 +167,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/c3/b0/1c6a16426d389813b
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1a/39/47f9197bdd44df24d67ac8893641e16f386c984a0619ef2ee4c51fbbc019/beautifulsoup4-4.14.3-py3-none-any.whl", hash = "sha256:0918bfe44902e6ad8d57732ba310582e98da931428d231a5ecb9e7c703a735bb", size = 107721, upload-time = "2025-11-30T15:08:24.087Z" },
 ]
-
-[[package]]
-name = "birdpca"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "coloredlogs" },
-    { name = "ipykernel" },
-    { name = "morphing-birds" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "numpy", version = "2.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "pandas" },
-    { name = "pyyaml" },
-    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "scikit-learn", version = "1.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "tqdm" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-]
-docs = [
-    { name = "mkdocs" },
-    { name = "mkdocs-material" },
-    { name = "mkdocs-section-index" },
-    { name = "mkdocstrings", extra = ["python"] },
-]
-notebook = [
-    { name = "ipykernel" },
-    { name = "ipympl" },
-    { name = "jupyter" },
-    { name = "kaleido" },
-    { name = "matplotlib" },
-    { name = "notebook" },
-    { name = "pillow" },
-    { name = "plotly" },
-    { name = "seaborn" },
-]
-plot = [
-    { name = "ipympl" },
-    { name = "kaleido" },
-    { name = "matplotlib" },
-    { name = "pillow" },
-    { name = "plotly" },
-    { name = "seaborn" },
-]
-preprocessing = [
-    { name = "ezc3d" },
-    { name = "h5py" },
-    { name = "mat73" },
-    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "scipy", version = "1.17.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-]
-test = [
-    { name = "coloredlogs" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "birdpca", extras = ["plot"], marker = "extra == 'notebook'" },
-    { name = "coloredlogs", specifier = ">=15.0.1" },
-    { name = "coloredlogs", marker = "extra == 'test'" },
-    { name = "ezc3d", marker = "extra == 'preprocessing'", specifier = ">=1.5" },
-    { name = "h5py", marker = "extra == 'preprocessing'", specifier = ">=3.8" },
-    { name = "ipykernel", specifier = ">=7.2.0" },
-    { name = "ipykernel", marker = "extra == 'notebook'" },
-    { name = "ipympl", marker = "extra == 'plot'", specifier = ">=0.9" },
-    { name = "jupyter", marker = "extra == 'notebook'" },
-    { name = "kaleido", marker = "extra == 'plot'", specifier = ">=0.2" },
-    { name = "mat73", marker = "extra == 'preprocessing'", specifier = ">=0.60" },
-    { name = "matplotlib", marker = "extra == 'plot'", specifier = ">=3.6" },
-    { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.6" },
-    { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.5" },
-    { name = "mkdocs-section-index", marker = "extra == 'docs'", specifier = ">=0.3" },
-    { name = "mkdocstrings", extras = ["python"], marker = "extra == 'docs'", specifier = ">=0.27" },
-    { name = "morphing-birds", git = "https://github.com/LydiaFrance/morphing_birds.git?rev=restructure" },
-    { name = "notebook", marker = "extra == 'notebook'" },
-    { name = "numpy", specifier = ">=1.24,<3" },
-    { name = "pandas", specifier = ">=1.5,<3" },
-    { name = "pillow", marker = "extra == 'plot'", specifier = ">=9.0" },
-    { name = "plotly", marker = "extra == 'plot'", specifier = ">=5.0" },
-    { name = "pre-commit", marker = "extra == 'dev'" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=6" },
-    { name = "pytest", marker = "extra == 'test'", specifier = ">=6" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=3" },
-    { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=3" },
-    { name = "pyyaml", specifier = ">=6.0" },
-    { name = "scikit-learn", specifier = ">=1.2,<2" },
-    { name = "scipy", marker = "extra == 'preprocessing'", specifier = ">=1.10" },
-    { name = "seaborn", marker = "extra == 'plot'", specifier = ">=0.12" },
-    { name = "tqdm", specifier = ">=4.67.3" },
-]
-provides-extras = ["plot", "notebook", "test", "preprocessing", "docs", "dev"]
 
 [[package]]
 name = "bleach"
@@ -1076,6 +982,7 @@ wheels = [
 name = "griffelib"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ad/06/eccbd311c9e2b3ca45dbc063b93134c57a1ccc7607c5e545264ad092c4a9/griffelib-2.0.0.tar.gz", hash = "sha256:e504d637a089f5cab9b5daf18f7645970509bf4f53eda8d79ed71cce8bd97934", size = 166312, upload-time = "2026-03-23T21:06:55.954Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4d/51/c936033e16d12b627ea334aaaaf42229c37620d0f15593456ab69ab48161/griffelib-2.0.0-py3-none-any.whl", hash = "sha256:01284878c966508b6d6f1dbff9b6fa607bc062d8261c5c7253cb285b06422a7f", size = 142004, upload-time = "2026-02-09T19:09:40.561Z" },
 ]
@@ -1710,6 +1617,106 @@ sdist = { url = "https://files.pythonhosted.org/packages/38/ad/76eec859b71eda803
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4b/97/f6de8d4af54d6401d6581a686cce3e3e2371a79ba459a449104e026c08bc/kaleido-1.2.0-py3-none-any.whl", hash = "sha256:c27ed82b51df6b923d0e656feac221343a0dbcd2fb9bc7e6b1db97f61e9a1513", size = 68997, upload-time = "2025-11-04T21:24:21.704Z" },
 ]
+
+[[package]]
+name = "kinematic-morphospace"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "coloredlogs" },
+    { name = "ipykernel" },
+    { name = "morphing-birds" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "pandas" },
+    { name = "pyyaml" },
+    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scikit-learn", version = "1.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "seaborn" },
+    { name = "tqdm" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+]
+docs = [
+    { name = "mkdocs" },
+    { name = "mkdocs-material" },
+    { name = "mkdocs-section-index" },
+    { name = "mkdocstrings", extra = ["python"] },
+]
+notebook = [
+    { name = "ipykernel" },
+    { name = "ipympl" },
+    { name = "jupyter" },
+    { name = "kaleido" },
+    { name = "matplotlib" },
+    { name = "notebook" },
+    { name = "pillow" },
+    { name = "plotly" },
+    { name = "seaborn" },
+]
+plot = [
+    { name = "ipympl" },
+    { name = "kaleido" },
+    { name = "matplotlib" },
+    { name = "pillow" },
+    { name = "plotly" },
+    { name = "seaborn" },
+]
+preprocessing = [
+    { name = "ezc3d" },
+    { name = "h5py" },
+    { name = "mat73" },
+    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scipy", version = "1.17.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
+test = [
+    { name = "coloredlogs" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "coloredlogs", specifier = ">=15.0.1" },
+    { name = "coloredlogs", marker = "extra == 'test'" },
+    { name = "ezc3d", marker = "extra == 'preprocessing'", specifier = ">=1.5" },
+    { name = "h5py", marker = "extra == 'preprocessing'", specifier = ">=3.8" },
+    { name = "ipykernel", specifier = ">=7.2.0" },
+    { name = "ipykernel", marker = "extra == 'notebook'" },
+    { name = "ipympl", marker = "extra == 'plot'", specifier = ">=0.9" },
+    { name = "jupyter", marker = "extra == 'notebook'" },
+    { name = "kaleido", marker = "extra == 'plot'", specifier = ">=0.2" },
+    { name = "kinematic-morphospace", extras = ["plot"], marker = "extra == 'notebook'" },
+    { name = "mat73", marker = "extra == 'preprocessing'", specifier = ">=0.60" },
+    { name = "matplotlib", marker = "extra == 'plot'", specifier = ">=3.6" },
+    { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.6" },
+    { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.5" },
+    { name = "mkdocs-section-index", marker = "extra == 'docs'", specifier = ">=0.3" },
+    { name = "mkdocstrings", extras = ["python"], marker = "extra == 'docs'", specifier = ">=0.27" },
+    { name = "morphing-birds", git = "https://github.com/LydiaFrance/morphing_birds.git?rev=restructure" },
+    { name = "notebook", marker = "extra == 'notebook'" },
+    { name = "numpy", specifier = ">=1.24,<3" },
+    { name = "pandas", specifier = ">=1.5,<3" },
+    { name = "pillow", marker = "extra == 'plot'", specifier = ">=9.0" },
+    { name = "plotly", marker = "extra == 'plot'", specifier = ">=5.0" },
+    { name = "pre-commit", marker = "extra == 'dev'" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=6" },
+    { name = "pytest", marker = "extra == 'test'", specifier = ">=6" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=3" },
+    { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=3" },
+    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "scikit-learn", specifier = ">=1.2,<2" },
+    { name = "scipy", marker = "extra == 'preprocessing'", specifier = ">=1.10" },
+    { name = "seaborn", specifier = ">=0.13.2" },
+    { name = "seaborn", marker = "extra == 'plot'", specifier = ">=0.12" },
+    { name = "tqdm", specifier = ">=4.67.3" },
+]
+provides-extras = ["plot", "notebook", "test", "preprocessing", "docs", "dev"]
 
 [[package]]
 name = "kiwisolver"
