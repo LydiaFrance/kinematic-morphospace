@@ -108,3 +108,20 @@ from .clusters import (
 
 # Cross-species marker visualisation
 from .species import plot_bird_markers
+
+# Robustness-validation schematics
+from .schematics import (
+    plot_shuffle_schematic, plot_subsampling_schematic,
+    plot_pairwise_distance_schematic, plot_relabelling_schematic,
+    plot_imputation_schematic, MARKER_COLOURS,
+    _layout_shuffle_schematic, _layout_subsampling_schematic,
+    _layout_relabelling_schematic, _layout_imputation_schematic,
+    _layout_pairwise_distance_schematic,
+    plot_autocorrelation_schematic)
+
+# Robustness composite figures (schematic + results)
+from .robustness import (
+    plot_shuffle_composite, plot_subsampling_composite,
+    plot_pairwise_composite, plot_relabelling_composite,
+    plot_imputation_composite, plot_hull_coverage, plot_hull_outlier_markers,
+    plot_occlusion_bias)
