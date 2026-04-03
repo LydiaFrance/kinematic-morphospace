@@ -25,7 +25,8 @@ logger = logging.getLogger(__name__)
 
 
 def load_c3d(path: str | Path) -> tuple[pd.DataFrame, dict]:
-    """Load a single C3D file and return marker trajectories + metadata.
+    """
+    Load a single C3D file and return marker trajectories + metadata.
 
     Parameters
     ----------
