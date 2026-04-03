@@ -10,7 +10,9 @@ def plot_trajectory_data(ax,
                         x_col,
                         y_col,
                         filter_params,
-                        plot_type='scatter', **kwargs):
+                        plot_type='scatter',
+                        min_samples=None,
+                        **kwargs):
     """Plot trajectory data as a scatter cloud or per-hawk fill-between.
 
     Parameters
@@ -28,6 +30,10 @@ def plot_trajectory_data(ax,
     plot_type : {'scatter', 'fill_between'}, optional
         ``'scatter'`` draws all points; ``'fill_between'`` plots the
         binned median per hawk with colour coding.
+    min_samples : int or None, optional
+        Minimum number of datapoints required per bin. Bins with fewer
+        samples are excluded from the median line to avoid unreliable
+        estimates. Only applies to ``'fill_between'`` plots.
     **kwargs
         Extra options. Pass ``print_n_flights=True`` to print frame and
         flight counts.
@@ -75,8 +81,12 @@ def plot_trajectory_data(ax,
 
             binned_data = filtered_df.groupby('bins').agg(
                 {y_col: ['count','median', 'std']})
+
+            if min_samples is not None:
+                binned_data = binned_data[binned_data[y_col]['count'] >= min_samples]
+
             x_bins = binned_data.index
-            y_mean = binned_data[y_col]['median']
+            y_median = binned_data[y_col]['median']
             y_std = binned_data[y_col]['std']
 
             # Not currently used, plots the shading between ±1 standard deviation.
@@ -84,7 +94,7 @@ def plot_trajectory_data(ax,
             #               color=hawk_colors[hawk], alpha=0.1)
 
             # Plots the mean of each bin per hawk.
-            ax.plot(x_bins, y_mean, color=hawk_colors[hawk],
+            ax.plot(x_bins, y_median, color=hawk_colors[hawk],
                    label=hawk, linewidth=0.5)
 
 def plot_traj(traj_df,
@@ -92,6 +102,7 @@ def plot_traj(traj_df,
     y_axis_column='XYZ_3',
     equal=True,
     print_n_flights=False,
+    min_samples=None,
     save_path=None):
     """Create an 8x2 grid of trajectory plots across experimental conditions.
 
@@ -111,6 +122,9 @@ def plot_traj(traj_df,
         Whether to enforce equal aspect ratio on axes.
     print_n_flights : bool, optional
         Whether to print the number of flights per condition.
+    min_samples : int or None, optional
+        Minimum number of datapoints required per bin for the per-hawk
+        median lines. Bins with fewer samples are excluded.
     save_path : str, optional
         Base path for saving hybrid raster/vector figures. When *None*
         the figure is not saved.
@@ -162,12 +176,14 @@ def plot_traj(traj_df,
                 plot_trajectory_data(axes[ii*2+1], traj_df, x_axis_column, y_axis_column,
                                   {'perchDist': perchDist, 'year': year,
                                    'obstacle': obstacle, 'turn': turn, 'IMU': weight},
-                                  plot_type='fill_between')
+                                  plot_type='fill_between',
+                                  min_samples=min_samples)
         else:
             plot_trajectory_data(axes[ii*2+1], traj_df, x_axis_column, y_axis_column,
                                {'perchDist': perchDist, 'year': year,
                                 'obstacle': obstacle, 'turn': 'straight', 'IMU': weight},
-                               plot_type='fill_between')
+                               plot_type='fill_between',
+                               min_samples=min_samples)
 
     # Add legends
     axes[9].legend(fontsize=4, frameon=False)
