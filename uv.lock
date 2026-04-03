@@ -15,7 +15,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-03-27T13:24:57.949309Z"
+exclude-newer = "2026-03-27T15:24:14.839765Z"
 exclude-newer-span = "P7D"
 
 [[package]]
@@ -2196,7 +2196,7 @@ wheels = [
 [[package]]
 name = "morphing-birds"
 version = "0.2.0"
-source = { git = "https://github.com/LydiaFrance/morphing_birds.git?rev=main#ab892cb9ef8ced49ac8e2c07ea435ffd39f419aa" }
+source = { git = "https://github.com/LydiaFrance/morphing_birds.git?rev=main#9b8667ad2d0954f58ac4ed661e5ec6cc71923196" }
 dependencies = [
     { name = "dash" },
     { name = "imageio" },
