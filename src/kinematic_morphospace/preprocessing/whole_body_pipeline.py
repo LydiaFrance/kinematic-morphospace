@@ -70,7 +70,7 @@ class WholeBodyConfig:
         "05": "Charmander",
     })
 
-    # Flight phase boundaries (horizontal distance ranges)
+    # Flight phase boundaries for 9m flights (horizontal distance ranges)
     flight_phases: dict[int, tuple[float, float]] = field(default_factory=lambda: {
         1: (7.0, 8.5),   # Early flapping
         2: (5.0, 7.0),   # Mid flapping
