@@ -1,8 +1,13 @@
+AGENTS.md
+CLAUDE.md
+
+*.tex
+
 # ── Large data files (release via Zenodo/Figshare DOI) ──
-data/*.csv
-data/*.npy
-data/*.npz
-data/processed/
+data/raw/
+data/bilateral/
+data/unilateral/
+data/DATA_NOTES.md
 
 # Keep small reference files
 !data/mean_hawk_shape.csv
@@ -44,6 +49,9 @@ coverage.xml
 
 # ── Built site ──
 site/
+
+# Beads issue tracker
+.beads/
 
 # Dolt database files (added by bd init)
 .dolt/
