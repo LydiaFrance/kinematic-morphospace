@@ -49,13 +49,22 @@ def run_PCA(markers, project_data=None, n_components=None, flat_input=False):
     # Another word for scores is projections.
     scores = pca_output.transform(project_data)
 
-    # Check the shape of the output (skip when n_components or flat_input
-    # changes the expected shapes)
+    # Validate output shapes
     if n_components is None and not flat_input:
         try:
             test_PCA_output(project_data, principal_components, scores)
         except AssertionError as msg:
             raise ValueError(f"PCA output validation failed: {str(msg)}")
+    else:
+        n_features = pca_input.shape[1]
+        n_out = n_components if n_components is not None else n_features
+        if principal_components.shape != (n_out, n_features):
+            raise ValueError(
+                f"Components shape {principal_components.shape} does not match "
+                f"expected ({n_out}, {n_features})")
+        if scores.shape[1] != n_out:
+            raise ValueError(
+                f"Scores have {scores.shape[1]} columns, expected {n_out}")
 
     return principal_components, scores, pca
 
