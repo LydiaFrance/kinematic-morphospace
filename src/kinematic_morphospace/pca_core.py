@@ -8,13 +8,18 @@ from .data_filtering import filter_by
 
 # ------- PCA -------
 
-def run_PCA(markers, project_data=None):
+def run_PCA(markers, project_data=None, n_components=None, flat_input=False):
     """
     Run Principal Component Analysis on the given markers data.
 
     Args:
-        markers (np.ndarray): Input marker data.
+        markers (np.ndarray): Input marker data, shape (N, markers, 3)
+            or (N, features) if flat_input=True.
         project_data (np.ndarray, optional): Additional data to project onto the PCA space.
+        n_components (int, optional): Number of components to retain.
+            Default None retains all components (existing behaviour).
+        flat_input (bool): If True, skip reshaping — input is already
+            (N, features). Default False (existing behaviour).
 
     Returns:
         Tuple[np.ndarray, np.ndarray, PCA]: Principal components, scores, and PCA object.
@@ -23,16 +28,18 @@ def run_PCA(markers, project_data=None):
         ValueError: If the input data shapes are inconsistent.
     """
     # Reshape the data to be [n, nMarkers*3]
-    pca_input = get_PCA_input(markers)
+    pca_input = markers if flat_input else get_PCA_input(markers)
 
     # Run PCA
-    pca = PCA(random_state=0)
+    pca = PCA(n_components=n_components, random_state=0)
     pca_output = pca.fit(pca_input)
 
     # User may want to fit the principal components
     # to a different dataset
     if project_data is None:
         project_data = pca_input
+    elif flat_input:
+        pass  # project_data is already flat
     else:
         project_data = get_PCA_input(project_data)
 
@@ -42,11 +49,13 @@ def run_PCA(markers, project_data=None):
     # Another word for scores is projections.
     scores = pca_output.transform(project_data)
 
-    # Check the shape of the output
-    try:
-        test_PCA_output(project_data, principal_components, scores)
-    except AssertionError as msg:
-        raise ValueError(f"PCA output validation failed: {str(msg)}")
+    # Check the shape of the output (skip when n_components or flat_input
+    # changes the expected shapes)
+    if n_components is None and not flat_input:
+        try:
+            test_PCA_output(project_data, principal_components, scores)
+        except AssertionError as msg:
+            raise ValueError(f"PCA output validation failed: {str(msg)}")
 
     return principal_components, scores, pca
 
