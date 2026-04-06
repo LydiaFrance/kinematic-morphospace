@@ -19,7 +19,7 @@ def load_data(csv_path: str):
     csv_path : str
         The path to the CSV file containing the data.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         A DataFrame containing the loaded data.
@@ -46,7 +46,7 @@ def remove_frames(data_csv, Y_limit=0.1, time_limit=0):
     time_limit : float, optional
         Minimum allowed time value.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         A DataFrame with invalid frames removed.
@@ -95,7 +95,7 @@ def prepare_marker_data(df, n_markers=8):
     n_markers : int, optional
         The number of markers per frame.
 
-    Returns
+    Returns:
     -------
     np.ndarray
         Array of shape ``(n_frames, n_markers, 3)``.
@@ -118,7 +118,7 @@ def process_data(data_csv):
     data_csv : pd.DataFrame
         Loaded CSV containing marker information and frame metadata.
 
-    Returns
+    Returns:
     -------
     markers : np.ndarray
         Marker coordinate array of shape ``(n_frames, n_markers, 3)``.
@@ -155,7 +155,7 @@ def load_marker_frames(markers_csv):
     markers_csv : pd.DataFrame
         Raw CSV DataFrame with ``rot_xyz`` marker columns.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         DataFrame containing only the renamed marker columns.
@@ -185,7 +185,7 @@ def load_frame_info(frame_info_csv):
     frame_info_csv : pd.DataFrame
         Raw CSV DataFrame including both marker and metadata columns.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         DataFrame with marker columns removed.
@@ -210,7 +210,7 @@ def get_arrays(markers_csv, frame_info_csv):
     frame_info_csv : pd.DataFrame
         DataFrame of non-marker frame metadata.
 
-    Returns
+    Returns:
     -------
     markers : np.ndarray
         Array of shape ``(n_frames, n_markers, 3)``.
@@ -252,7 +252,7 @@ def check_data(markers, frame_info):
     frame_info : dict
         Dictionary of per-frame metadata arrays.
 
-    Returns
+    Returns:
     -------
     bool
         ``True`` if every array has the same first-axis length,
@@ -283,7 +283,7 @@ def get_column_as_numpy(df, column_name):
     column_name : str
         Name of the column to retrieve.
 
-    Returns
+    Returns:
     -------
     np.ndarray or None
         Column values as a NumPy array, or ``None`` if the column does
@@ -302,12 +302,71 @@ def get_column(df, column_name):
     column_name : str
         Name of the column to retrieve.
 
-    Returns
+    Returns:
     -------
     pd.Series or None
         Column as a Series, or ``None`` if the column does not exist.
     """
     return df.get(column_name) if column_name in df.columns else None
+
+
+def bin_markers_by_distance(
+    markers: np.ndarray,
+    frame_info: "pd.DataFrame",
+    bin_size: float = 0.1,
+    dist_start: float = -9.5,
+    dist_end: float = 0.0,
+) -> "tuple[np.ndarray, np.ndarray]":
+    """Bin marker positions by horizontal distance to the perch.
+
+    Averages marker positions and body pitch within evenly-spaced distance
+    bins.  Used to produce smooth, representative flight animations from
+    multiple individual flights.
+
+    Parameters
+    ----------
+    markers : ndarray, shape (N, n_markers, 3)
+        Marker positions for each frame.
+    frame_info : pd.DataFrame
+        Frame metadata for the same N frames; must contain columns
+        ``HorzDistance`` (metres, negative = approaching perch) and
+        ``body_pitch`` (degrees).
+    bin_size : float
+        Width of each distance bin in metres (default 0.1).
+    dist_start : float
+        Left edge of the first bin in metres (default -9.5).
+    dist_end : float
+        Right edge of the last bin in metres (default 0.0).
+
+    Returns:
+    -------
+    binned_markers : ndarray, shape (n_bins, n_markers, 3)
+        Mean marker positions across all frames in each occupied bin.
+    binned_pitch : ndarray, shape (n_bins,)
+        Mean body pitch across all frames in each occupied bin.
+    """
+    # Build evenly-spaced bin edges spanning the approach corridor
+    bin_edges = np.arange(dist_start, dist_end, bin_size)
+
+    # Assign each frame to a bin (digitize returns 1-based indices)
+    horz_dist = np.asarray(frame_info["HorzDistance"], dtype=float)
+    body_pitch = np.asarray(frame_info["body_pitch"], dtype=float)
+    bin_indices = np.digitize(horz_dist, bin_edges) - 1
+
+    # Keep only frames that fall inside the defined range
+    valid = (bin_indices >= 0) & (bin_indices < len(bin_edges) - 1)
+
+    # Average markers and body pitch over all frames in each occupied bin
+    unique_bins = np.unique(bin_indices[valid])
+    binned_markers = np.array([
+        markers[valid][bin_indices[valid] == b].mean(axis=0)
+        for b in unique_bins
+    ])
+    binned_pitch = np.array([
+        body_pitch[valid][bin_indices[valid] == b].mean()
+        for b in unique_bins
+    ])
+    return binned_markers, binned_pitch
 
 
 def merge_frame_info(df, frame_info_df):
@@ -324,7 +383,7 @@ def merge_frame_info(df, frame_info_df):
     frame_info_df : pd.DataFrame
         Frame metadata DataFrame with a ``frameID`` column.
 
-    Returns
+    Returns:
     -------
     df_tail : pd.DataFrame
         Merged DataFrame with NaN rows removed.
