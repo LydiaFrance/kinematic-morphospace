@@ -150,8 +150,11 @@ class TestKMOTest:
 class TestPCASuitabilityTest:
     def test_returns_expected_keys(self, synthetic_markers):
         result = pca_suitability_test(synthetic_markers, n_bootstrap=10)
-        expected = {"bartlett_p_value", "eigenvalues_distinct",
-                    "variance_test_p_value", "components_needed"}
+        expected = {
+            "kmo_total", "kmo_per_variable",
+            "bartlett_p_value", "eigenvalues_distinct",
+            "variance_test_p_value", "variance_test_pass", "components_needed",
+        }
         assert set(result.keys()) == expected
 
     def test_components_needed_ge_1(self, synthetic_markers):
@@ -161,7 +164,10 @@ class TestPCASuitabilityTest:
     def test_deterministic_with_seed(self, synthetic_markers):
         r1 = pca_suitability_test(synthetic_markers, n_bootstrap=10, seed=42)
         r2 = pca_suitability_test(synthetic_markers, n_bootstrap=10, seed=42)
-        assert r1 == r2
+        scalar_keys = {k for k, v in r1.items() if not hasattr(v, "__len__")}
+        for k in scalar_keys:
+            assert r1[k] == r2[k], f"key {k!r} not deterministic"
+        np.testing.assert_array_equal(r1["kmo_per_variable"], r2["kmo_per_variable"])
 
 
 # =============================================================================

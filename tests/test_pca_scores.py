@@ -13,9 +13,12 @@ import numpy as np
 import pandas as pd
 
 from kinematic_morphospace.pca_scores import (
+    SIGN_CONVENTIONS,
+    apply_sign_conventions,
     get_score_df,
     get_binned_scores,
     get_score_range,
+    prepare_heatmap_mode_order,
     concat_df,
     create_scores_info_df,
     bin_by_horz_distance,
@@ -353,3 +356,73 @@ class TestGetScoreRange:
         first_half = result[:half_length, 0]
         assert np.all(np.diff(first_half) >= -1e-10), \
             "First half should be monotonically increasing"
+
+
+# -- TestSignConventions --
+
+class TestSignConventions:
+    """Tests for the centralised PC sign convention."""
+
+    def test_sign_conventions_contains_pc07(self):
+        """PC07 (index 6) should be negated."""
+        assert SIGN_CONVENTIONS.get(6) == -1
+
+    def test_apply_returns_copy(self):
+        """Input array must not be mutated."""
+        arr = np.ones((5, 9))
+        result = apply_sign_conventions(arr, verbose=False)
+        assert result is not arr
+        np.testing.assert_array_equal(arr, np.ones((5, 9)))
+
+    def test_apply_negates_pc07(self):
+        """Column 6 should be negated in the output."""
+        arr = np.ones((3, 9))
+        result = apply_sign_conventions(arr, verbose=False)
+        np.testing.assert_array_equal(result[:, 6], -1 * np.ones(3))
+        # Other columns unchanged
+        for i in range(9):
+            if i != 6:
+                np.testing.assert_array_equal(result[:, i], np.ones(3))
+
+    def test_apply_fewer_components(self):
+        """Should not fail if array has fewer columns than convention index."""
+        arr = np.ones((3, 5))  # only 5 columns, index 6 out of range
+        result = apply_sign_conventions(arr, verbose=False)
+        np.testing.assert_array_equal(result, arr)
+
+    def test_double_application_is_identity(self):
+        """Applying twice returns to original values."""
+        arr = np.random.default_rng(0).standard_normal((10, 9))
+        result = apply_sign_conventions(
+            apply_sign_conventions(arr, verbose=False), verbose=False
+        )
+        np.testing.assert_allclose(result, arr)
+
+    def test_get_score_df_applies_convention(self, synthetic_frame_info):
+        """scores_df from get_score_df should have PC07 negated."""
+        rng = np.random.default_rng(42)
+        scores_9 = rng.standard_normal((20, 9))
+        df, _ = get_score_df(scores_9, synthetic_frame_info)
+        np.testing.assert_allclose(
+            df["PC07"].to_numpy(), -scores_9[:, 6],
+            err_msg="get_score_df should negate PC07",
+        )
+
+    def test_get_score_range_does_not_apply_convention(self):
+        """get_score_range returns raw scores (no sign flip) for reconstruction."""
+        rng = np.random.default_rng(42)
+        scores_9 = rng.standard_normal((100, 9))
+        # Make PC07 (col 6) clearly positive on average
+        scores_9[:, 6] = np.abs(scores_9[:, 6]) + 1.0
+        score_frames = get_score_range(scores_9, num_frames=20)
+        # The sweep midpoint for col 6 should be positive (not negated)
+        assert score_frames[:, 6].mean() > 0, \
+            "get_score_range should NOT negate PC07 — raw scores for reconstruction"
+
+    def test_prepare_heatmap_mode_order_does_not_negate(self):
+        """prepare_heatmap_mode_order should NOT mutate scores_df."""
+        data = {f"PC{i:02}": [1.0, 2.0] for i in range(1, 10)}
+        df = pd.DataFrame(data)
+        original_pc07 = df["PC07"].copy()
+        prepare_heatmap_mode_order(df)
+        pd.testing.assert_series_equal(df["PC07"], original_pc07)
