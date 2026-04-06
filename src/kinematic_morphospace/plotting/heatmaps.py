@@ -35,7 +35,7 @@ def prepare_heatmap_comparison(scores_df, reference_filters, condition1, conditi
     condition1, condition2 : dict
         Dictionaries containing filters for each condition to compare.
 
-    Returns
+    Returns:
     -------
     condition1_df : pandas.DataFrame
         Filtered scores for first condition.
@@ -94,11 +94,10 @@ def plot_difference_PC_scores_heatmap(df_control,
     score_95 : dict
         99th percentile scores for colour scaling.
 
-    Returns
+    Returns:
     -------
     ax : matplotlib.axes.Axes
     """
-
     # Convert bins to float when finding common bins
     control_bins = df_control['bins'].astype(float).unique()
     exp_bins = df_exp['bins'].astype(float).unique()
@@ -226,7 +225,7 @@ def plot_PC_score_heatmaps(scores_df, PC_cols, score_5, score_95, score_mid, tit
     title : str
         Plot title.
 
-    Returns
+    Returns:
     -------
     ax : matplotlib.axes.Axes
     """
@@ -273,11 +272,10 @@ def plot_difference_exp_scores_heatmap(df_control,
     score_5, score_95 : dict
         Percentile scores for colour scaling.
 
-    Returns
+    Returns:
     -------
     ax : matplotlib.axes.Axes
     """
-
     mean_scores_control = df_control.pivot_table(index='bins', values=PC_cols,
                                                   aggfunc='mean', observed=False).T
     mean_scores_exp = df_exp.pivot_table(index='bins', values=PC_cols,

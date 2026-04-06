@@ -24,7 +24,7 @@ def plot_raw_markers(ax, x, y, filter=None, colour='k', alpha=0.1,  grid=False):
     grid : bool, optional
         Whether to display grid lines.
 
-    Returns
+    Returns:
     -------
     matplotlib.axes.Axes
         The axes with the scatter plot.
@@ -91,7 +91,7 @@ def plot_uncorrected_markers(df, bird_configs, fig_size=(10, 20)):
     fig_size : tuple of float, optional
         Figure size ``(width, height)`` in inches.
 
-    Returns
+    Returns:
     -------
     fig : matplotlib.figure.Figure
         The figure.
@@ -142,7 +142,7 @@ def plot_bird_marker_comparisons(frame_info_df, marker_data, birds_config, fig_s
     alpha : float, optional
         Transparency of the scatter points.
 
-    Returns
+    Returns:
     -------
     fig : matplotlib.figure.Figure
         The figure.
@@ -201,12 +201,11 @@ def plot_3d_scatter(x, y, z, time=None):
         Values used to colour markers by time. When *None*, all
         markers are drawn in black.
 
-    Returns
+    Returns:
     -------
     plotly.graph_objects.Figure
         The interactive 3-D scatter figure.
     """
-
     marker_color = time if time is not None else 'black'
     fig = go.Figure(data=[
         go.Scatter3d(
@@ -285,7 +284,7 @@ def plot_3d_scatter_with_animation(x, y, z,
         When *True* the plot opens in the default browser; otherwise it
         renders inline in the notebook.
 
-    Returns
+    Returns:
     -------
     plotly.graph_objects.Figure
         The animated 3-D scatter figure.

@@ -22,12 +22,11 @@ def bin_and_plot(ax, x, y, color, label):
     label : str
         Legend label for the line.
 
-    Returns
+    Returns:
     -------
     None
         The axes are modified in place.
     """
-
     # Define bin edges
     size_bin = 0.05
     bins = np.arange(-12.2, 0.2, size_bin)
@@ -68,7 +67,7 @@ def plot_whole_body_angles(info_df, euler_angles):
         Euler angles, shape ``(n_frames, 3)`` with columns
         (pitch, yaw, roll).
 
-    Returns
+    Returns:
     -------
     fig : matplotlib.figure.Figure
         The figure.
@@ -153,10 +152,10 @@ def plot_whole_body_angles(info_df, euler_angles):
         ax[i].set_title(titles[i])
 
     # Set common labels
-    fig.text(0.5, 0.04, 'Horizontal Distance to perch (m)', ha='center')
-    fig.text(0.04, 0.5, 'Angle (degrees)', va='center', rotation='vertical')
+    fig.supxlabel('Horizontal Distance to perch (m)')
+    fig.supylabel('Angle (degrees)')
 
-    plt.tight_layout(rect=[0.03, 0.03, 1, 0.95])
+    plt.tight_layout()
 
     return fig, ax
 
@@ -176,14 +175,13 @@ def plot_angles_by_distance(info_df, euler_angles):
         Euler angles, shape ``(n_frames, 3)`` with columns
         (pitch, yaw, roll).
 
-    Returns
+    Returns:
     -------
     fig : matplotlib.figure.Figure
         The figure.
     ax : numpy.ndarray of matplotlib.axes.Axes
         2-D array of subplot axes, shape ``(4, 3)``.
     """
-
     pitch_angles = euler_angles[:, 0]
     yaw_angles = euler_angles[:, 1]
     roll_angles = euler_angles[:, 2]
@@ -239,8 +237,8 @@ def plot_angles_by_distance(info_df, euler_angles):
                 ax[i, j].set_yticks([-20, 0, 20])
 
     # Set common labels
-    fig.text(0.5, 0.04, 'Horizontal Distance to perch (m)', ha='center', fontsize=12)
-    fig.text(0.04, 0.5, 'Angle (degrees)', va='center', rotation='vertical', fontsize=12)
+    fig.supxlabel('Horizontal Distance to perch (m)', fontsize=12)
+    fig.supylabel('Angle (degrees)', fontsize=12)
 
     plt.tight_layout()
 

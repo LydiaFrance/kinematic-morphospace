@@ -206,7 +206,7 @@ def plot_shuffle_schematic(marker_colours=None, n_frames=5, seed=42):
     seed : int
         RNG seed for reproducible shuffles.
 
-    Returns
+    Returns:
     -------
     fig : Figure
     """
@@ -287,7 +287,7 @@ def plot_subsampling_schematic(marker_colours=None, n_frames=5):
     n_frames : int
         Number of toy frames to show.
 
-    Returns
+    Returns:
     -------
     fig : Figure
     """
@@ -398,7 +398,7 @@ def plot_relabelling_schematic(marker_colours=None, n_frames=20,
     seed : int
         RNG seed for reproducible relabelling.
 
-    Returns
+    Returns:
     -------
     fig : Figure
     """
@@ -564,7 +564,7 @@ def plot_imputation_schematic(marker_colours=None, n_frames_complete=10,
     seed : int
         RNG seed.
 
-    Returns
+    Returns:
     -------
     fig : Figure
     """
@@ -844,7 +844,7 @@ def plot_pairwise_distance_schematic(marker_colours=None, n_frames=5, seed=42):
     seed : int
         RNG seed for reproducible shuffles.
 
-    Returns
+    Returns:
     -------
     fig : Figure
     """
@@ -988,7 +988,7 @@ def plot_autocorrelation_schematic(marker_colours=None):
     Shows: original (all frames), thinned to every 2nd frame,
     and thinned to every 5th frame.
 
-    Returns
+    Returns:
     -------
     fig : Figure
     """
