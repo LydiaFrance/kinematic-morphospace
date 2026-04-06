@@ -10,15 +10,80 @@ import pandas as pd
 from .data_filtering import filter_by
 
 
+# ------- Sign conventions -------
+# Keys are 0-indexed component indices; values are the multiplier.
+# PC07 (index 6) = m-folding: negated so positive = more folded.
+SIGN_CONVENTIONS: dict[int, int] = {6: -1}
+
+_SIGN_LABELS: dict[int, str] = {
+    6: "PC07 negated (positive = m-folded)",
+}
+
+
+def apply_sign_conventions(scores, verbose=True):
+    """Apply interpretive sign flips to a scores array (returns a copy).
+
+    Parameters
+    ----------
+    scores : np.ndarray, shape (n_frames, n_components)
+        Raw PCA scores.
+    verbose : bool, optional
+        If True, print which conventions were applied.
+
+    Returns:
+    -------
+    np.ndarray
+        Copy of *scores* with columns listed in ``SIGN_CONVENTIONS`` negated.
+    """
+    out = scores.copy()
+    applied = []
+    for col_idx, sign in SIGN_CONVENTIONS.items():
+        if col_idx < out.shape[1]:
+            out[:, col_idx] *= sign
+            if verbose and col_idx in _SIGN_LABELS:
+                applied.append(_SIGN_LABELS[col_idx])
+    if verbose and applied:
+        print(f"  Sign conventions applied: {', '.join(applied)}")
+    return out
+
+
 # ------- Scores -------
 
 def get_score_df(scores, frame_info_df, filter=None, size_bin=0.05):
 
-    scores_df = concat_df(scores, frame_info_df, filter)
+    scores_df = concat_df(apply_sign_conventions(scores), frame_info_df, filter)
 
     scores_df, horzDist_bins = bin_by_horz_distance(scores_df, size_bin)
 
     return scores_df, horzDist_bins
+
+def prepare_heatmap_mode_order(scores_df, n_modes=9):
+    """Return mode columns in thematic display order.
+
+    PC08 (collective pitching) is moved after PC05 (counter pitching)
+    to group related pitching modes together.
+
+    Note: Sign conventions (e.g. PC07 negation) are applied upstream
+    by ``get_score_df`` / ``apply_sign_conventions``.
+
+    Parameters
+    ----------
+    scores_df : pd.DataFrame
+        Score DataFrame (not modified).
+    n_modes : int, optional
+        Number of modes to include (default 9).
+
+    Returns:
+    -------
+    list[str]
+        Ordered list of PC column names for heatmap display.
+    """
+    pc_cols = [f"PC{i:02}" for i in range(1, n_modes + 1)]
+    # Move PC08 next to PC05 to group pitching modes together
+    if n_modes >= 8:
+        pc_cols.insert(5, pc_cols.pop(pc_cols.index("PC08")))
+    return pc_cols
+
 
 def get_binned_scores(scores_df, **filters):
 
@@ -55,7 +120,7 @@ def get_score_range(scores, num_frames=30):
     num_frames : int, optional
         Number of animation frames to generate.
 
-    Returns
+    Returns:
     -------
     np.ndarray
         Score array of shape ``(num_frames, n_components)``.
@@ -104,7 +169,7 @@ def concat_df(scores, frame_info_df, filter=None):
         Boolean mask used when computing the scores. The same mask is
         applied to *frame_info_df* to ensure alignment.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Combined DataFrame with metadata columns and ``PC01``, ``PC02``, ...
@@ -138,7 +203,7 @@ def create_scores_info_df(scores, frame_info_df):
     frame_info_df : pd.DataFrame
         Frame metadata DataFrame with the same number of rows as *scores*.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Concatenated DataFrame of metadata and score columns.
@@ -234,7 +299,7 @@ def get_median_by_bin(scores_df):
     return median_scores
 
 
-def get_stdev_by_bin(scores_df):
+def get_stdev_by_bin(scores_df) -> pd.DataFrame:
 
     # Get the PC names
     PC_columns = scores_df.filter(like='PC')
