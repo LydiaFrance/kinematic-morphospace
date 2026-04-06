@@ -15,7 +15,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-03-27T15:24:14.839765Z"
+exclude-newer = "2026-03-28T03:01:11.04357Z"
 exclude-newer-span = "P7D"
 
 [[package]]
@@ -1625,6 +1625,7 @@ source = { editable = "." }
 dependencies = [
     { name = "coloredlogs" },
     { name = "ipykernel" },
+    { name = "ipympl" },
     { name = "morphing-birds" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -1688,6 +1689,7 @@ requires-dist = [
     { name = "h5py", marker = "extra == 'preprocessing'", specifier = ">=3.8" },
     { name = "ipykernel", specifier = ">=7.2.0" },
     { name = "ipykernel", marker = "extra == 'notebook'" },
+    { name = "ipympl", specifier = ">=0.10.0" },
     { name = "ipympl", marker = "extra == 'plot'", specifier = ">=0.9" },
     { name = "jupyter", marker = "extra == 'notebook'" },
     { name = "kaleido", marker = "extra == 'plot'", specifier = ">=0.2" },

@@ -43,6 +43,7 @@ dependencies = [
   "tqdm>=4.67.3",
   "coloredlogs>=15.0.1",
   "seaborn>=0.13.2",
+  "ipympl>=0.10.0",
 ]
 
 [project.optional-dependencies]
@@ -142,6 +143,7 @@ select = [
   "UP",          # pyupgrade
   "YTT",         # flake8-2020
   "EXE",         # flake8-executable
+  "D",           # pydocstyle (Google convention — see below)
 ]
 ignore = [
   "PLR",    # Design related pylint codes
@@ -152,4 +154,7 @@ unfixable = [
   "F841",   # Would remove unused variables
 ]
 flake8-unused-arguments.ignore-variadic-names = true  # allow unused *args/**kwargs
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
