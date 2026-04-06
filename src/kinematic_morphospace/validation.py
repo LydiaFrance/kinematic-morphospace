@@ -6,7 +6,6 @@ KMO sampling adequacy, and eigenvalue distinctness checks.
 
 import numpy as np
 from sklearn.decomposition import PCA
-from sklearn.utils import resample
 import scipy.stats as stats
 from tqdm import tqdm
 
@@ -58,7 +57,7 @@ def test_PCA_with_random(markers, num_randomisations=1000, num_components=5, see
     seed : int or None, optional
         Random seed for reproducibility.
 
-    Returns
+    Returns:
     -------
     psi : float
         Psi statistic for the real data.
@@ -140,7 +139,7 @@ def kmo_test(data):
     data : np.ndarray
         Input data matrix of shape ``(n_samples, n_features)``.
 
-    Returns
+    Returns:
     -------
     kmo_total : float
         Overall KMO index.
@@ -201,9 +200,12 @@ def pca_suitability_test(markers, n_bootstrap=1000, variance_threshold=0.8, alph
     var_p_value = 1 - stats.norm.cdf(var_test_statistic)
     
     return {
+        "kmo_total": kmo_total,
+        "kmo_per_variable": kmo_per_variable,
         "bartlett_p_value": p_value,
         "eigenvalues_distinct": distinct,
         "variance_test_p_value": var_p_value,
+        "variance_test_pass": var_p_value < alpha,
         "components_needed": k
     }
 
@@ -250,7 +252,7 @@ def bootstrap_pca(markers, n_bootstrap=1000, ci=95, seed=None):
     rng = np.random.default_rng(seed)
     pca_input = get_PCA_input(markers)
 
-    n_samples, n_features = pca_input.shape
+    n_samples = pca_input.shape[0]
     all_eigenvalues = []
 
     for _ in range(n_bootstrap):
@@ -335,6 +337,125 @@ def stats_bootstrap_pca(markers, n_bootstraps=1000, alpha=0.05, seed=None):
         'mean_scores': mean_scores,
         'se_scores': se_scores
     }
+
+def reconstruction_rmse(X, mean, components, max_k):
+    """Compute reconstruction RMSE for k=1..max_k on centred data.
+
+    Parameters
+    ----------
+    X : np.ndarray
+        Input data of shape ``(n_samples, n_features)``.
+    mean : np.ndarray
+        Feature means of shape ``(n_features,)``.
+    components : np.ndarray
+        PCA components of shape ``(n_components, n_features)`` — rows are components.
+    max_k : int
+        Maximum number of components to use for reconstruction.
+
+    Returns:
+    -------
+    rmse : np.ndarray
+        Array of shape ``(max_k,)`` containing reconstruction RMSE for
+        k=1, 2, …, max_k.
+    """
+    X_c = X - mean
+    rmse = np.zeros(max_k)
+    for k in range(1, max_k + 1):
+        scores_k = X_c @ components[:k].T
+        recon = scores_k @ components[:k] + mean
+        rmse[k - 1] = np.sqrt(np.mean((X - recon) ** 2))
+    return rmse
+
+
+def compute_cosine_sweep(components_ref, components, max_k):
+    """Compute minimum principal cosine at each subspace dimension k=1..max_k.
+
+    Parameters
+    ----------
+    components_ref : np.ndarray
+        Reference components of shape ``(n_comp, n_features)`` — rows are components.
+    components : np.ndarray
+        Comparison components of shape ``(n_comp, n_features)`` — rows are components.
+    max_k : int
+        Maximum subspace dimension to sweep.
+
+    Returns:
+    -------
+    min_cosines : np.ndarray
+        Array of shape ``(max_k,)`` — worst-aligned direction at each k.
+    """
+    from kinematic_morphospace import principal_cosines
+    min_cosines = np.zeros(max_k)
+    for k in range(1, max_k + 1):
+        cosines_k = principal_cosines(components_ref.T, components.T, modes=k)
+        min_cosines[k - 1] = cosines_k[-1]
+    return min_cosines
+
+
+def print_phase_pca_summary(results, n_cev=4):
+    """Pretty-print a phase-PCA summary produced by notebook code.
+
+    Parameters
+    ----------
+    results : dict
+        Dictionary with the following keys:
+
+        - ``phase_labels`` : dict[int, str] — phase id → display name
+        - ``independent`` : dict[int|str, dict] — keyed by phase id
+          (and ``"all"``), each containing ``"n"`` (int) and ``"cev"``
+          (1-D array of cumulative explained-variance ratios).
+        - ``shared_cev`` : dict[int|str, dict] — same structure as
+          *independent*, using shared-axis scores.
+        - ``shared_var`` : dict[int|str, dict] — keyed by phase id
+          (and ``"all"``), each containing ``"var"`` (1-D array of
+          per-mode variance) and ``"n"`` (int).
+    n_cev : int, optional
+        Number of CEV columns to display (default 4).
+    """
+    phase_labels = results["phase_labels"]
+    phases = [p for p in results["independent"] if p != "all"]
+    cev_hdr = "".join(f"{'CEV' + chr(0x2081 + i):>8}" for i in range(n_cev))
+    sep = "-" * (45 + 8 * n_cev)
+
+    def _cev_row(label, entry):
+        cev = entry["cev"][:n_cev]
+        vals = "".join(f"{v:>8.1%}" for v in cev)
+        return f"{label:<25} {entry['n']:>10,} {vals}"
+
+    # --- A) Independent PCA per phase ---
+    print("A) Independent PCA per phase")
+    print(f'{"Phase":<25} {"Frames":>10} {cev_hdr}')
+    print(sep)
+    for p in phases:
+        print(_cev_row(phase_labels[p], results["independent"][p]))
+    print(_cev_row("All phases", results["independent"]["all"]))
+
+    # --- B) Shared PCA axes ---
+    print()
+    print("B) Shared PCA axes (modes are comparable across phases)")
+    print(f'{"Phase":<25} {"Frames":>10} {cev_hdr}')
+    print(sep)
+    for p in phases:
+        print(_cev_row(phase_labels[p], results["shared_cev"][p]))
+    print(_cev_row("All phases", results["shared_cev"]["all"]))
+
+    # --- C) Absolute variance per shared mode ---
+    sample_var = results["shared_var"]["all"]["var"]
+    n_modes = len(sample_var)
+    mode_hdrs = "".join(f"{'Mode ' + str(i + 1):>10}" for i in range(n_cev))
+    rest_label = f"{n_cev + 1}-{n_modes}"
+    print()
+    print("Variance per shared mode (relative to wingspan)")
+    print(f'{"Phase":<25} {mode_hdrs} {rest_label:>10} {"Total":>10}')
+    print("-" * (25 + 10 * (n_cev + 2)))
+    for p in phases:
+        v = results["shared_var"][p]["var"]
+        vals = "".join(f"{v[i]:>10.5f}" for i in range(n_cev))
+        print(f"{phase_labels[p]:<25} {vals} {v[n_cev:].sum():>10.5f} {v.sum():>10.5f}")
+    v = results["shared_var"]["all"]["var"]
+    vals = "".join(f"{v[i]:>10.5f}" for i in range(n_cev))
+    print(f'{"All phases":<25} {vals} {v[n_cev:].sum():>10.5f} {v.sum():>10.5f}')
+
 
 def analyse_and_report_pca(markers, n_bootstraps=1000, seed=None):
     pca_input = get_PCA_input(markers)
