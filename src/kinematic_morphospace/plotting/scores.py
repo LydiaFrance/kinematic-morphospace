@@ -25,12 +25,11 @@ def plot_score(scores_df,
         Keyword arguments forwarded to :func:`~kinematic_morphospace.pca_scores.get_binned_scores`
         for subsetting (e.g. ``hawkname``, ``obstacle``).
 
-    Returns
+    Returns:
     -------
     matplotlib.axes.Axes
         The axes containing the score plot.
     """
-
     if ax is None:
         fig, ax = plt.subplots()
 
@@ -77,11 +76,13 @@ def plot_score(scores_df,
 
     return ax
 
-def plot_score_multi_PCs(scores_df,PC_num_list=range(1,13), **filters):
-    """Plot score profiles for multiple PCs in a 3x3 grid.
+def plot_score_multi_PCs(scores_df, PC_num_list=range(1, 13), **filters):
+    """Plot score profiles for multiple PCs in a grid sized to the request.
 
-    Each panel shows one morphing shape mode, with PC08 re-ordered
-    next to PC05 for thematic grouping.
+    Each panel shows one morphing shape mode.  When all nine interpretable
+    modes are requested (PC_num_list contains PC08), PC08 is re-ordered next
+    to PC05 for thematic grouping.  The grid is sized dynamically: up to 3
+    columns, with as many rows as needed.
 
     Parameters
     ----------
@@ -93,71 +94,67 @@ def plot_score_multi_PCs(scores_df,PC_num_list=range(1,13), **filters):
         Keyword arguments forwarded to :func:`plot_score`. Must include
         ``perchDist``.
 
-    Returns
+    Returns:
     -------
     matplotlib.figure.Figure
-        The figure containing the 3x3 grid.
+        The figure.
     """
-
-    # Warn the user to specify a perch distance
     if 'perchDist' not in filters:
         raise ValueError("perchDist should be in filters")
 
     perch_int = filters['perchDist']
 
+    PC_titles = {
+        'PC01': 'wing lifting',
+        'PC02': 'wing spreading',
+        'PC03': 'wing sweeping',
+        'PC04': 'tail spreading',
+        'PC05': 'counter pitching',
+        'PC06': 'collective pitching',
+        'PC07': 'handwing spreading',
+        'PC08': 'M-folding',
+        'PC09': 'handwing sweeping',
+    }
 
-    # PC_names = ["PC" + str(x) for x in PC_num_list]
     PC_names = [f'PC{i:02}' for i in PC_num_list]
-    PC_titles = ["wing lifting",
-                "wing spreading",
-                "wing sweeping",
-                "tail spreading",
-                "counter pitching",
-                "collective pitching",
-                "handwing spreading",
-                "M-folding",
-                "handwing sweeping"]
 
-    # Move PC08 next to PC05
-    # This is for grouping the PCs in similar categories.
-    if 'PC08' in PC_names:
+    # Re-order PC08 next to PC05 only when both are present
+    if 'PC08' in PC_names and 'PC05' in PC_names:
         PC_names.remove('PC08')
-        PC_names.insert(5, 'PC08')
+        PC_names.insert(PC_names.index('PC05') + 1, 'PC08')
 
-    fig, axes = plt.subplots(3, 3, figsize=(5, 5), sharex=True)
+    n = len(PC_names)
+    n_cols = min(n, 3)
+    n_rows = (n + n_cols - 1) // n_cols
+    fig_w = n_cols * 5 / 3
+    fig_h = n_rows * 5 / 3
+
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(fig_w, fig_h), sharex=True,
+                             squeeze=False)
     flat_axes = axes.flatten()
 
-    # Loop through each subplot and plot the scores.
-    for ii, ax in enumerate(flat_axes):
-        plot_score(scores_df, PC_names[ii], ax, **filters)
+    for ii, pc_name in enumerate(PC_names):
+        ax = flat_axes[ii]
+        plot_score(scores_df, pc_name, ax, **filters)
 
-        # plot_score already sets data-driven ylim; read it back
         y_min, y_max = ax.get_ylim()
-
-        # Place one tick at the midpoint of each half
         y_mid = np.round(max(abs(y_min), abs(y_max)) / 2, 2)
         ax.set_yticks([-y_mid, 0, y_mid])
 
-
-        # Set title for each subplot
-        ax.set_title(PC_titles[ii], fontsize = 8,position=(0.5, 0.9))
-
-        # Make x axis labels smaller font
+        title = PC_titles.get(pc_name, pc_name)
+        ax.set_title(title, fontsize=8, position=(0.5, 0.9))
         ax.tick_params(axis='x', labelsize=8)
         ax.tick_params(axis='y', labelsize=6)
-
-        # Turn off frame
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         ax.spines['left'].set_visible(False)
-
-
-        # Make the ticks point inwards
         ax.tick_params(direction='in')
-        ax.set_xticks(np.arange(0,-perch_int*2,-perch_int/2))
+        ax.set_xticks(np.arange(0, -perch_int * 2, -perch_int / 2))
+        ax.set_xlim(-perch_int, 0)
 
-        # X axis limits
-        ax.set_xlim(-perch_int,0)
+    # Hide unused axes
+    for ax in flat_axes[n:]:
+        ax.set_visible(False)
 
     fig.text(0.5, -0.02, 'horizontal distance to perch (m)', ha='center')
     fig.tight_layout()
@@ -179,7 +176,7 @@ def plot_score_multi_distance(scores_df,PC_name, **filters):
         Keyword arguments forwarded to :func:`plot_score`. Must *not*
         include ``perchDist``.
 
-    Returns
+    Returns:
     -------
     fig : matplotlib.figure.Figure
         The figure.
@@ -252,7 +249,7 @@ def plot_pc_comparison_grid(scores_df, score_5, score_95, n_pcs=9, alpha=0.1, bk
     filter_condition : pandas.Series, optional
         Boolean mask to subset ``scores_df`` before plotting.
 
-    Returns
+    Returns:
     -------
     matplotlib.figure.Figure
         The figure containing the grid.
@@ -326,7 +323,7 @@ def plot_pc_comparison_grid(scores_df, score_5, score_95, n_pcs=9, alpha=0.1, bk
                 ax.set_xticklabels([])
 
     plt.suptitle('Comparison of PC Scores', fontsize=16)
-    plt.tight_layout(rect=[0, 0, 1, 0.97])
+    plt.tight_layout(rect=(0, 0, 1, 0.97))
     return fig
 
 
@@ -346,14 +343,13 @@ def plot_score_multi_bird(scores_df,PC_name, birdname_list = ['Drogon', 'Ruby','
     **filters
         Keyword arguments forwarded to :func:`plot_score`.
 
-    Returns
+    Returns:
     -------
     fig : matplotlib.figure.Figure
         The figure.
     axes : numpy.ndarray of matplotlib.axes.Axes
         Array of subplot axes.
     """
-
     fig, axes = plt.subplots(4,1,figsize=(5, 4), sharex=True, sharey=True)
 
     for ii, bird in enumerate(birdname_list):
@@ -390,7 +386,8 @@ def plot_score_multi_bird(scores_df,PC_name, birdname_list = ['Drogon', 'Ruby','
     # Set y-axis to span all hawks (sharey means setting one sets all)
     global_ymin = min(ax.get_ylim()[0] for ax in axes.flatten())
     global_ymax = max(ax.get_ylim()[1] for ax in axes.flatten())
-    axes.flatten()[0].set_ylim(global_ymin, global_ymax)
+    padding = (global_ymax - global_ymin) * 0.05
+    axes.flatten()[0].set_ylim(global_ymin - padding, global_ymax + padding)
 
     fig.text(0.5, 1, 'horizontal distance to perch (m)', ha='center')
     fig.text(0,0.5, 'PC score', ha='center', rotation='vertical')
