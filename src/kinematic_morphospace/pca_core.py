@@ -9,8 +9,7 @@ from .data_filtering import filter_by
 # ------- PCA -------
 
 def run_PCA(markers, project_data=None, n_components=None, flat_input=False):
-    """
-    Run Principal Component Analysis on the given markers data.
+    """Run Principal Component Analysis on the given markers data.
 
     Args:
         markers (np.ndarray): Input marker data, shape (N, markers, 3)
@@ -108,10 +107,8 @@ def run_PCA_birds(markers, frame_info_df, filter_on=True, birds=None, year=None)
 # ....... Helper functions .......
 
 def get_PCA_input_sizes(pca_input):
+    """Get the sizes of the input data.
     """
-    Get the sizes of the input data.
-    """
-    
     n_frames = pca_input.shape[0]
     n_markers = pca_input.shape[1]/3
     n_vars = pca_input.shape[1]
@@ -119,8 +116,7 @@ def get_PCA_input_sizes(pca_input):
     return n_frames, n_markers, n_vars
 
 def get_PCA_input(markers):
-    """
-    Reshape the data to be [n, nMarkers*3]
+    """Reshape the data to be [n, nMarkers*3]
     """
     n_markers = markers.shape[1]
     pca_input = markers.reshape(-1, n_markers*3)
@@ -129,8 +125,7 @@ def get_PCA_input(markers):
 
 
 def test_PCA_output(pca_input, principal_components, scores):
-    """
-    Test the shape of the PCA output.
+    """Test the shape of the PCA output.
     """
     n_frames, n_markers, n_vars = get_PCA_input_sizes(pca_input)
 

@@ -1,5 +1,4 @@
-"""
-kinematic-morphospace preprocessing: convert raw MATLAB data to analysis-ready CSVs.
+"""kinematic-morphospace preprocessing: convert raw MATLAB data to analysis-ready CSVs.
 
 This subpackage reproduces two MATLAB scripts as clean, testable Python
 pipelines:

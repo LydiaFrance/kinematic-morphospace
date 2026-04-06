@@ -1,5 +1,4 @@
-"""
-Position and time calibration for hawk flight data.
+"""Position and time calibration for hawk flight data.
 
 Position calibration subtracts perch height from Z coordinates (2020 only).
 Time calibration finds the frame at a given horizontal distance from the perch
@@ -41,7 +40,7 @@ def calibrate_position(
         Explicit list of Z-column names to adjust. If ``None``, defaults
         to ``["XYZ_3", "smooth_XYZ_3", "backpack_smooth_XYZ_3"]``.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Copy of *df* with adjusted Z columns.
@@ -101,7 +100,7 @@ def find_jump_frame(
     time_col : str
         Column containing time values.
 
-    Returns
+    Returns:
     -------
     float
         Time at the jump frame, or ``NaN`` if no match found.
@@ -151,7 +150,7 @@ def calibrate_time(
     time_col : str
         Column containing time values.
 
-    Returns
+    Returns:
     -------
     tuple[pd.DataFrame, pd.DataFrame]
         - The calibrated DataFrame (copy of *df* with adjusted time).
@@ -223,7 +222,7 @@ def apply_time_offsets(
     time_col : str
         Time column name.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Copy of *df* with calibrated time.

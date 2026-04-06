@@ -2,8 +2,7 @@ import numpy as np
 
 
 def to_bilateral(right, left=None):
-    """
-    Assemble bilateral marker array from unilateral sides.
+    """Assemble bilateral marker array from unilateral sides.
 
     If only *right* is provided, the left side is created by mirroring
     (negating the x-coordinate), producing a symmetric shape.
@@ -20,7 +19,7 @@ def to_bilateral(right, left=None):
         Left-side unilateral markers (x-mirrored convention, i.e. x positive).
         If None, the right side is mirrored to create a symmetric shape.
 
-    Returns
+    Returns:
     -------
     np.ndarray, shape (n_frames, 2 * n_markers, 3)
         Bilateral markers with left at even indices, right at odd indices.
@@ -43,8 +42,7 @@ def to_bilateral(right, left=None):
 
 
 def to_unilateral(bilateral, left_indices=None, right_indices=None):
-    """
-    Split bilateral marker array into stacked unilateral frames.
+    """Split bilateral marker array into stacked unilateral frames.
 
     Separates left and right markers, mirrors left x-coordinates so both
     sides share the same coordinate frame, and stacks them (left first,
@@ -59,7 +57,7 @@ def to_unilateral(bilateral, left_indices=None, right_indices=None):
     right_indices : list[int], optional
         Indices of right-side markers. Default: [1, 3, 5, 7].
 
-    Returns
+    Returns:
     -------
     np.ndarray, shape (2 * n_frames, n_markers_per_side, 3)
         Stacked unilateral data (left frames first, then right frames),
@@ -81,8 +79,7 @@ def to_unilateral(bilateral, left_indices=None, right_indices=None):
 
 
 def reconstruct(score_frames, principal_components, mu, components_list=None):
-    """
-    Reconstruct frames based on principal components and score frames.
+    """Reconstruct frames based on principal components and score frames.
 
     Parameters:
     - score_frames (numpy.ndarray): The score frames for reconstruction.
@@ -93,7 +90,6 @@ def reconstruct(score_frames, principal_components, mu, components_list=None):
     Returns:
     - numpy.ndarray: The reconstructed frames.
     """
-
     if components_list is None:
         components_list = range(principal_components.shape[1])
 

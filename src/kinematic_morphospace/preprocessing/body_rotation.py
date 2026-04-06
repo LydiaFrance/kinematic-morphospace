@@ -1,5 +1,4 @@
-"""
-Vectorized body-frame rotation and angle computation.
+"""Vectorized body-frame rotation and angle computation.
 
 Provides batch computation of pitch/yaw angles, rotation matrix construction,
 and body-frame coordinate transformation. Replaces the row-by-row MATLAB
@@ -28,7 +27,7 @@ def compute_pitch_angle(vectors: np.ndarray) -> np.ndarray:
     vectors : np.ndarray
         (N, 3) array of direction vectors (e.g. tailpack relative to backpack).
 
-    Returns
+    Returns:
     -------
     np.ndarray
         (N,) pitch angles in degrees.
@@ -63,7 +62,7 @@ def compute_yaw_angle(vectors: np.ndarray) -> np.ndarray:
         (N, 3) array of direction vectors (e.g. head-to-tail after pitch
         correction).
 
-    Returns
+    Returns:
     -------
     np.ndarray
         (N,) yaw angles in degrees (unsigned, 0-180).
@@ -96,7 +95,7 @@ def build_rotation_matrices(
     axis : str
         Rotation axis: ``"x"``, ``"y"``, or ``"z"``.
 
-    Returns
+    Returns:
     -------
     np.ndarray
         (N, 3, 3) array of rotation matrices.
@@ -152,7 +151,7 @@ def apply_rotation(
     rotation_matrices : np.ndarray
         (N, 3, 3) rotation matrices.
 
-    Returns
+    Returns:
     -------
     np.ndarray
         (N, 3) rotated coordinates.
@@ -179,7 +178,7 @@ def build_body_frame(
     tail_vectors : np.ndarray
         (N, 3) vectors from backpack to tailpack.
 
-    Returns
+    Returns:
     -------
     body_axis : np.ndarray
         (N, 3) unit vectors along the body axis.
@@ -240,7 +239,7 @@ def rotate_to_body_frame(
     upwards : np.ndarray
         (N, 3) upwards unit vectors (body-frame Z axis).
 
-    Returns
+    Returns:
     -------
     np.ndarray
         (N, 3) coordinates in the body-fixed frame.
@@ -274,7 +273,7 @@ def extract_body_angles(
     upwards : np.ndarray
         (N, 3) upwards unit vectors.
 
-    Returns
+    Returns:
     -------
     pitch : np.ndarray
         (N,) body pitch in degrees.

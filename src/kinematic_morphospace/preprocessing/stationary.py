@@ -1,5 +1,4 @@
-"""
-Stationary marker detection for motion-capture data.
+"""Stationary marker detection for motion-capture data.
 
 Identifies markers that remain stationary throughout a recording (perches,
 obstacles, calibration objects) using K-means clustering on movement range,
@@ -34,7 +33,7 @@ def compute_marker_movement(df: pd.DataFrame) -> pd.DataFrame:
         Long-format marker table with columns ``marker_id``, ``X``, ``Y``,
         ``Z``.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         One row per marker with columns ``marker_id``, ``range_X``,
@@ -80,7 +79,7 @@ def detect_stationary_markers(
     outlier_std_factor : float
         Multiplier on standard deviation for outlier detection.
 
-    Returns
+    Returns:
     -------
     pd.Series
         Boolean Series indexed by ``marker_id``; True = stationary.
@@ -178,7 +177,7 @@ def label_fixed_objects(
         Mapping of label → (y_min, y_max). Defaults to
         :data:`DEFAULT_OBJECT_RANGES`.
 
-    Returns
+    Returns:
     -------
     pd.Series
         String Series indexed by ``marker_id`` with labels:

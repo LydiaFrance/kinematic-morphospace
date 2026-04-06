@@ -32,7 +32,7 @@ def filter_by(frame_info, **filters):
     **filters
         Keyword arguments corresponding to the filter names above.
 
-    Returns
+    Returns:
     -------
     np.ndarray
         Boolean mask of shape ``(n_frames,)``.
@@ -85,7 +85,7 @@ def filter_by_bool(variable, bool_value):
         Value to match against. If ``None``, returns an all-``True`` mask
         (i.e. no filtering is applied).
 
-    Returns
+    Returns:
     -------
     np.ndarray
         Boolean mask with the same length as *variable*.
@@ -141,12 +141,11 @@ def filter_by_perchDist(perchDist_df, perchDist):
         Distance specification.  Accepts a string (e.g. ``'12m'``), an
         integer, or a list of either.
 
-    Returns
+    Returns:
     -------
     np.ndarray
         Boolean array where ``True`` indicates matching perch distances.
     """
-    
     # If perchDist is None, return the full array bool mask
     if perchDist is None:
         return np.ones(len(perchDist_df), dtype=bool)
@@ -172,11 +171,9 @@ def filter_by_perchDist(perchDist_df, perchDist):
     return is_selected
 
 def filter_by_turn(turn_df, turn):
-    """
-    Filter frameID entries based on a specified turn.
+    """Filter frameID entries based on a specified turn.
     Possible values are 'left', 'right', or 'straight'.
     """
-    
     if turn is None:
         return np.ones(len(turn_df), dtype=bool)
     
@@ -206,7 +203,7 @@ def filter_by_horzdist(horzdist_df, horzdist_limit):
           ``'second_half'``, ``'landing'``, ``'takeoff'``, or
           ``'in-flight'``.
 
-    Returns
+    Returns:
     -------
     np.ndarray
         Boolean mask for filtering.

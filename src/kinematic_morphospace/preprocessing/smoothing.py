@@ -1,5 +1,4 @@
-"""
-Trajectory smoothing and derivative computation.
+"""Trajectory smoothing and derivative computation.
 
 Provides moving-average smoothing and optional spline fitting for marker
 trajectories. Also computes per-frame body statistics (mean body position,
@@ -36,7 +35,7 @@ def moving_mean_smooth(
     window : int
         Smoothing window size.
 
-    Returns
+    Returns:
     -------
     np.ndarray
         Smoothed values (same length as input).
@@ -76,7 +75,7 @@ def smooth_spline(
         Desired RMS smoothing tolerance. Converted to ``s = rms**2 * len(x)``
         for UnivariateSpline.
 
-    Returns
+    Returns:
     -------
     y_smooth : np.ndarray
         Smoothed values.
@@ -85,7 +84,7 @@ def smooth_spline(
     acceleration : np.ndarray
         Second derivative (d²y/dx²).
 
-    Raises
+    Raises:
     ------
     ImportError
         If scipy is not installed.
@@ -153,7 +152,7 @@ def smooth_trajectory_with_gaps(
         (M,) horizontal distance from perch for each observation.
         If None, distance-based gap filtering is skipped.
 
-    Returns
+    Returns:
     -------
     dict
         ``"frames"``: (K,) output frame numbers,
@@ -272,7 +271,7 @@ def compute_body_statistics(
     frame_rate : float
         Recording frame rate in Hz (default 200).
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         One row per frame with columns:

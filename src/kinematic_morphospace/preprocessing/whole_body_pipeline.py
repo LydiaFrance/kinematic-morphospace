@@ -1,5 +1,4 @@
-"""
-Whole-body analysis pipeline: raw marker data to body-frame coordinates.
+"""Whole-body analysis pipeline: raw marker data to body-frame coordinates.
 
 Orchestrates the 17-step processing pipeline from
 ``run_whole_body_analysis.m``, converting raw labelled/unlabelled marker
@@ -100,7 +99,7 @@ def smooth_backpack_per_sequence(
     marker_label : str
         Which body marker to smooth (default ``"backpack"``).
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Smooth table with columns: ``frame``, ``time``, ``seqID``,
@@ -218,7 +217,7 @@ def run_whole_body_analysis(
     info_df : pd.DataFrame, optional
         Sequence info table with ``seqID``, ``Obstacle``, ``IMU`` columns.
 
-    Returns
+    Returns:
     -------
     dict[str, pd.DataFrame]
         ``"smooth_backpack"``, ``"smooth_tailpack"``, ``"smooth_headpack"``,

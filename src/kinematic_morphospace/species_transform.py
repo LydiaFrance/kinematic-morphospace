@@ -14,8 +14,7 @@ from .cross_species import integrate_dataframe_to_bird3D
 logger = logging.getLogger(__name__)
 
 def compute_transformation_matrix(source_marker: np.ndarray, target_marker: np.ndarray) -> np.ndarray:
-    """
-    Computes a 3x3 transformation matrix that rotates and scales
+    """Computes a 3x3 transformation matrix that rotates and scales
     source_marker to align with target_marker.
     
     Args:
@@ -67,8 +66,7 @@ def transform_hawk_to_species(hawk_3d: Any,
                             species_idx: int,
                             species_df: pd.DataFrame,
                             tail_z_override: float = -0.05) -> Tuple[Animal3D, Animal3D, np.ndarray]:
-    """
-    Transform a hawk shape to match a target species using marker-by-marker transformation.
+    """Transform a hawk shape to match a target species using marker-by-marker transformation.
 
     Args:
         hawk_3d: Animal3D object containing hawk shape
@@ -121,7 +119,7 @@ def transform_hawk_to_species(hawk_3d: Any,
     # Create marker dictionary (moving markers from transformation)
     transformed_marker_dict = create_marker_dict(
         bilateral_markers.reshape(-1, 3),
-        target_bird_3d.skeleton_definition.analysis_markers
+        target_bird_3d.skeleton.analysis_markers
     )
 
     # Merge fixed markers from the target species into the transformed dict
@@ -138,8 +136,7 @@ def transform_hawk_to_species(hawk_3d: Any,
 
 def transform_principal_components(principal_components: np.ndarray, 
                                 transformation_matrix: np.ndarray) -> np.ndarray:
-    """
-    Transform principal components using the block diagonal transformation matrix.
+    """Transform principal components using the block diagonal transformation matrix.
     
     Args:
         principal_components: Array containing principal components
@@ -164,7 +161,7 @@ def create_marker_dict(bilateral_markers: np.ndarray, marker_names: list) -> Dic
     marker_names : list of str
         Marker names corresponding to the rows of *bilateral_markers*.
 
-    Returns
+    Returns:
     -------
     dict
         Dictionary mapping each marker name to an ``[x, y, z]`` list.

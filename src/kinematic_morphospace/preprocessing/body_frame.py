@@ -1,5 +1,4 @@
-"""
-Body pitch estimation from backpack marker positions.
+"""Body pitch estimation from backpack marker positions.
 
 Uses PCA on per-frame marker deviations from the centroid to find the
 body's principal axis, then computes the pitch angle as the angle between
@@ -45,7 +44,7 @@ def estimate_body_pitch(
         Minimum number of backpack markers required per frame. Frames with
         fewer markers get ``pitch = NaN``. Default 3 (matching MATLAB).
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Table with columns ``frame``, ``body_pitch`` (degrees),

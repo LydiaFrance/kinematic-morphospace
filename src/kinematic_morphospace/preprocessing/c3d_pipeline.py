@@ -1,5 +1,4 @@
-"""
-Orchestration pipeline for C3D → processed marker tables.
+"""Orchestration pipeline for C3D → processed marker tables.
 
 Chains all upstream processing steps (C3D loading, stationary detection,
 trial splitting, body marker labelling, smoothing, coordinate transforms,
@@ -143,7 +142,7 @@ def run_single_c3d(
     config : C3DConfig, optional
         Pipeline configuration. Uses defaults if not provided.
 
-    Returns
+    Returns:
     -------
     dict[str, pd.DataFrame]
         Processed tables:
@@ -282,7 +281,7 @@ def run_from_c3d(
     config : C3DConfig
         Pipeline configuration.
 
-    Returns
+    Returns:
     -------
     dict[str, pd.DataFrame]
         Concatenated output tables:

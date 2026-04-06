@@ -1,5 +1,4 @@
-"""
-Body marker identification by pairwise inter-marker distances.
+"""Body marker identification by pairwise inter-marker distances.
 
 Labels moving markers as headpack, backpack, or tailpack based on
 characteristic pairwise distances between co-located markers within each
@@ -57,7 +56,7 @@ def compute_pairwise_distances(
         Marker table with columns ``frame``, ``marker_id``, ``X``, ``Y``,
         ``Z``. Should contain only moving (non-stationary) markers.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Table with columns ``frame``, ``marker_i``, ``marker_j``,
@@ -144,7 +143,7 @@ def label_body_markers(
         If set, randomly sample this many frames for labelling (faster for
         long recordings). Uses majority voting across sampled frames.
 
-    Returns
+    Returns:
     -------
     pd.Series
         String Series indexed by ``marker_id`` with labels: ``"headpack"``,
@@ -225,7 +224,7 @@ def fix_mislabelled_tailpack(
     label_col : str
         Column containing marker labels.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Updated DataFrame with corrected labels.
@@ -279,7 +278,7 @@ def filter_by_distance(
     label_col : str
         Column containing marker labels.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Updated DataFrame with out-of-range markers relabelled as ``""``.

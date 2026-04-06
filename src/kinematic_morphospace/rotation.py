@@ -6,8 +6,7 @@ from scipy.spatial.transform import Rotation as R
 
 
 def assess_symmetry(pc, axis='x', nMarkers=8):
-    """
-    Calculate symmetry score for a given principal component.
+    """Calculate symmetry score for a given principal component.
 
     Returns the **sum of squared differences** between each left marker
     and its mirrored right marker.  This is *not* RMS — to convert,
@@ -99,8 +98,7 @@ def apply_rotation(P, rotation_matrices):
 
 
 def undo_body_pitch_rotation(markers, body_pitch):
-    """
-    Undo the body pitch rotation of the markers.
+    """Undo the body pitch rotation of the markers.
 
     Parameters:
     - markers (numpy.ndarray): A numpy array containing the markers.
@@ -129,8 +127,7 @@ def undo_body_pitch_rotation(markers, body_pitch):
 
 
 def undo_body_rotation(markers, whole_body_angle, which_axis='z'):
-    """
-    Undo the body rotation of the markers around a specified axis.
+    """Undo the body rotation of the markers around a specified axis.
 
     ``which_axis`` selects which plane the measured body angle lies in,
     **not** the geometric rotation axis.  The mapping is:
