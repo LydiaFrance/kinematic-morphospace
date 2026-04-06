@@ -26,7 +26,7 @@ def prepare_left_right_comparison(scores_df, **filters):
         :func:`~kinematic_morphospace.data_filtering.filter_by` (e.g. ``obstacle``,
         ``horzdist``, ``hawkname``).
 
-    Returns
+    Returns:
     -------
     left_right_scores : pandas.DataFrame
         Merged DataFrame with ``_left`` / ``_right`` suffixed PC columns.
@@ -158,6 +158,65 @@ def _plot_one_pc(ax, left_right_scores, score_5, score_95, PC,
 
 # ---------- Public plotting functions ----------
 
+def summarise_symmetry(left_right_scores):
+    """Compute MA regression statistics for all 12 PCs.
+
+    Parameters
+    ----------
+    left_right_scores : pandas.DataFrame
+        Merged left/right scores as returned by
+        :func:`prepare_left_right_comparison`.
+
+    Returns:
+    -------
+    pandas.DataFrame
+        One row per PC with columns: ``slope``, ``intercept``,
+        ``variance_pct``, and ``coupling`` (qualitative label).
+    """
+    rows = []
+    for pc in range(12):
+        pc_label = f'PC{pc + 1:02}'
+        data = np.array([left_right_scores[f'{pc_label}_right'],
+                         left_right_scores[f'{pc_label}_left']]).T
+        slope, intercept, var_pct = _major_axis_regression(data)
+        # Qualitative coupling label based on slope proximity to 1.0
+        dev = abs(slope - 1.0)
+        if dev < 0.05:
+            coupling = 'strong'
+        elif dev < 0.15:
+            coupling = 'moderate'
+        else:
+            coupling = 'weak'
+        rows.append({
+            'mode': pc_label,
+            'slope': slope,
+            'intercept': intercept,
+            'variance_pct': var_pct,
+            'coupling': coupling,
+        })
+    return pd.DataFrame(rows)
+
+
+def print_symmetry_summary(left_right_scores, label=''):
+    """Print a formatted MA regression summary for all 12 PCs.
+
+    Parameters
+    ----------
+    left_right_scores : pandas.DataFrame
+        Merged left/right scores as returned by
+        :func:`prepare_left_right_comparison`.
+    label : str, optional
+        Descriptive label printed as a heading (e.g. ``'Flapping'``).
+    """
+    df = summarise_symmetry(left_right_scores)
+    if label:
+        print(f'\n--- {label} ---')
+    print(f'  {"Mode":<6} {"Slope":>7} {"Intercept":>10} {"Var %":>7}  {"Coupling"}')
+    for _, r in df.iterrows():
+        print(f'  {r["mode"]:<6} {r["slope"]:>7.3f} {r["intercept"]:>10.4f} '
+              f'{r["variance_pct"]:>6.1f}%  {r["coupling"]}')
+
+
 def plot_left_right(left_right_scores, score_5, score_95, alpha=0.05, bkgrd_color='white'):
     """Plot a 4x3 grid comparing left vs right PC scores for all 12 PCs.
 
@@ -179,7 +238,7 @@ def plot_left_right(left_right_scores, score_5, score_95, alpha=0.05, bkgrd_colo
     bkgrd_color : str, optional
         Background colour for the panels.
 
-    Returns
+    Returns:
     -------
     fig : matplotlib.figure.Figure
         The figure.
@@ -221,7 +280,7 @@ def plot_left_right_just_two(left_right_scores, score_5, score_95, alpha=0.05):
     alpha : float, optional
         Scatter-point transparency.
 
-    Returns
+    Returns:
     -------
     fig : matplotlib.figure.Figure
         The figure.
@@ -263,14 +322,13 @@ def plot_left_right_empty(score_5, score_95, PC=0, bkgrd_color='white', figsize=
     figsize : tuple of float, optional
         Figure size ``(width, height)`` in inches.
 
-    Returns
+    Returns:
     -------
     fig : matplotlib.figure.Figure
         The figure.
     ax : matplotlib.axes.Axes
         The axes.
     """
-
     fig, ax = plt.subplots(figsize=figsize)
 
     # Get min and max values for this PC
@@ -336,7 +394,7 @@ def plot_symmetry_scores(symmetry_scores, threshold=0.05):
     threshold : float, optional
         Threshold value drawn as a horizontal dashed line.
 
-    Returns
+    Returns:
     -------
     fig : matplotlib.figure.Figure
         The figure.
