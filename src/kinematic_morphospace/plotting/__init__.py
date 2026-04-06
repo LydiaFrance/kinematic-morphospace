@@ -87,7 +87,7 @@ from .scores import (
 from .symmetry import (
     prepare_left_right_comparison, plot_left_right,
     plot_left_right_just_two, plot_left_right_empty,
-    plot_symmetry_scores)
+    plot_symmetry_scores, summarise_symmetry, print_symmetry_summary)
 
 # Score heatmaps
 from .heatmaps import (
@@ -118,6 +118,18 @@ from .schematics import (
     _layout_relabelling_schematic, _layout_imputation_schematic,
     _layout_pairwise_distance_schematic,
     plot_autocorrelation_schematic)
+
+# Individual-vs-shared subspace comparisons
+from .subspaces import (
+    plot_cosine_profile, plot_bootstrap_cosines, plot_method_comparison,
+    HAWK_COLOURS)
+
+# Flight-behaviour continuum (NB12)
+from .continuum import (
+    compute_flight_phase_traces,
+    plot_flight_phase_overlay, plot_transition_overlay,
+    plot_flight_phase_time_traces,
+    plot_bic_sweep, plot_continuum_summary)
 
 # Robustness composite figures (schematic + results)
 from .robustness import (
