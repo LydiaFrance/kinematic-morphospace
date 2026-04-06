@@ -3,8 +3,7 @@ from scipy.spatial.distance import cdist
 from sklearn.cluster import KMeans
 
 def get_cluster_labels(data, n_clusters=8, random_state=0):
-    """
-    Get cluster labels for data using KMeans clustering.
+    """Get cluster labels for data using KMeans clustering.
     
     Parameters
     ----------
@@ -15,7 +14,7 @@ def get_cluster_labels(data, n_clusters=8, random_state=0):
     random_state : int, optional
         Random seed for reproducibility, by default 0.
     
-    Returns
+    Returns:
     -------
     np.ndarray
         Cluster labels.
@@ -26,8 +25,7 @@ def get_cluster_labels(data, n_clusters=8, random_state=0):
     return kmeans.labels_, kmeans.cluster_centers_
 
 def restrict_cluster_labels(data, cluster_centroids, cluster_labels, threshold_val=70):
-    """
-    Restrict cluster labels based on the distance between the data and the cluster centers.
+    """Restrict cluster labels based on the distance between the data and the cluster centers.
     
     Parameters
     ----------
@@ -40,12 +38,11 @@ def restrict_cluster_labels(data, cluster_centroids, cluster_labels, threshold_v
     threshold_val : int, optional
         Percentile threshold for distance to cluster centre, by default 70.
     
-    Returns
+    Returns:
     -------
     np.ndarray
         Restricted cluster labels.
     """
-
     cluster_labels, cluster_centroids = reorder_cluster_labels(cluster_labels,cluster_centroids)
 
     # Calculate the distance between each data point and the cluster centroids

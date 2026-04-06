@@ -32,13 +32,12 @@ def select_max_wingspan_row(df,
     right_marker : str, optional
         Marker name for the right wing tip (default ``'pt12'``).
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         DataFrame with one row per bird, corresponding to the maximum
         wingspan observation.
     """
-    
     df = df.copy()
 
     # Extract 3D coordinates (X,Y,Z) for left and right wing markers into numpy arrays
@@ -87,7 +86,7 @@ def split_bird_id(bird_id):
     bird_id : str
         Compound bird-ID string (e.g. ``'species_name_bird_01'``).
 
-    Returns
+    Returns:
     -------
     pd.Series
         Series with keys ``'Species'`` and ``'BirdID'``.
@@ -119,7 +118,7 @@ def process_body_bird_id(body_df, id_col='bird_id'):
         Name of the column holding the compound bird ID (default
         ``'bird_id'``).
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Copy of *body_df* with added ``Species`` and ``BirdID`` columns.
@@ -149,12 +148,11 @@ def merge_bird_data(wing_df, body_df, on_col='BirdID'):
     on_col : str, optional
         Column to join on (default ``'BirdID'``).
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Merged DataFrame retaining all rows from *wing_df*.
     """
-
     return pd.merge(wing_df, body_df, on=on_col, how='left')
 
 # 6. Filter to keep only marker columns (using a base list and a set of marker names)
@@ -170,7 +168,7 @@ def filter_marker_columns(df, marker_names, base_columns):
     base_columns : list of str
         Columns to always include in the result.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         DataFrame containing *base_columns* plus any columns whose names
@@ -182,8 +180,7 @@ def filter_marker_columns(df, marker_names, base_columns):
 # 7. Set a new origin (e.g., level with the shoulder from a chosen marker).
 
 def set_new_origin_and_axes(df, origin_marker=['pt11','pt2'], origin_axes=('x', 'y', 'z'), new_axes=('y', '-x', 'z')):
-    """
-    Sets a new origin and remaps axes based on specified parameters.
+    """Sets a new origin and remaps axes based on specified parameters.
 
     Parameters:
     - df (pd.DataFrame): The DataFrame containing the marker coordinates.
@@ -249,8 +246,7 @@ def set_new_origin_and_axes(df, origin_marker=['pt11','pt2'], origin_axes=('x', 
 # 9. Compute derived markers from existing pt coordinates.
 
 def mirror_marker(df, right_marker, left_marker, x_source, y_source, z_source):
-    """
-    Helper function to mirror markers across the y-axis.
+    """Helper function to mirror markers across the y-axis.
     
     Parameters:
     - df: The DataFrame containing marker coordinates.
@@ -277,7 +273,7 @@ def compute_derived_markers(df):
     df : pd.DataFrame
         DataFrame containing the original ``pt*_X/Y/Z`` columns.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Copy of *df* with derived marker columns added.
@@ -320,8 +316,7 @@ def compute_derived_markers(df):
     return df
 
 def fix_leftright_sign(df):
-    """
-    Fixes the sign of the left and right markers in a DataFrame.
+    """Fixes the sign of the left and right markers in a DataFrame.
     Ensures that left markers have negative x-values and right markers have positive x-values.
     
     Parameters:
@@ -356,8 +351,7 @@ def fix_leftright_sign(df):
     return df
 
 def check_and_fix_shoulder_distance(df, tolerance=0.05):
-    """
-    Adjusts marker positions so the shoulder distance matches body_width_max_cm by translation.
+    """Adjusts marker positions so the shoulder distance matches body_width_max_cm by translation.
 
     Parameters:
     - df: DataFrame with markers and body_width_max_cm.
@@ -512,8 +506,7 @@ def check_and_fix_shoulder_distance(df, tolerance=0.05):
 
 # 11. Integrate coordinates from a DataFrame into a single marker dictionary for Animal3D.
 def integrate_dataframe_to_bird3D(df, row_idx=0):
-    """
-    Integrates coordinates from a DataFrame into a single marker dictionary
+    """Integrates coordinates from a DataFrame into a single marker dictionary
     suitable for ``Animal3D('hawk', data=markers_dict)``.
 
     Parameters:

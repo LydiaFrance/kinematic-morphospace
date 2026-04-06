@@ -1,5 +1,4 @@
-"""
-Flight segmentation from continuous motion-capture recordings.
+"""Flight segmentation from continuous motion-capture recordings.
 
 Detects individual flights from the velocity profile of moving markers,
 using peak detection on the absolute gradient of the smoothed median
@@ -52,7 +51,7 @@ def detect_velocity_peaks(
     smooth_fraction : float
         Smoothing window as fraction of total frames (default 5%).
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Table with columns ``peak_frame``, ``peak_height``, ``width``,
@@ -152,7 +151,7 @@ def load_annotations(path: str | Path) -> list[dict]:
     path : str or Path
         Path to a JSON file with trial annotations.
 
-    Returns
+    Returns:
     -------
     list[dict]
         List of dicts with ``start_frame`` and ``end_frame`` keys.
@@ -200,7 +199,7 @@ def split_by_trial(
     annotations : list[dict]
         Trial boundaries, each with ``start_frame`` and ``end_frame``.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Copy of *df* with an added ``trial`` column (1-indexed, 0 = no trial).

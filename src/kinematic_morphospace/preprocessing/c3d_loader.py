@@ -1,5 +1,4 @@
-"""
-C3D file parsing and file-list construction.
+"""C3D file parsing and file-list construction.
 
 Loads raw C3D motion-capture files using ``ezc3d`` and extracts marker
 trajectories as DataFrames. Also provides utilities for building a file list
@@ -25,15 +24,14 @@ logger = logging.getLogger(__name__)
 
 
 def load_c3d(path: str | Path) -> tuple[pd.DataFrame, dict]:
-    """
-    Load a single C3D file and return marker trajectories + metadata.
+    """Load a single C3D file and return marker trajectories + metadata.
 
     Parameters
     ----------
     path : str or Path
         Path to a ``.c3d`` file.
 
-    Returns
+    Returns:
     -------
     df : pd.DataFrame
         Long-format table with columns:
@@ -43,7 +41,7 @@ def load_c3d(path: str | Path) -> tuple[pd.DataFrame, dict]:
         Recording metadata including ``frame_rate``, ``n_frames``,
         ``n_markers``, ``marker_labels``, ``first_frame``, ``last_frame``.
 
-    Raises
+    Raises:
     ------
     FileNotFoundError
         If the C3D file does not exist.
@@ -156,7 +154,7 @@ def build_file_list(mocap_folder: str | Path) -> pd.DataFrame:
     mocap_folder : str or Path
         Root directory containing ``.c3d`` files (scans subdirectories).
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Table with columns: ``path``, ``filename``, ``date``, ``bird``,
@@ -203,7 +201,7 @@ def filter_file_list(file_list: pd.DataFrame) -> pd.DataFrame:
     file_list : pd.DataFrame
         Output of :func:`build_file_list`.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Filtered copy retaining only rows with ``nobackpack=False``.

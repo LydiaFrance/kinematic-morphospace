@@ -1,5 +1,4 @@
-"""
-Construct unilateral and bilateral marker tables from long-format labelled data.
+"""Construct unilateral and bilateral marker tables from long-format labelled data.
 
 The unilateral table mirrors left-side markers (negating the X coordinate) and
 pivots from long format (one row per marker per frame) to wide format (one row
@@ -74,7 +73,7 @@ def pivot_markers_wide(
         If True, matches ``MarkerName`` using substring containment
         (``str.contains``). If False, uses exact matching (``isin``).
 
-    Returns
+    Returns:
     -------
     tuple[pd.DataFrame, list[str]]
         - The wide-format DataFrame with one row per frameID.
@@ -144,7 +143,7 @@ def mirror_left_markers(
     marker_col : str
         Column containing marker names.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Copy of *df* with mirrored left-side X coordinates.
@@ -189,7 +188,7 @@ def filter_pure_side_frames(
     n_markers : int
         Expected number of markers per side.
 
-    Returns
+    Returns:
     -------
     tuple[pd.DataFrame, pd.Series]
         - Filtered DataFrame with mixed-side rows removed.
@@ -250,7 +249,7 @@ def create_unilateral_table(
     info_cols : list[str], optional
         Metadata columns to carry through. Defaults to :data:`_INFO_COLS`.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Wide-format unilateral marker table.
@@ -342,7 +341,7 @@ def create_bilateral_table(
     info_cols : list[str], optional
         Metadata columns to carry through.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Wide-format bilateral marker table.

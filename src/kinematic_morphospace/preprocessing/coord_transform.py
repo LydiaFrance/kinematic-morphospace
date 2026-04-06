@@ -1,5 +1,4 @@
-"""
-Coordinate system transformation for hawk flight arena.
+"""Coordinate system transformation for hawk flight arena.
 
 Shifts the origin to the target perch, mirrors leftward-approaching flights
 so all flights have the same direction convention, and computes horizontal
@@ -50,7 +49,7 @@ def detect_flight_direction(
     initial_fraction : float
         Fraction of initial frames to average (default 10%, matching MATLAB).
 
-    Returns
+    Returns:
     -------
     int
         ``-1`` if the bird starts at negative Y (heading rightward, toward
@@ -102,7 +101,7 @@ def shift_origin_to_perch(
     y_column : str
         Name of the Y-coordinate column.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Copy of *df* with Y shifted (and possibly negated).
@@ -143,7 +142,7 @@ def shift_origin_all_columns(
     y_columns : list[str], optional
         Y-coordinate column names to transform. Defaults to ``["Y"]``.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Copy with all specified Y columns shifted.
@@ -184,7 +183,7 @@ def compute_horizontal_distance(
     y_column : str
         Name of the Y column (default ``"smooth_Y"``).
 
-    Returns
+    Returns:
     -------
     pd.Series
         Horizontal distance (metres), named ``"HorzDistance"``.
@@ -231,7 +230,7 @@ def compute_relative_positions(
     output_cols : tuple of str
         Column names for the output relative coordinates.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         *df* with added relative position columns and merged smooth columns.

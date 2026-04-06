@@ -1,5 +1,4 @@
-"""
-Harmonise raw MATLAB-derived DataFrames into a consistent schema.
+"""Harmonise raw MATLAB-derived DataFrames into a consistent schema.
 
 Handles column renaming, metadata enrichment (BirdID, Year, Obstacle, IMU,
 Naive, PerchDistance), sequence ID extraction, and outer joins for body_pitch
@@ -63,7 +62,7 @@ def extract_bird_id(frame_ids: pd.Series) -> pd.Series:
     frame_ids : pd.Series
         Series of frameID strings.
 
-    Returns
+    Returns:
     -------
     pd.Series
         Integer BirdID values.
@@ -81,7 +80,7 @@ def extract_seq_id(frame_ids: pd.Series) -> pd.Series:
     frame_ids : pd.Series
         Series of frameID strings.
 
-    Returns
+    Returns:
     -------
     pd.Series
         Sequence ID strings.
@@ -119,7 +118,7 @@ def add_metadata(
         Default perch distance for all rows. If None, uses 9.0 for 2020
         (2017 is expected to already have a ``PerchDistance`` column).
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Copy of *df* with metadata columns added/updated.
@@ -230,7 +229,7 @@ def harmonise_trajectory(
         ``["OriginalSequence", "sampleRate", "TotalForce", "SCLift",
         "SCDrag", "climb_angle"]``.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Harmonised trajectory table.
@@ -304,7 +303,7 @@ def harmonise_labelled(
         Columns to drop for 2020. Defaults to
         ``["label_Vicon", "label_stationary", "ID", "trial", "markerID"]``.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Harmonised labelled table.
@@ -360,7 +359,7 @@ def join_body_pitch(
     tail_df : pd.DataFrame
         Tail/tailpack table with ``frameID`` and ``body_pitch`` columns.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         *df* with ``body_pitch`` column added (NaN where no match).
@@ -402,7 +401,7 @@ def join_smooth_xyz(
         Smooth body table with ``frameID`` and ``XYZ_1``/``XYZ_2``/``XYZ_3``
         columns.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         *df* with smooth XYZ columns added.

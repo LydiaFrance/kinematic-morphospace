@@ -10,11 +10,8 @@ from sklearn.cluster import MiniBatchKMeans
 from sklearn.metrics import silhouette_score
 
 def lower_dim_reconstruction(markers, pca_model, n_components=4):
-
+    """Reconstruct data from the padded lower-dimensional PCA projection.
     """
-    Reconstruct data from the padded lower-dimensional PCA projection.
-    """
-
     n_markers = markers.shape[1]
 
     projected_markers = lower_dim_projection(markers, pca_model, n_components)
@@ -24,10 +21,8 @@ def lower_dim_reconstruction(markers, pca_model, n_components=4):
     return reconstructed_data
 
 def calculate_reconstruction_errors(markers, reconstructed_markers):
+    """Calculate the reconstruction error per frame and per marker.
     """
-    Calculate the reconstruction error per frame and per marker.
-    """
-
     n_markers = markers.shape[1]
     n_dims = markers.shape[2]
 
@@ -44,8 +39,7 @@ def calculate_reconstruction_errors(markers, reconstructed_markers):
 
 
 def calculate_marker_thresholds(per_marker_errors, wing_percentile=99, tail_percentile=99.7):
-    """
-    Calculate threshold for each marker based on specified percentiles.
+    """Calculate threshold for each marker based on specified percentiles.
     """
     wing_thresholds = np.percentile(per_marker_errors[:, :3], wing_percentile, axis=0)  # Wing markers
     tail_threshold = np.percentile(per_marker_errors[:, 3], tail_percentile)  # Tail marker
@@ -53,8 +47,7 @@ def calculate_marker_thresholds(per_marker_errors, wing_percentile=99, tail_perc
     return per_marker_thresholds
 
 def filter_low_error_frames(per_marker_errors, per_marker_thresholds):
-    """
-    Create a mask to filter frames based on marker-specific error thresholds.
+    """Create a mask to filter frames based on marker-specific error thresholds.
     """
     if per_marker_errors.shape[1] != len(per_marker_thresholds):
         raise ValueError(
@@ -102,7 +95,7 @@ def clustering_analysis(data, cluster_range, sample_size=10000, is_log_scale=Tru
     random_state : int or None, optional
         Random seed for reproducibility.
 
-    Returns
+    Returns:
     -------
     inertias : list of float
         Inertia value for each cluster count.
@@ -175,7 +168,7 @@ def kmeans_clustering(data, n_clusters, random_state=42):
     random_state : int, optional
         Random seed for reproducibility (default 42).
 
-    Returns
+    Returns:
     -------
     cluster_centres : np.ndarray
         Cluster centres of shape ``(n_clusters, n_markers, n_dimensions)``.
@@ -211,7 +204,7 @@ def analyse_clusters(kmeans_labels, n_clusters):
     n_clusters : int
         Total number of clusters.
 
-    Returns
+    Returns:
     -------
     cluster_sizes : np.ndarray
         Number of frames in each cluster.
@@ -235,8 +228,7 @@ def analyse_clusters(kmeans_labels, n_clusters):
 
 
 def generate_knock_out_representations(cluster_centers, missing_marker_indices):
-    """
-    Generate knock-out representations for clusters by setting specified markers to NaN.
+    """Generate knock-out representations for clusters by setting specified markers to NaN.
     """
     knock_out_representations = []
     for cluster in cluster_centers:
@@ -267,12 +259,11 @@ def lower_dim_projection(markers, pca_model, n_components=4):
     n_components : int, optional
         Number of leading components to retain (default 4).
 
-    Returns
+    Returns:
     -------
     np.ndarray
         Zero-padded score array of shape ``(n_frames, n_features)``.
     """
-
     n_markers = markers.shape[1]
     n_dims = markers.shape[2]
 

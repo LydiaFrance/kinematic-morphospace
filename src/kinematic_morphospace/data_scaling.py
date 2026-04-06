@@ -17,8 +17,7 @@ Functions for scaling marker data and adding supplementary information.
 
 
 def scale_data(data_csv, wingspan_path: str):
-    """
-    Scale the data by the total wingspan.
+    """Scale the data by the total wingspan.
 
     Parameters:
     - data_csv (pd.DataFrame): A DataFrame containing the data.
@@ -54,8 +53,7 @@ def scale_data(data_csv, wingspan_path: str):
 
 
 def unscale_data(data_csv, wingspan_path: str):
-    """
-    Reverse the wingspan normalisation.
+    """Reverse the wingspan normalisation.
 
     Parameters:
     - data_csv (pd.DataFrame): A DataFrame containing the data.
@@ -89,10 +87,8 @@ def unscale_data(data_csv, wingspan_path: str):
 
     return data_csv
 
-
 def add_turn_info(frame_info_df, turn_csv_path: str):
-    """
-    Add turn information to the frame info dataframe.
+    """Add turn information to the frame info dataframe.
     Turn information is the direction the hawk flew around the obstacle.
 
     Parameters:
@@ -120,8 +116,7 @@ def add_turn_info(frame_info_df, turn_csv_path: str):
 
 
 def add_tailpack_data(markers_df, frame_info_df, tailpack_csv, wingspan_path=None):
-    """
-    Add tailpack data to the markers DataFrame.
+    """Add tailpack data to the markers DataFrame.
 
     Parameters:
     - markers_df (pd.DataFrame): A DataFrame containing the markers.
@@ -189,8 +184,7 @@ def add_tailpack_data(markers_df, frame_info_df, tailpack_csv, wingspan_path=Non
 
 
 def rename_tailpack_data(markers_df):
-    """
-    Rename tailpack columns to standard marker naming convention.
+    """Rename tailpack columns to standard marker naming convention.
     """
     markers_df = markers_df.copy()
 

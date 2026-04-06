@@ -1,5 +1,4 @@
-"""
-Load MATLAB .mat files and convert MATLAB table structures to pandas DataFrames.
+"""Load MATLAB .mat files and convert MATLAB table structures to pandas DataFrames.
 
 Handles both v5/v7 (.mat via scipy) and v7.3 (.mat via mat73/h5py) formats
 with automatic detection. Converts multi-column numeric fields (e.g. XYZ)
@@ -35,7 +34,7 @@ def load_mat(path: str | Path) -> dict[str, Any]:
     path : str or Path
         Path to the .mat file.
 
-    Returns
+    Returns:
     -------
     dict
         Mapping of variable names to their values (numpy arrays, dicts, etc.).
@@ -95,7 +94,7 @@ def matlab_table_to_dataframe(table_struct: Any) -> pd.DataFrame:
         ``struct_as_record=False``, this is a ``mat_struct`` object; if loaded
         via mat73, it is typically a dict.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         The converted DataFrame.
@@ -173,7 +172,7 @@ def load_2020_data(
         Override default file names. Keys: ``backpack``, ``unlabelled``,
         ``smooth``, ``labelled_markers``.
 
-    Returns
+    Returns:
     -------
     dict[str, pd.DataFrame]
         Keys: ``trajectory``, ``info``, ``tail``, ``smooth_tail``,
@@ -246,7 +245,7 @@ def load_2017_data(
     file_names : dict, optional
         Override default file names. Keys: ``body``, ``labelled``.
 
-    Returns
+    Returns:
     -------
     dict[str, pd.DataFrame]
         Keys: ``trajectory``, ``smooth``, ``tail``, ``labelled``,
@@ -317,7 +316,7 @@ def load_intermediate_csvs(
         Override default file names. Keys: ``traj_2017``, ``traj_2020``,
         ``labelled_2017``, ``labelled_2020``.
 
-    Returns
+    Returns:
     -------
     dict[str, pd.DataFrame]
         Keys: ``traj_2017``, ``traj_2020``, ``labelled_2017``,

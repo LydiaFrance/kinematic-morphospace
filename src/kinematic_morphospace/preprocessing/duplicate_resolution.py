@@ -1,5 +1,4 @@
-"""
-Duplicate marker detection and resolution for wing labelling.
+"""Duplicate marker detection and resolution for wing labelling.
 
 After polygon-based labelling, multiple markers in the same frame may receive
 the same label. This module detects such duplicates and resolves them using
@@ -50,7 +49,7 @@ def detect_duplicates(
     frame_col, label_col : str
         Column names for frame identifier and marker label.
 
-    Returns
+    Returns:
     -------
     unique : pd.DataFrame
         Rows whose label appears exactly once in their frame (plus unlabelled).
@@ -120,7 +119,7 @@ def resolve_duplicates(
     wingtip_y_threshold : float
         Y-coordinate threshold for wingtip→secondary demotion.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Updated DataFrame with duplicates resolved.
@@ -185,7 +184,7 @@ def split_labelled_table(
     label_col : str
         Column containing marker labels.
 
-    Returns
+    Returns:
     -------
     dict
         Keys ``"feather"``, ``"body"``, ``"unlabelled"``, each mapping to a

@@ -1,5 +1,4 @@
-"""
-Time variable creation for motion-capture recordings.
+"""Time variable creation for motion-capture recordings.
 
 Detects the takeoff frame from body speed and position criteria, then
 computes a time variable (in seconds) relative to that frame.
@@ -44,7 +43,7 @@ def find_takeoff_frame(
     min_speed : float
         Minimum speed (m/s) to confirm active flight (default 2.0).
 
-    Returns
+    Returns:
     -------
     int or None
         Frame number of the detected takeoff, or None if no frame matches.
@@ -91,7 +90,7 @@ def create_time_variable(
     frame_rate : float
         Recording frame rate in Hz.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Copy of *df* with an added ``time`` column (seconds).

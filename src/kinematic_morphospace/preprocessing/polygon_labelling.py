@@ -1,5 +1,4 @@
-"""
-Polygon-based marker labelling using boundary definitions.
+"""Polygon-based marker labelling using boundary definitions.
 
 Labels unlabelled motion-capture markers by testing whether their relative
 positions (in both XY and YZ planes) fall within predefined polygon boundaries
@@ -34,7 +33,7 @@ def load_polygon_boundaries(
     mat_path : str or Path
         Path to the ``.mat`` file (e.g. ``230530_AreaDefs.mat``).
 
-    Returns
+    Returns:
     -------
     dict
         Nested dict: ``boundaries[bird][marker_type][plane]`` → (N, 2) array
@@ -148,7 +147,7 @@ def label_by_polygons(
         When ``True``, prefix labels with ``left_`` (x < 0) or ``right_``
         (x >= 0) based on the marker's X coordinate. Default ``False``.
 
-    Returns
+    Returns:
     -------
     pd.DataFrame
         Updated DataFrame with newly labelled markers.

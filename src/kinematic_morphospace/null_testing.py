@@ -1,5 +1,4 @@
-"""
-Utility functions to support PCA null-model analyses with sequence-aware
+"""Utility functions to support PCA null-model analyses with sequence-aware
 resampling. These helpers ensure that mirrored left/right frames remain paired
 throughout statistical procedures.
 """
@@ -15,15 +14,14 @@ import pandas as pd
 
 
 def flatten_frames(frames: np.ndarray) -> np.ndarray:
-    """
-    Flatten marker frames to two dimensions.
+    """Flatten marker frames to two dimensions.
 
     Parameters
     ----------
     frames : np.ndarray
         Either (n_frames, n_markers, n_dims) or (n_frames, n_features).
 
-    Returns
+    Returns:
     -------
     np.ndarray
         A copy with shape (n_frames, n_features).
@@ -38,8 +36,7 @@ def flatten_frames(frames: np.ndarray) -> np.ndarray:
 
 
 def ensure_rng(seed: int | None = None) -> np.random.Generator:
-    """
-    Provide a NumPy Generator using a fixed seed when supplied.
+    """Provide a NumPy Generator using a fixed seed when supplied.
     """
     if isinstance(seed, np.random.Generator):
         return seed
@@ -52,10 +49,9 @@ def validate_frame_alignment(
     *,
     expected_columns: Sequence[str] = ("seqID", "BirdID", "Obstacle", "Left"),
 ) -> None:
-    """
-    Sanity-check that the frame array lines up with the frame metadata.
+    """Sanity-check that the frame array lines up with the frame metadata.
 
-    Raises
+    Raises:
     ------
     ValueError
         If the lengths mismatch or required columns are missing.
@@ -82,8 +78,7 @@ def prepare_sequence_groups(
     individual_column: str = "BirdID",
     condition_column: str = "Obstacle",
 ) -> Dict[str, np.ndarray]:
-    """
-    Derive grouping vectors used to keep mirrored frames paired.
+    """Derive grouping vectors used to keep mirrored frames paired.
     """
     seq_ids = frame_info[sequence_column].astype(str).to_numpy()
     unique_seq_ids, seq_inverse = np.unique(seq_ids, return_inverse=True)
@@ -103,8 +98,7 @@ def prepare_sequence_groups(
 
 
 def sequence_lookup(seq_index: np.ndarray) -> List[np.ndarray]:
-    """
-    Build a list-of-indices lookup for quick sequence masking.
+    """Build a list-of-indices lookup for quick sequence masking.
     """
     buckets: Dict[int, List[int]] = defaultdict(list)
     for frame_idx, seq_idx in enumerate(seq_index):
@@ -118,8 +112,7 @@ def grouped_bootstrap_indices(
     size: int | None = None,
     seed: int | None = None,
 ) -> np.ndarray:
-    """
-    Resample sequence indices with replacement and expand to frame indices.
+    """Resample sequence indices with replacement and expand to frame indices.
     """
     generator = ensure_rng(seed)
     unique_indices = np.unique(seq_index)
@@ -138,8 +131,7 @@ def grouped_permutation_labels(
     *,
     seed: int | None = None,
 ) -> np.ndarray:
-    """
-    Permute labels at the sequence level.
+    """Permute labels at the sequence level.
     """
     generator = ensure_rng(seed)
     unique_seq = np.unique(seq_index)
@@ -159,8 +151,7 @@ def summarise_distribution(
     decimals: int = 4,
     percentiles: Sequence[float] = (2.5, 50.0, 97.5),
 ) -> pd.Series:
-    """
-    Summarise an array using mean and percentile statistics.
+    """Summarise an array using mean and percentile statistics.
     """
     array = np.asarray(values)
     summary: Dict[str, float] = {
@@ -179,8 +170,7 @@ def summarise_cumulative_variance(
     components: Sequence[int] | None = None,
     decimals: int = 4,
 ) -> pd.DataFrame:
-    """
-    Produce a tidy summary table for cumulative explained variance curves.
+    """Produce a tidy summary table for cumulative explained variance curves.
     """
     array = np.asarray(cev)
     if array.ndim == 1:
@@ -204,8 +194,7 @@ def pairwise_distance_features(
     sort_per_frame: bool = False,
     descending: bool = True
 ) -> np.ndarray:
-    """
-    Compute pairwise distances between markers for each frame, vectorised.
+    """Compute pairwise distances between markers for each frame, vectorised.
 
     Args:
         frames: (n_frames, n_markers, 3) array of 3D marker coords.
@@ -254,14 +243,94 @@ def pairwise_distance_features(
 def load_missing_marker_dataset(
     npz_path: Path,
 ) -> Tuple[np.ndarray, pd.DataFrame, Sequence[str]]:
-    """
-    Load the labelled dataset with missing markers.
+    """Load the labelled dataset with missing markers.
     """
     loaded = np.load(npz_path, allow_pickle=True)
     markers = loaded["marker_data"]
     info = pd.DataFrame(loaded["info_data"], columns=loaded["info_column_names"])
     columns = loaded["marker_column_names"]
     return markers, info, columns
+
+
+def prepare_missing_marker_dataset(
+    npz_path: Path | str,
+    wingspan_path: Path | str,
+    *,
+    straight_only: bool = True,
+) -> Tuple[np.ndarray, np.ndarray, pd.DataFrame]:
+    """Load the missing-marker dataset, scale by wingspan, and convert to unilateral.
+
+    Parameters
+    ----------
+    npz_path : path to ``labelled_markers_with_missing.npz``.
+    wingspan_path : path to ``TotalWingspans.yml``.
+    straight_only : if True (default), keep only non-obstacle frames.
+
+    Returns:
+    -------
+    missing_unilateral : (2*N, 4, 3) unilateral array (left then right, x-mirrored).
+    missing_bilateral : (M, 8, 3) the full bilateral array (scaled, all flights).
+    missing_info : DataFrame with per-frame metadata.
+    """
+    import yaml
+    from .pca_reconstruct import to_unilateral
+
+    bilateral, info, _cols = load_missing_marker_dataset(Path(npz_path))
+
+    # Scale each hawk/year combination by maximum wingspan
+    with open(wingspan_path) as f:
+        wingspans = yaml.safe_load(f)
+
+    hawk_names = {1: "Drogon", 2: "Rhaegal", 3: "Ruby", 4: "Toothless", 5: "Charmander"}
+    bird_ids = info["BirdID"].astype(int).values
+    years = info["Year"].astype(int).values
+
+    for hawk_id, hawk_name in hawk_names.items():
+        for year in [2017, 2020]:
+            if year not in wingspans.get(hawk_name, {}):
+                continue
+            mask = (bird_ids == hawk_id) & (years == year)
+            if mask.any():
+                bilateral[mask] /= wingspans[hawk_name][year]
+
+    # Filter to straight flight if requested
+    if straight_only:
+        keep = (info["Obstacle"].astype(int) == 0).values
+        bilateral_subset = bilateral[keep]
+    else:
+        bilateral_subset = bilateral
+
+    unilateral = to_unilateral(bilateral_subset)
+
+    return unilateral, bilateral, info
+
+
+def load_unlabelled_csv(
+    csv_path: Path | str,
+) -> Tuple[Dict[int, np.ndarray], List[int], List[int]]:
+    """Load the unlabelled marker CSV and group by frame.
+
+    Parameters
+    ----------
+    csv_path : path to ``unlabelled_markers.csv``.
+
+    Returns:
+    -------
+    frame_groups : dict mapping frameID → (n_markers, 3) coordinate array.
+    labelled_ids : frame IDs with exactly 8 markers.
+    unlabelled_ids : frame IDs with fewer than 8 markers.
+    """
+    df = pd.read_csv(csv_path)
+    frame_counts = df.groupby("frameID").size()
+    labelled_ids = frame_counts[frame_counts == 8].index.tolist()
+    unlabelled_ids = frame_counts[frame_counts != 8].index.tolist()
+
+    xyz_cols = [c for c in df.columns if c.startswith("rot_xyz")]
+    frame_groups: Dict[int, np.ndarray] = {
+        fid: group[xyz_cols].to_numpy().reshape(-1, 3)
+        for fid, group in df.groupby("frameID")
+    }
+    return frame_groups, labelled_ids, unlabelled_ids
 
 
 def principal_cosines(
@@ -271,8 +340,7 @@ def principal_cosines(
     modes: int,
     return_angles: bool = False
 ) -> np.ndarray | Tuple[np.ndarray, np.ndarray]:
-    """
-    Compute principal cosines between the leading modes of two bases.
+    """Compute principal cosines between the leading modes of two bases.
 
     Args:
         basis_a: (n_features, n_components_a) array (columns = basis vectors).
@@ -329,8 +397,7 @@ def random_relabel_frames(
     swap_fraction: float,
     rng: np.random.Generator,
 ) -> np.ndarray:
-    """
-    Randomly relabel markers within frames for robustness checks.
+    """Randomly relabel markers within frames for robustness checks.
     """
     n_frames, n_markers, _ = frames.shape
     shuffled = frames.copy()
@@ -346,8 +413,7 @@ def relabel_with_predictor(
     *,
     max_displacement: float = 0.4,
 ) -> np.ndarray:
-    """
-    Simple predictor-based relabelling heuristic.
+    """Simple predictor-based relabelling heuristic.
     """
     from scipy.optimize import linear_sum_assignment
     from scipy.spatial.distance import cdist

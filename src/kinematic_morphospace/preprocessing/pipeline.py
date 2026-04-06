@@ -1,5 +1,4 @@
-"""
-Full preprocessing pipeline that orchestrates MAT loading, harmonisation,
+"""Full preprocessing pipeline that orchestrates MAT loading, harmonisation,
 calibration, and shape-table construction.
 
 Reproduces the MATLAB script ``fix_data_2024_03_23.m`` as a single
@@ -72,7 +71,7 @@ def run_preprocessing(
     config : PreprocessingConfig
         Pipeline configuration.
 
-    Returns
+    Returns:
     -------
     dict[str, pd.DataFrame]
         Output tables keyed by name:
@@ -252,7 +251,7 @@ def run_from_csvs(
     date_prefix : str
         Prefix on the CSV file names (default ``"2024-03-24-"``).
 
-    Returns
+    Returns:
     -------
     dict[str, pd.DataFrame]
         Output tables keyed by name:
@@ -380,7 +379,7 @@ def save_csvs(
     date_prefix : str, optional
         If provided, prepend this to each file name (e.g. ``"2024-03-24-"``).
 
-    Returns
+    Returns:
     -------
     dict[str, Path]
         Mapping of table name to the written file path.
