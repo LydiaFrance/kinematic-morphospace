@@ -10,29 +10,21 @@ import seaborn as sns
 
 def plot_components_grid(principal_components,
                         marker_names,fig=None, ax=None):
-    """Plot PCA loadings as a colour-coded heatmap grid.
+    """Plot PCA component loadings as a colour-coded heatmap grid.
 
-    Each column represents one principal component and each row a
-    marker coordinate. Absolute loadings are displayed with a
-    per-component colour map.
+    Each column represents one principal component and each row a marker
+    coordinate. Absolute loadings are shown, with each component drawn using a
+    distinct colour so that the dominant structure of each mode is immediately
+    visible. Cumulative explained-variance annotations are added above the grid.
 
-    Parameters
-    ----------
-    principal_components : numpy.ndarray
-        Component matrix, shape ``(n_components, n_markers)``.
-    marker_names : list of str
-        Names labelling each marker coordinate (row labels).
-    fig : matplotlib.figure.Figure, optional
-        Existing figure to draw into. Created if *None*.
-    ax : matplotlib.axes.Axes, optional
-        Existing axes to draw into. Created if *None*.
+    Args:
+        principal_components: Component matrix of shape (n_components, n_markers).
+        marker_names: Names labelling each marker coordinate, used as row labels.
+        fig: Existing Figure to draw into; if None, a new figure is created.
+        ax: Existing Axes to draw into; if None, a new axes is created.
 
     Returns:
-    -------
-    fig : matplotlib.figure.Figure
-        The figure.
-    ax : matplotlib.axes.Axes
-        The axes containing the heatmap.
+        Tuple of (fig, ax).
     """
     # Set the number of principal components to plot
     maxPCs = 12
@@ -113,27 +105,24 @@ def plot_components_grid(principal_components,
 
 def compare_coeffs_hawks(principal_components,
                          principal_components_dict, colour_before =12, y_label='scaled'):
-    """Compare principal cosines across individual birds.
+    """Compare principal cosines between the pooled PCA and individual-hawk PCAs.
 
-    Creates a 1xN row of principal-cosine heatmaps (one per bird),
-    showing how closely each bird's individual PCA aligns with the
-    pooled component matrix.
+    Creates a 1xN row of principal-cosine heatmaps (one per bird). Each heatmap
+    shows the absolute dot product between the individual bird's components and
+    the pooled reference, so a strong diagonal indicates that both solutions span
+    the same morphospace.
 
-    Parameters
-    ----------
-    principal_components : numpy.ndarray
-        Reference (pooled) component matrix.
-    principal_components_dict : dict
-        Mapping of bird name to that bird's component matrix.
-    colour_before : int, optional
-        Number of leading components to colour individually.
-    y_label : str, optional
-        Label for the y-axis of the first panel.
+    Args:
+        principal_components: Reference (pooled) component matrix of shape
+            (n_components, n_markers).
+        principal_components_dict: Dict mapping bird name to that bird's component
+            matrix, each of shape (n_components, n_markers).
+        colour_before: Number of leading components to colour individually;
+            remaining components are shown in grey. Defaults to 12.
+        y_label: Label for the y-axis of the first panel. Defaults to 'scaled'.
 
     Returns:
-    -------
-    matplotlib.figure.Figure
-        The figure containing the row of heatmaps.
+        Figure containing the row of heatmaps.
     """
     fig = plt.figure(figsize=(8, 2))
     gs = gridspec.GridSpec(1, 5, figure=fig, hspace=0, wspace=0.3)  # Adjust these values as needed
@@ -168,33 +157,28 @@ def compare_coeffs_grid(principal_components,
                         second_principal_components,
                         second_name,
                         colour_before =12, fig=None,ax=None):
-    """Plot a principal-cosine heatmap between two component matrices.
+    """Plot a principal-cosine heatmap comparing two PCA component matrices.
 
-    Computes the absolute dot product of every pair of components and
-    displays the result as a colour-coded grid. A strong diagonal
-    indicates that the two PCA solutions share the same subspaces.
+    Computes the absolute dot product of every pair of components from the two
+    matrices and displays the result as a colour-coded 12x12 grid. A strong
+    diagonal indicates that the two PCA solutions span the same subspaces.
+    Off-diagonal brightness reveals cross-mode aliasing.
 
-    Parameters
-    ----------
-    principal_components : numpy.ndarray
-        First component matrix.
-    name : str
-        Label for the x-axis (identifies the first matrix).
-    second_principal_components : numpy.ndarray
-        Second component matrix for comparison.
-    second_name : str
-        Label for the y-axis (identifies the second matrix).
-    colour_before : int, optional
-        Number of leading components to colour individually.
-    fig : matplotlib.figure.Figure, optional
-        Existing figure to draw into.
-    ax : matplotlib.axes.Axes, optional
-        Existing axes to draw into.
+    Args:
+        principal_components: First component matrix of shape
+            (n_components, n_markers); must be orthonormal.
+        name: Axis label identifying the first matrix (displayed on the x-axis).
+        second_principal_components: Second component matrix for comparison;
+            must be orthonormal and have the same shape.
+        second_name: Axis label identifying the second matrix (displayed on the
+            y-axis).
+        colour_before: Number of leading components to colour individually.
+            Defaults to 12.
+        fig: Existing Figure to draw into; if None, a new figure is created.
+        ax: Existing Axes to draw into; if None, a new axes is created.
 
     Returns:
-    -------
-    matplotlib.axes.Axes
-        The axes containing the heatmap.
+        Axes object containing the heatmap.
     """
     def check_data_consistency(data1, data2):
         if np.array_equal(data1, data2):
@@ -310,30 +294,22 @@ def compare_coeffs_grid(principal_components,
 
 def plot_compare_components_grid(principal_components,
                                  colour_before=2,fig=None, ax=None):
-    """Plot a self-comparison principal-cosine grid.
+    """Plot a self-comparison principal-cosine grid to verify orthogonality.
 
-    Displays the absolute dot-product matrix of the component matrix
-    with itself. Off-diagonal values near zero confirm orthogonality;
-    leading components are colour-coded up to ``colour_before``.
+    Displays the absolute dot-product matrix of the component matrix with
+    itself. Off-diagonal values near zero confirm that components are
+    orthogonal; the strong diagonal confirms unit norm. Leading components
+    are colour-coded up to colour_before; the remainder are shown in grey.
 
-    Parameters
-    ----------
-    principal_components : numpy.ndarray
-        Component matrix, shape ``(n_components, n_markers)``.
-    colour_before : int, optional
-        Number of leading components to highlight with individual
-        colours (default 2).
-    fig : matplotlib.figure.Figure, optional
-        Existing figure to draw into. Created if *None*.
-    ax : matplotlib.axes.Axes, optional
-        Existing axes to draw into. Created if *None*.
+    Args:
+        principal_components: Component matrix of shape (n_components, n_markers).
+        colour_before: Number of leading components to highlight with individual
+            colours. Defaults to 2.
+        fig: Existing Figure to draw into; if None, a new figure is created.
+        ax: Existing Axes to draw into; if None, a new axes is created.
 
     Returns:
-    -------
-    fig : matplotlib.figure.Figure
-        The figure.
-    ax : matplotlib.axes.Axes
-        The axes containing the heatmap.
+        Tuple of (fig, ax).
     """
     maxPCs = 12
     PC_names = [f'PC{i:02}' for i in range(1, maxPCs+1)]

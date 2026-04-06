@@ -26,27 +26,25 @@ def find_takeoff_frame(
     y_range: tuple[float, float] = (-8.935, -8.5),
     min_speed: float = 2.0,
 ) -> int | None:
-    """Find the first frame where the bird satisfies takeoff criteria.
+    """Locate the takeoff frame where the bird first leaves the launch perch.
 
-    The bird must be within the specified Y-position range (near the launch
-    perch, ~9 m away) and travelling above the minimum speed.
+    Searches for the first frame where the bird is within the expected
+    Y-position range near the launch perch and is already travelling above
+    the minimum speed threshold, confirming active flight has begun.
 
-    Parameters
-    ----------
-    body_stats : pd.DataFrame
-        Per-frame body statistics with columns ``frame``, ``smooth_Y``,
-        ``speed``
-        (from :func:`~kinematic_morphospace.preprocessing.smoothing.compute_body_statistics`).
-    y_range : tuple[float, float]
-        (y_min, y_max) range for Y-position at takeoff.
-        Default ``(-8.935, -8.5)`` — near the 9 m perch, after origin shift.
-    min_speed : float
-        Minimum speed (m/s) to confirm active flight (default 2.0).
+    Args:
+        body_stats: Per-frame body statistics with columns ``frame``,
+            ``smooth_Y``, and ``speed``, as produced by
+            :func:`~kinematic_morphospace.preprocessing.smoothing.compute_body_statistics`.
+        y_range: (y_min, y_max) Y-position window in metres used to locate
+            the launch perch region. Default ``(-8.935, -8.5)`` corresponds
+            to the 9 m perch after origin shift.
+        min_speed: Minimum body speed in m/s required to confirm active
+            flight. Defaults to 2.0.
 
     Returns:
-    -------
-    int or None
-        Frame number of the detected takeoff, or None if no frame matches.
+        Frame number of the detected takeoff, or None if no frame satisfies
+        both criteria.
     """
     y_min, y_max = y_range
     mask = (
@@ -79,21 +77,18 @@ def create_time_variable(
     frame_zero: int,
     frame_rate: float,
 ) -> pd.DataFrame:
-    """Add a ``time`` column (in seconds) relative to the takeoff frame.
+    """Add a ``time`` column in seconds, with t=0 at the takeoff frame.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Table with a ``frame`` column.
-    frame_zero : int
-        The frame number corresponding to t = 0 (takeoff).
-    frame_rate : float
-        Recording frame rate in Hz.
+    Args:
+        df: DataFrame containing a ``frame`` column with integer frame
+            numbers.
+        frame_zero: Frame number corresponding to t=0 (the detected takeoff
+            frame from :func:`find_takeoff_frame`).
+        frame_rate: Recording frame rate in Hz, used to convert frame offsets
+            to seconds.
 
     Returns:
-    -------
-    pd.DataFrame
-        Copy of *df* with an added ``time`` column (seconds).
+        Copy of ``df`` with a new ``time`` column in seconds.
     """
     df = df.copy()
     df["time"] = (df["frame"] - frame_zero) / frame_rate

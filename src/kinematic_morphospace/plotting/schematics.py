@@ -143,18 +143,13 @@ def _layout_shuffle_schematic(axes, marker_colours=None, n_frames=5, seed=42,
                                aspect="equal"):
     """Draw the five-panel shuffle schematic onto provided axes.
 
-    Parameters
-    ----------
-    axes : array of 5 Axes
-        Pre-created axes to draw into.
-    marker_colours : dict, optional
-        {name: hex} for each marker. Defaults to MARKER_COLOURS.
-    n_frames : int
-        Number of toy frames to show.
-    seed : int
-        RNG seed for reproducible shuffles.
-    aspect : str
-        Aspect ratio for axes ('equal' or 'auto').
+    Args:
+        axes: Array of 5 pre-created Axes to draw into (original + 4 shuffle modes).
+        marker_colours: Dict of {name: hex} for each marker. Defaults to
+            MARKER_COLOURS.
+        n_frames: Number of toy frames to show. Defaults to 5.
+        seed: RNG seed for reproducible shuffles. Defaults to 42.
+        aspect: Axes aspect ratio string. Defaults to 'equal'.
     """
     mc = marker_colours or MARKER_COLOURS
     marker_names = list(mc.keys())
@@ -195,20 +190,20 @@ def _layout_shuffle_schematic(axes, marker_colours=None, n_frames=5, seed=42,
 
 
 def plot_shuffle_schematic(marker_colours=None, n_frames=5, seed=42):
-    """Plot the five-panel shuffle schematic.
+    """Plot the five-panel shuffle schematic showing each shuffle mode applied to toy data.
 
-    Parameters
-    ----------
-    marker_colours : dict, optional
-        {name: hex} for each marker. Defaults to MARKER_COLOURS.
-    n_frames : int
-        Number of toy frames to show.
-    seed : int
-        RNG seed for reproducible shuffles.
+    Panels show the original data alongside temporal, column, label, and complete
+    shuffle variants. Used to visually explain the four null-model perturbations
+    applied in the robustness analysis.
+
+    Args:
+        marker_colours: Dict of {name: hex} for each marker. Defaults to
+            MARKER_COLOURS.
+        n_frames: Number of toy frames to show in each panel. Defaults to 5.
+        seed: RNG seed for reproducible shuffle ordering. Defaults to 42.
 
     Returns:
-    -------
-    fig : Figure
+        Figure containing the five-panel shuffle schematic.
     """
     cell_h = 0.55
     fig, axes = plt.subplots(1, 5, figsize=(20, n_frames * cell_h + 3.8),
@@ -227,16 +222,12 @@ def _layout_subsampling_schematic(axes, marker_colours=None, n_frames=5,
                                    aspect="equal"):
     """Draw the five-panel marker subsampling schematic onto provided axes.
 
-    Parameters
-    ----------
-    axes : array of 5 Axes
-        Pre-created axes to draw into.
-    marker_colours : dict, optional
-        {name: hex} for each marker. Defaults to MARKER_COLOURS.
-    n_frames : int
-        Number of toy frames to show.
-    aspect : str
-        Aspect ratio for axes ('equal' or 'auto').
+    Args:
+        axes: Array of 5 pre-created Axes (full grid + one per held-out marker).
+        marker_colours: Dict of {name: hex} for each marker. Defaults to
+            MARKER_COLOURS.
+        n_frames: Number of toy frames to show. Defaults to 5.
+        aspect: Axes aspect ratio string. Defaults to 'equal'.
     """
     mc = marker_colours or MARKER_COLOURS
     marker_names = list(mc.keys())
@@ -277,19 +268,16 @@ def _layout_subsampling_schematic(axes, marker_colours=None, n_frames=5,
 def plot_subsampling_schematic(marker_colours=None, n_frames=5):
     """Plot the five-panel marker subsampling schematic.
 
-    Shows the original grid plus four leave-one-out panels, each with
-    one marker column greyed out.
+    Shows the original full-marker grid alongside four leave-one-out panels,
+    each with one marker column greyed out to indicate it has been withheld.
 
-    Parameters
-    ----------
-    marker_colours : dict, optional
-        {name: hex} for each marker. Defaults to MARKER_COLOURS.
-    n_frames : int
-        Number of toy frames to show.
+    Args:
+        marker_colours: Dict of {name: hex} for each marker. Defaults to
+            MARKER_COLOURS.
+        n_frames: Number of toy frames to show in each panel. Defaults to 5.
 
     Returns:
-    -------
-    fig : Figure
+        Figure containing the leave-one-out subsampling schematic.
     """
     mc = marker_colours or MARKER_COLOURS
     n_markers = len(mc)
@@ -313,20 +301,14 @@ def _layout_relabelling_schematic(axes, marker_colours=None, n_frames=20,
                                    aspect="equal"):
     """Draw the relabelling schematic onto provided axes.
 
-    Parameters
-    ----------
-    axes : array of Axes
-        Pre-created axes (1 + len(fractions) panels).
-    marker_colours : dict, optional
-        {name: hex} for each marker. Defaults to MARKER_COLOURS.
-    n_frames : int
-        Number of toy frames.
-    fractions : tuple of float
-        Swap fractions to illustrate.
-    seed : int
-        RNG seed for reproducible relabelling.
-    aspect : str
-        Aspect ratio for axes ('equal' or 'auto').
+    Args:
+        axes: Array of 1 + len(fractions) pre-created Axes.
+        marker_colours: Dict of {name: hex} for each marker. Defaults to
+            MARKER_COLOURS.
+        n_frames: Number of toy frames to show. Defaults to 20.
+        fractions: Relabelling fractions to illustrate. Defaults to (0.05, 0.25).
+        seed: RNG seed for reproducible frame selection. Defaults to 42.
+        aspect: Axes aspect ratio string. Defaults to 'equal'.
     """
     mc = marker_colours or MARKER_COLOURS
     marker_names = list(mc.keys())
@@ -385,22 +367,22 @@ def _layout_relabelling_schematic(axes, marker_colours=None, n_frames=20,
 
 def plot_relabelling_schematic(marker_colours=None, n_frames=20,
                                fractions=(0.05, 0.25), seed=42):
-    """Plot a schematic showing the effect of random relabelling.
+    """Plot a schematic illustrating the effect of randomly swapping marker labels.
 
-    Parameters
-    ----------
-    marker_colours : dict, optional
-        {name: hex} for each marker. Defaults to MARKER_COLOURS.
-    n_frames : int
-        Number of toy frames (more frames = clearer proportion visual).
-    fractions : tuple of float
-        Swap fractions to illustrate.
-    seed : int
-        RNG seed for reproducible relabelling.
+    Shows the original correctly-labelled data alongside panels where a given
+    fraction of frames have had their marker labels permuted. Swapped frames are
+    marked with a red square indicator on the left.
+
+    Args:
+        marker_colours: Dict of {name: hex} for each marker. Defaults to
+            MARKER_COLOURS.
+        n_frames: Number of toy frames to show (more frames = clearer proportion
+            visual). Defaults to 20.
+        fractions: Relabelling fractions to illustrate. Defaults to (0.05, 0.25).
+        seed: RNG seed for reproducible frame selection. Defaults to 42.
 
     Returns:
-    -------
-    fig : Figure
+        Figure containing the relabelling schematic.
     """
     n_panels = 1 + len(fractions)
     cell_h = 0.35
@@ -418,24 +400,19 @@ def _layout_imputation_schematic(axes, marker_colours=None,
                                   n_frames_complete=10, n_frames_missing=20,
                                   missing_rates=(0.25, 0.33, 0.25, 0.21),
                                   seed=42, aspect="equal"):
-    """Draw the imputation schematic onto provided axes.
+    """Draw the three-panel missing-data imputation schematic onto provided axes.
 
-    Parameters
-    ----------
-    axes : array of 3 Axes
-        Pre-created axes to draw into.
-    marker_colours : dict, optional
-        {name: hex} for each marker. Defaults to MARKER_COLOURS.
-    n_frames_complete : int
-        Number of frames in the complete-data panel.
-    n_frames_missing : int
-        Number of frames in the missing/imputed panels.
-    missing_rates : tuple of float
-        Dropout rate per marker.
-    seed : int
-        RNG seed.
-    aspect : str
-        Aspect ratio for axes ('equal' or 'auto').
+    Args:
+        axes: Array of 3 pre-created Axes (complete, missing, imputed).
+        marker_colours: Dict of {name: hex} for each marker. Defaults to
+            MARKER_COLOURS.
+        n_frames_complete: Number of frames in the complete-data panel. Defaults to 10.
+        n_frames_missing: Number of frames in the missing and imputed panels.
+            Defaults to 20.
+        missing_rates: Per-marker dropout rate matching the real data pattern.
+            Defaults to (0.25, 0.33, 0.25, 0.21).
+        seed: RNG seed for reproducible dropout masks. Defaults to 42.
+        aspect: Axes aspect ratio string. Defaults to 'equal'.
     """
     mc = marker_colours or MARKER_COLOURS
     marker_names = list(mc.keys())
@@ -549,24 +526,24 @@ def plot_imputation_schematic(marker_colours=None, n_frames_complete=10,
                                n_frames_missing=20,
                                missing_rates=(0.25, 0.33, 0.25, 0.21),
                                seed=42):
-    """Plot a schematic showing complete data, missing data, and imputed data.
+    """Plot a three-panel schematic showing complete data, missing data, and imputed data.
 
-    Parameters
-    ----------
-    marker_colours : dict, optional
-        {name: hex} for each marker. Defaults to MARKER_COLOURS.
-    n_frames_complete : int
-        Number of frames in the complete-data panel.
-    n_frames_missing : int
-        Number of frames in the missing/imputed panels.
-    missing_rates : tuple of float
-        Dropout rate per marker (matching real data pattern).
-    seed : int
-        RNG seed.
+    Each panel is a grid of colour-coded cells representing marker coordinates.
+    Missing cells are shown as outlines; imputed cells are shown in a faded
+    version of the original colour with a dashed border.
+
+    Args:
+        marker_colours: Dict of {name: hex} for each marker. Defaults to
+            MARKER_COLOURS.
+        n_frames_complete: Number of frames in the complete-data panel. Defaults to 10.
+        n_frames_missing: Number of frames in the missing and imputed panels.
+            Defaults to 20.
+        missing_rates: Per-marker dropout rate matching the real data pattern.
+            Defaults to (0.25, 0.33, 0.25, 0.21).
+        seed: RNG seed for reproducible dropout masks. Defaults to 42.
 
     Returns:
-    -------
-    fig : Figure
+        Figure containing the three-panel imputation schematic.
     """
     cell_h = 0.35
     fig, axes = plt.subplots(1, 3, figsize=(12, max(n_frames_complete,
@@ -581,19 +558,18 @@ def plot_imputation_schematic(marker_colours=None, n_frames_complete=10,
 # ── Pairwise distance schematic ────────────────────────────────────────
 
 def _make_gradient(rgb_a, rgb_b, alpha, n_steps=32, vertical=False):
-    """Build an RGBA image for a gradient between two colours.
+    """Build an RGBA image array for a linear colour gradient between two colours.
 
-    Parameters
-    ----------
-    rgb_a, rgb_b : colour
-        Start and end colours (hex or RGB tuple).
-    alpha : float
-        Opacity for the gradient.
-    n_steps : int
-        Number of interpolation steps.
-    vertical : bool
-        If True, gradient runs top-to-bottom (n_steps, 1, 4).
-        If False, gradient runs left-to-right (1, n_steps, 4).
+    Args:
+        rgb_a: Start colour (hex string or RGB tuple).
+        rgb_b: End colour (hex string or RGB tuple).
+        alpha: Opacity applied uniformly across the gradient.
+        n_steps: Number of interpolation steps. Defaults to 32.
+        vertical: When True the gradient runs top-to-bottom (n_steps, 1, 4);
+            when False it runs left-to-right (1, n_steps, 4). Defaults to False.
+
+    Returns:
+        RGBA array suitable for ax.imshow().
     """
     a = np.array(to_rgb(rgb_a))
     b = np.array(to_rgb(rgb_b))
@@ -614,17 +590,30 @@ def _draw_distance_panel(ax, grid, col_labels, n_frames, n_cols,
                          title, subtitle, show_col_labels, show_frame_labels,
                          col_w, col_gap, cell_h, panel_w,
                          sort_arrow=False, aspect="equal"):
-    """Draw one panel of the pairwise-distance schematic.
+    """Draw one pairwise-distance panel onto the given axes.
 
-    grid[frame][col] = (rgb_a, rgb_b, alpha)
-    Each cell is rendered as a vertical gradient (top=rgb_a, bottom=rgb_b).
+    Each cell is a vertical colour gradient from rgb_a (top) to rgb_b (bottom),
+    representing a pairwise distance between two markers. The gradient encodes
+    which two marker types are being compared.
 
-    Parameters
-    ----------
-    sort_arrow : bool
-        If True, draw a "smallest → greatest" arrow across the top.
-    aspect : str
-        Aspect ratio for the axes.
+    Args:
+        ax: Axes to draw into.
+        grid: Nested list grid[frame][col] = (rgb_a, rgb_b, alpha).
+        col_labels: Column header strings, or None to suppress labels.
+        n_frames: Number of data rows (frames).
+        n_cols: Number of distance columns.
+        title: Panel title displayed above the grid.
+        subtitle: Descriptive text displayed below the grid.
+        show_col_labels: Whether to show column header labels.
+        show_frame_labels: Whether to show row labels (F1, F2, …).
+        col_w: Width of each cell in data units.
+        col_gap: Gap between cells in data units.
+        cell_h: Height of each cell in data units.
+        panel_w: Total panel width in data units.
+        sort_arrow: When True, draws a directional annotation indicating
+            that columns are ordered from greatest to smallest distance.
+            Defaults to False.
+        aspect: Axes aspect ratio string. Defaults to 'equal'.
     """
     ax.set_xlim(-0.6, panel_w + 0.1)
     ax.set_ylim(-1.1, n_frames * cell_h + 1.0)
@@ -681,22 +670,21 @@ def _draw_distance_panel(ax, grid, col_labels, n_frames, n_cols,
 def _layout_pairwise_distance_schematic(fig, gridspec_region,
                                          marker_colours=None, n_frames=5,
                                          seed=42, aspect="equal"):
-    """Draw the pairwise distance schematic into a GridSpec region.
+    """Draw the pairwise-distance schematic into a GridSpec region.
 
-    Parameters
-    ----------
-    fig : Figure
-        Parent figure.
-    gridspec_region : SubplotSpec
-        Region of a parent GridSpec to draw into (via subgridspec).
-    marker_colours : dict, optional
-        {name: hex} for each marker. Defaults to MARKER_COLOURS.
-    n_frames : int
-        Number of toy frames to show.
-    seed : int
-        RNG seed for reproducible shuffles.
-    aspect : str
-        Aspect ratio for axes ('equal' or 'auto').
+    Renders four column groups: marker coordinates, labelled pairwise distances,
+    sorted pairwise distances, and within-frame-shuffled pairwise distances.
+    An explainer inset illustrates how the six C(4,2) pairwise distances are
+    derived from the four marker positions.
+
+    Args:
+        fig: Parent Figure to add axes to.
+        gridspec_region: SubplotSpec region to draw into (via subgridspec).
+        marker_colours: Dict of {name: hex} for each marker. Defaults to
+            MARKER_COLOURS.
+        n_frames: Number of toy frames to display in each panel. Defaults to 5.
+        seed: RNG seed for reproducible shuffle ordering. Defaults to 42.
+        aspect: Axes aspect ratio string. Defaults to 'equal'.
     """
     mc = marker_colours or MARKER_COLOURS
     marker_names = list(mc.keys())
@@ -830,23 +818,20 @@ def _layout_pairwise_distance_schematic(fig, gridspec_region,
 
 
 def plot_pairwise_distance_schematic(marker_colours=None, n_frames=5, seed=42):
-    """Plot the four-panel pairwise distance schematic.
+    """Plot the pairwise-distance schematic comparing three distance representations.
 
-    Panels: Marker coordinates → Pairwise distances → Sorted distances
-    → Shuffled distances.
+    Shows marker coordinates alongside labelled, sorted, and within-frame-shuffled
+    pairwise distance representations. Used to illustrate the three pairwise-distance
+    variants tested in the robustness analysis.
 
-    Parameters
-    ----------
-    marker_colours : dict, optional
-        {name: hex} for each marker. Defaults to MARKER_COLOURS.
-    n_frames : int
-        Number of toy frames to show.
-    seed : int
-        RNG seed for reproducible shuffles.
+    Args:
+        marker_colours: Dict of {name: hex} for each marker. Defaults to
+            MARKER_COLOURS.
+        n_frames: Number of toy frames to show in each panel. Defaults to 5.
+        seed: RNG seed for reproducible distance shuffles. Defaults to 42.
 
     Returns:
-    -------
-    fig : Figure
+        Figure containing the pairwise-distance schematic.
     """
     cell_h = 0.55
     fig = plt.figure(figsize=(14, n_frames * cell_h + 2))
@@ -983,14 +968,18 @@ def _layout_autocorrelation_schematic(axes, marker_colours=None):
 
 
 def plot_autocorrelation_schematic(marker_colours=None):
-    """Standalone three-panel autocorrelation schematic.
+    """Plot a three-panel schematic showing temporal thinning of flight sequences.
 
-    Shows: original (all frames), thinned to every 2nd frame,
-    and thinned to every 5th frame.
+    Illustrates the autocorrelation robustness analysis by showing how sequences
+    look when using all frames, every 2nd frame (50%), and every 20th frame (5%).
+    Each sequence is shown as a vertical column of coloured marker dots.
+
+    Args:
+        marker_colours: Dict of {name: hex} for each marker. Defaults to
+            MARKER_COLOURS.
 
     Returns:
-    -------
-    fig : Figure
+        Figure containing the three-panel thinning schematic.
     """
     fig, axes = plt.subplots(
         1, 3, figsize=(18, 5),

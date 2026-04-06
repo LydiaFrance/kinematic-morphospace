@@ -17,20 +17,18 @@ logger = logging.getLogger(__name__)
 
 
 def compute_pitch_angle(vectors: np.ndarray) -> np.ndarray:
-    """Compute pitch angle from direction vectors.
+    """Compute pitch angles from 3D direction vectors.
 
-    Vectorized version of MATLAB ``find_pitchangle.m``: zeros the X component,
-    normalizes, then computes ``atan2(dot(v, [0,0,-1]), dot(v, [0,-1,0]))``.
+    Vectorized equivalent of MATLAB ``find_pitchangle.m``: zeros the X
+    (lateral) component, normalises, then computes
+    ``atan2(dot(v, [0,0,-1]), dot(v, [0,-1,0]))``.
 
-    Parameters
-    ----------
-    vectors : np.ndarray
-        (N, 3) array of direction vectors (e.g. tailpack relative to backpack).
+    Args:
+        vectors: (N, 3) array of direction vectors, e.g. tailpack position
+            relative to backpack.
 
     Returns:
-    -------
-    np.ndarray
-        (N,) pitch angles in degrees.
+        (N,) array of pitch angles in degrees.
     """
     vectors = np.asarray(vectors, dtype=float)
     if vectors.ndim == 1:
@@ -51,21 +49,18 @@ def compute_pitch_angle(vectors: np.ndarray) -> np.ndarray:
 
 
 def compute_yaw_angle(vectors: np.ndarray) -> np.ndarray:
-    """Compute yaw angle from direction vectors.
+    """Compute yaw angles from 3D direction vectors.
 
-    Vectorized version of MATLAB ``find_yawangle.m``: zeros the Z component,
-    normalizes, then computes ``arccos(dot(v, [0, 1, 0]))``.
+    Vectorized equivalent of MATLAB ``find_yawangle.m``: zeros the Z
+    (vertical) component, normalises, then computes
+    ``arccos(dot(v, [0, 1, 0]))``.
 
-    Parameters
-    ----------
-    vectors : np.ndarray
-        (N, 3) array of direction vectors (e.g. head-to-tail after pitch
-        correction).
+    Args:
+        vectors: (N, 3) array of direction vectors, e.g. the head-to-tail
+            vector after pitch correction.
 
     Returns:
-    -------
-    np.ndarray
-        (N,) yaw angles in degrees (unsigned, 0-180).
+        (N,) array of yaw angles in degrees (unsigned, range 0–180).
     """
     vectors = np.asarray(vectors, dtype=float)
     if vectors.ndim == 1:
@@ -86,19 +81,20 @@ def build_rotation_matrices(
     angles_deg: np.ndarray,
     axis: str = "x",
 ) -> np.ndarray:
-    """Build (N, 3, 3) rotation matrices from angle arrays.
+    """Build a batch of 3×3 rotation matrices from an array of angles.
 
-    Parameters
-    ----------
-    angles_deg : np.ndarray
-        (N,) array of rotation angles in degrees.
-    axis : str
-        Rotation axis: ``"x"``, ``"y"``, or ``"z"``.
+    Constructs one rotation matrix per angle, all about the same axis.
+    The Z-axis convention negates the angle to match MATLAB's ``rotz``.
+
+    Args:
+        angles_deg: (N,) array of rotation angles in degrees.
+        axis: Rotation axis — one of ``"x"``, ``"y"``, or ``"z"``.
 
     Returns:
-    -------
-    np.ndarray
         (N, 3, 3) array of rotation matrices.
+
+    Raises:
+        ValueError: If ``axis`` is not ``"x"``, ``"y"``, or ``"z"``.
     """
     angles = np.radians(np.asarray(angles_deg, dtype=float))
     n = len(angles)
@@ -139,22 +135,18 @@ def apply_rotation(
     xyz: np.ndarray,
     rotation_matrices: np.ndarray,
 ) -> np.ndarray:
-    """Apply per-point rotation matrices to coordinate vectors.
+    """Apply per-point rotation matrices to an array of coordinate vectors.
 
-    Equivalent to MATLAB ``xyz * rotmat`` (row vectors), implemented as
-    ``R @ v`` with column convention via einsum.
+    Implements MATLAB's row-vector convention ``xyz * rotmat`` via einsum,
+    equivalent to ``v @ R`` for each point.
 
-    Parameters
-    ----------
-    xyz : np.ndarray
-        (N, 3) array of coordinates.
-    rotation_matrices : np.ndarray
-        (N, 3, 3) rotation matrices.
+    Args:
+        xyz: (N, 3) array of 3D coordinates to rotate.
+        rotation_matrices: (N, 3, 3) array of per-point rotation matrices,
+            e.g. from :func:`build_rotation_matrices`.
 
     Returns:
-    -------
-    np.ndarray
-        (N, 3) rotated coordinates.
+        (N, 3) array of rotated coordinates.
     """
     # MATLAB uses row-vector convention: xyz * R
     # In NumPy column convention: R^T @ v, or equivalently v @ R
@@ -164,28 +156,23 @@ def apply_rotation(
 def build_body_frame(
     tail_vectors: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Build a body-fixed coordinate frame from tail vectors.
+    """Construct an orthonormal body-fixed coordinate frame from tail vectors.
 
-    Reproduces MATLAB lines 2253-2274 of ``run_whole_body_analysis.m``:
+    Derives three mutually perpendicular unit vectors from the backpack-to-
+    tailpack direction, reproducing MATLAB lines 2253–2274 of
+    ``run_whole_body_analysis.m``:
 
-    1. ``body_axis`` = normalized tail_vector (backpack -> tailpack direction)
-    2. ``sideways`` = cross([0,0,1], body_axis), normalized
-    3. ``upwards`` = cross(body_axis, sideways), normalized
-    4. ``sideways`` = cross(body_axis, upwards), normalized (refinement)
+    1. ``body_axis`` = normalised tail vector (backpack → tailpack).
+    2. ``sideways`` = cross([0, 0, 1], body_axis), normalised.
+    3. ``upwards`` = cross(body_axis, sideways), normalised.
+    4. ``sideways`` refined = cross(body_axis, upwards), normalised.
 
-    Parameters
-    ----------
-    tail_vectors : np.ndarray
-        (N, 3) vectors from backpack to tailpack.
+    Args:
+        tail_vectors: (N, 3) vectors pointing from backpack to tailpack.
 
     Returns:
-    -------
-    body_axis : np.ndarray
-        (N, 3) unit vectors along the body axis.
-    sideways : np.ndarray
-        (N, 3) unit vectors pointing sideways (left).
-    upwards : np.ndarray
-        (N, 3) unit vectors pointing up from the body.
+        Tuple of three (N, 3) arrays: ``body_axis`` (along-body direction),
+        ``sideways`` (lateral, pointing left), and ``upwards`` (dorsal).
     """
     tail_vectors = np.asarray(tail_vectors, dtype=float)
 
@@ -222,27 +209,21 @@ def rotate_to_body_frame(
     body_axis: np.ndarray,
     upwards: np.ndarray,
 ) -> np.ndarray:
-    """Rotate marker positions into body-fixed coordinates.
+    """Rotate global-frame marker positions into body-fixed coordinates.
 
-    Constructs rotation matrices from the three body-frame axes and applies
-    them via einsum. Reproduces MATLAB's ``global2localcoord`` with
+    Stacks the three body-frame axes into a rotation matrix and applies it
+    per-point via einsum. Reproduces MATLAB's ``global2localcoord`` with
     ``splitapply(@rotate_byRow, ...)``.
 
-    Parameters
-    ----------
-    xyz : np.ndarray
-        (N, 3) marker positions in the global frame (relative to backpack).
-    sideways : np.ndarray
-        (N, 3) sideways unit vectors (body-frame X axis).
-    body_axis : np.ndarray
-        (N, 3) body-axis unit vectors (body-frame Y axis).
-    upwards : np.ndarray
-        (N, 3) upwards unit vectors (body-frame Z axis).
+    Args:
+        xyz: (N, 3) marker positions in the global frame, expressed relative
+            to the backpack origin.
+        sideways: (N, 3) lateral unit vectors defining the body-frame X axis.
+        body_axis: (N, 3) along-body unit vectors defining the body-frame Y axis.
+        upwards: (N, 3) dorsal unit vectors defining the body-frame Z axis.
 
     Returns:
-    -------
-    np.ndarray
-        (N, 3) coordinates in the body-fixed frame.
+        (N, 3) marker coordinates expressed in the body-fixed frame.
     """
     # Build rotation matrix: rows are the body-frame axes
     # R[n] = [[sideways], [body_axis], [upwards]]
@@ -255,32 +236,24 @@ def extract_body_angles(
     sideways: np.ndarray,
     upwards: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Extract pitch, yaw, and roll angles from body-frame axes.
+    """Extract Euler pitch, yaw, and roll angles from body-frame axes.
 
-    Reproduces the angle extraction in MATLAB ``rotate_byRow.m``:
-    - Pitch: from body_axis using ``find_pitchangle`` logic
-    - Yaw: from body_axis projected onto XY plane
-    - Roll: from body_axis projected onto XZ plane
+    Reproduces the angle extraction logic in MATLAB ``rotate_byRow.m``,
+    including wrap-around corrections (lines 2294–2303):
 
-    Also applies the MATLAB wrap-around corrections (lines 2294-2303).
+    - Pitch: derived from ``body_axis`` using the ``find_pitchangle`` formula.
+    - Yaw: from ``body_axis`` projected onto the XY plane.
+    - Roll: from the ZYX Euler decomposition of the rotation matrix.
 
-    Parameters
-    ----------
-    body_axis : np.ndarray
-        (N, 3) body-axis unit vectors.
-    sideways : np.ndarray
-        (N, 3) sideways unit vectors.
-    upwards : np.ndarray
-        (N, 3) upwards unit vectors.
+    Args:
+        body_axis: (N, 3) unit vectors along the bird's body axis (Y in body
+            frame).
+        sideways: (N, 3) lateral unit vectors (X in body frame).
+        upwards: (N, 3) dorsal unit vectors (Z in body frame).
 
     Returns:
-    -------
-    pitch : np.ndarray
-        (N,) body pitch in degrees.
-    yaw : np.ndarray
-        (N,) body yaw in degrees.
-    roll : np.ndarray
-        (N,) body roll in degrees.
+        Tuple of three (N,) arrays: ``pitch``, ``yaw``, and ``roll``, all in
+        degrees.
     """
     # Pitch from body_axis (= y_local_axis in MATLAB)
     pitch = compute_pitch_angle(body_axis)

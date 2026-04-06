@@ -25,19 +25,18 @@ logger = logging.getLogger(__name__)
 
 
 def compute_marker_movement(df: pd.DataFrame) -> pd.DataFrame:
-    """Compute per-marker movement range (max - min) across all frames.
+    """Compute the coordinate-wise movement range for each marker across all frames.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Long-format marker table with columns ``marker_id``, ``X``, ``Y``,
-        ``Z``.
+    The range (max − min) for each of X, Y, Z is summed into ``total_range``,
+    which is used as the primary feature for stationary marker detection.
+
+    Args:
+        df: Long-format marker table with columns ``marker_id``, ``X``,
+            ``Y``, ``Z``.
 
     Returns:
-    -------
-    pd.DataFrame
-        One row per marker with columns ``marker_id``, ``range_X``,
-        ``range_Y``, ``range_Z``, ``total_range``.
+        DataFrame with one row per marker and columns ``marker_id``,
+        ``range_X``, ``range_Y``, ``range_Z``, and ``total_range``.
     """
     grouped = df.groupby("marker_id")[["X", "Y", "Z"]]
     ranges = grouped.max() - grouped.min()
@@ -57,32 +56,30 @@ def detect_stationary_markers(
     n_outlier_passes: int = 3,
     outlier_std_factor: float = 2.0,
 ) -> pd.Series:
-    """Label markers as stationary or moving using K-means + Calinski-Harabasz.
+    """Identify stationary markers (perches, obstacles) using K-means clustering.
 
-    The algorithm:
+    Clusters markers by their total movement range using K-means (k=2–5),
+    selecting the number of clusters with the highest Calinski-Harabasz
+    score. The cluster with the lowest mean range is labelled stationary.
+    Outlier markers within the stationary cluster are iteratively removed
+    based on a standard-deviation threshold.
 
-    1. Compute total movement range per marker.
-    2. Try K-means with k=2..5, pick k with highest Calinski-Harabasz score.
-    3. Assign the cluster with lowest mean range as "stationary".
-    4. Within the stationary cluster, iteratively remove outliers (markers
-       whose range exceeds mean + ``outlier_std_factor`` * std).
+    Falls back to a simple threshold comparison if fewer than 5 markers are
+    present or if clustering fails.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Long-format marker table with ``marker_id``, ``X``, ``Y``, ``Z``.
-    threshold : float
-        Fallback threshold for stationary if clustering fails (total range
-        must be below this value).
-    n_outlier_passes : int
-        Number of outlier-removal iterations within the stationary cluster.
-    outlier_std_factor : float
-        Multiplier on standard deviation for outlier detection.
+    Args:
+        df: Long-format marker table with columns ``marker_id``, ``X``,
+            ``Y``, ``Z``.
+        threshold: Fallback movement threshold in metres. Markers with total
+            range below this value are considered stationary when clustering
+            cannot be performed. Defaults to 0.001.
+        n_outlier_passes: Number of iterative outlier-removal passes within
+            the stationary cluster. Defaults to 3.
+        outlier_std_factor: Standard-deviation multiplier used to define
+            outlier markers within the stationary cluster. Defaults to 2.0.
 
     Returns:
-    -------
-    pd.Series
-        Boolean Series indexed by ``marker_id``; True = stationary.
+        Boolean Series indexed by ``marker_id``; True means stationary.
     """
     movement = compute_marker_movement(df)
     ranges = movement["total_range"].values.reshape(-1, 1)
@@ -164,23 +161,22 @@ def label_fixed_objects(
     is_stationary: pd.Series,
     y_ranges: dict[str, tuple[float, float]] | None = None,
 ) -> pd.Series:
-    """Assign semantic labels to stationary markers by Y-coordinate position.
+    """Assign semantic labels to stationary markers based on their Y-axis position.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Long-format marker table with ``marker_id`` and ``Y``.
-    is_stationary : pd.Series
-        Boolean Series indexed by ``marker_id`` (from
-        :func:`detect_stationary_markers`).
-    y_ranges : dict, optional
-        Mapping of label → (y_min, y_max). Defaults to
-        :data:`DEFAULT_OBJECT_RANGES`.
+    Stationary markers are mapped to named arena objects (perches, obstacle)
+    by comparing their median Y position against known Y-coordinate ranges.
+    Moving markers receive the label ``"moving"``; stationary markers that
+    fall outside all defined ranges receive ``"stationary_unknown"``.
+
+    Args:
+        df: Long-format marker table with columns ``marker_id`` and ``Y``.
+        is_stationary: Boolean Series indexed by ``marker_id``, as returned
+            by :func:`detect_stationary_markers`.
+        y_ranges: Mapping of object label to (y_min, y_max) Y-coordinate
+            range in metres. Defaults to :data:`DEFAULT_OBJECT_RANGES`.
 
     Returns:
-    -------
-    pd.Series
-        String Series indexed by ``marker_id`` with labels:
+        String Series indexed by ``marker_id`` with values
         ``"left_perch"``, ``"right_perch"``, ``"obstacle"``, ``"moving"``,
         or ``"stationary_unknown"``.
     """

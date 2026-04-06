@@ -7,25 +7,18 @@ from ..data_filtering import filter_by
 
 
 def bin_and_plot(ax, x, y, color, label):
-    """Bin data by horizontal distance and plot mean +/-2 SD.
+    """Bin angle data by horizontal distance and plot the mean with ±2 SD shading.
 
-    Parameters
-    ----------
-    ax : matplotlib.axes.Axes
-        Axes to plot on.
-    x : numpy.ndarray
-        Horizontal-distance values.
-    y : numpy.ndarray
-        Angle values corresponding to *x*.
-    color : str
-        Line and fill colour.
-    label : str
-        Legend label for the line.
+    Divides the x range into 0.05 m bins, computes the mean and standard
+    deviation of y within each bin, and draws the mean line with a filled
+    ±2 SD envelope. Bins with no data are silently skipped.
 
-    Returns:
-    -------
-    None
-        The axes are modified in place.
+    Args:
+        ax: Matplotlib Axes object to draw on.
+        x: Horizontal-distance values in metres, one per frame.
+        y: Angle values in degrees corresponding to each x value.
+        color: Line and fill colour (any Matplotlib colour string).
+        label: Legend label for the mean line.
     """
     # Define bin edges
     size_bin = 0.05
@@ -55,24 +48,19 @@ def bin_and_plot(ax, x, y, color, label):
 def plot_whole_body_angles(info_df, euler_angles):
     """Plot whole-body pitch, roll, and yaw for left, right, and straight turns.
 
-    Creates a 3x3 grid: rows are turn directions, columns are angle
-    components. Data is binned by horizontal distance.
+    Creates a 3x3 grid of panels where rows correspond to turn direction
+    (left, right, straight) and columns to angle components (pitch, roll, yaw).
+    All data are binned by horizontal distance to the perch.
 
-    Parameters
-    ----------
-    info_df : pandas.DataFrame
-        Per-frame metadata including ``body_pitch``, ``HorzDistance``,
-        and turn-direction columns.
-    euler_angles : numpy.ndarray
-        Euler angles, shape ``(n_frames, 3)`` with columns
-        (pitch, yaw, roll).
+    Args:
+        info_df: Per-frame metadata DataFrame containing ``body_pitch``,
+            ``HorzDistance``, and turn-direction columns.
+        euler_angles: Euler angle array of shape (n_frames, 3) with columns
+            ordered as (pitch, yaw, roll).
 
     Returns:
-    -------
-    fig : matplotlib.figure.Figure
-        The figure.
-    ax : numpy.ndarray of matplotlib.axes.Axes
-        Flat array of subplot axes.
+        Tuple of (fig, ax) where fig is the Figure and ax is a flat array of
+        9 Axes objects.
     """
     pitch_angles = euler_angles[:, 0]
     yaw_angles = euler_angles[:, 1]
@@ -161,26 +149,20 @@ def plot_whole_body_angles(info_df, euler_angles):
 
 
 def plot_angles_by_distance(info_df, euler_angles):
-    """Plot whole-body angles for each perch distance (5, 7, 9, 12 m).
+    """Plot whole-body angles separately for each perch distance (5, 7, 9, 12 m).
 
-    Creates a 4x3 grid: rows are perch distances (2017 data only),
-    columns are pitch, roll, and yaw.
+    Creates a 4x3 grid where rows are perch distances and columns are pitch,
+    roll, and yaw. Only 2017 data are used, which span all four distances.
 
-    Parameters
-    ----------
-    info_df : pandas.DataFrame
-        Per-frame metadata including ``body_pitch``, ``HorzDistance``,
-        ``PerchDistance``, and ``Year`` columns.
-    euler_angles : numpy.ndarray
-        Euler angles, shape ``(n_frames, 3)`` with columns
-        (pitch, yaw, roll).
+    Args:
+        info_df: Per-frame metadata DataFrame containing ``body_pitch``,
+            ``HorzDistance``, ``PerchDistance``, and ``Year`` columns.
+        euler_angles: Euler angle array of shape (n_frames, 3) with columns
+            ordered as (pitch, yaw, roll).
 
     Returns:
-    -------
-    fig : matplotlib.figure.Figure
-        The figure.
-    ax : numpy.ndarray of matplotlib.axes.Axes
-        2-D array of subplot axes, shape ``(4, 3)``.
+        Tuple of (fig, ax) where fig is the Figure and ax is a 2-D array of
+        Axes with shape (4, 3).
     """
     pitch_angles = euler_angles[:, 0]
     yaw_angles = euler_angles[:, 1]

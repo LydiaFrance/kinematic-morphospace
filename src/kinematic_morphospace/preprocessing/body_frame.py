@@ -22,32 +22,25 @@ def estimate_body_pitch(
     *,
     min_markers: int = 3,
 ) -> pd.DataFrame:
-    """Estimate body pitch angle per frame from backpack markers.
+    """Estimate body pitch angle per frame from backpack marker positions.
 
-    For each frame:
+    For each frame, selects backpack markers, computes deviations from
+    the centroid, and eigendecomposes the covariance matrix. The principal
+    eigenvector (largest eigenvalue) gives the body's main axis; pitch is
+    the angle between that axis and the vertical [0, 0, 1], in degrees.
 
-    1. Select backpack markers (requires at least *min_markers*).
-    2. Compute centroid and deviation vectors.
-    3. Eigendecompose the covariance matrix.
-    4. The eigenvector with the largest eigenvalue is the principal axis
-       (``normal_vector``).
-    5. Pitch = ``arccos(dot([0,0,1], normal_vector))``, in degrees.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Marker table with ``frame``, ``marker_id``, ``X``, ``Y``, ``Z``.
-    body_labels : pd.Series, optional
-        Series indexed by ``marker_id`` with labels. Only markers labelled
-        ``"backpack"`` are used. If None, all markers are used.
-    min_markers : int
-        Minimum number of backpack markers required per frame. Frames with
-        fewer markers get ``pitch = NaN``. Default 3 (matching MATLAB).
+    Args:
+        df: Marker table with columns ``frame``, ``marker_id``, ``X``,
+            ``Y``, ``Z``.
+        body_labels: Series indexed by ``marker_id`` containing anatomical
+            labels. Only markers labelled ``"backpack"`` are used. If None,
+            all markers in the table are used.
+        min_markers: Minimum number of backpack markers required per frame.
+            Frames with fewer valid markers receive ``body_pitch = NaN``.
+            Defaults to 3 (matching the MATLAB implementation).
 
     Returns:
-    -------
-    pd.DataFrame
-        Table with columns ``frame``, ``body_pitch`` (degrees),
+        DataFrame with columns ``frame``, ``body_pitch`` (degrees),
         ``normal_X``, ``normal_Y``, ``normal_Z``.
     """
     # Filter to backpack markers

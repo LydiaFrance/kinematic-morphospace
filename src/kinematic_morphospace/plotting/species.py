@@ -29,22 +29,21 @@ def _add_derivation_line(fig, row, pt_name, derived_name, pt_uppercase=True):
 
 
 def plot_bird_markers(df, row_idx=0, show_derived_lines=True):
-    """Interactive 3D scatter plot of original and derived bird markers.
+    """Interactive Plotly 3-D scatter plot of original and derived bird markers.
 
-    Blue markers are the original Harvey cadaver landmarks.  Red markers
-    are derived (mirrored / offset) positions.  Thin grey lines show the
-    derivation path from each source point to its derived marker.
+    Displays cadaver landmark positions alongside their computationally derived
+    counterparts for one species at a time. Blue markers are the original Harvey
+    cadaver landmarks (pt* columns); red markers are derived positions computed
+    by mirroring or offsetting the originals. Thin grey lines optionally show
+    the derivation path from each source point to its derived marker.
 
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        DataFrame with bird marker coordinates (pt* columns for originals,
-        derived keyword columns for computed markers).
-    row_idx : int
-        Row index to visualise.
-    show_derived_lines : bool
-        If True (default), draw thin grey lines showing how each derived
-        marker was computed from the original landmarks.
+    Args:
+        df: DataFrame with bird marker coordinates. Must contain pt*_X/Y/Z columns
+            for original landmarks and derived keyword columns (wingtip_, primary_,
+            secondary_, tailtip_, tailbase_, shoulder_, hood_) for computed markers.
+        row_idx: Row index of the species to visualise. Defaults to 0.
+        show_derived_lines: When True, draws thin grey lines connecting each
+            original landmark to its derived marker. Defaults to True.
     """
     row = df.iloc[row_idx]
 

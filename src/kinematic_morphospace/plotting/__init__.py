@@ -8,25 +8,21 @@ from matplotlib.figure import Figure
 
 
 def save_figure(fig, filepath, dpi=300, rasterize=False):
-    """Save a matplotlib figure to PDF/PNG.
+    """Save a matplotlib figure to PDF or PNG, accepting several figure types.
 
-    Accepts fig as a Figure, (fig, axes) tuple, or bare Axes
-    (calls get_figure()). Creates parent directories automatically.
-    Defaults to tight bounding box.
+    Accepts a bare Figure, a (Figure, Axes) tuple returned by most plotting
+    helpers, or a bare Axes (get_figure() is called automatically). Parent
+    directories are created on demand.
 
-    Parameters
-    ----------
-    fig : Figure, (Figure, Axes) tuple, or Axes
-        The figure to save.
-    filepath : str or Path
-        Destination path (extension determines format).
-    dpi : int
-        Resolution for raster output (default 300).
-    rasterize : bool
-        If True, rasterize all artists before saving as PDF. This
-        embeds a high-resolution bitmap inside the PDF, which keeps
-        file sizes small for scatter-heavy figures while preserving
-        vector text/axes.
+    Args:
+        fig: The figure to save. May be a Figure, a (Figure, Axes) tuple,
+            or a bare Axes object.
+        filepath: Destination path; the file extension determines the format.
+        dpi: Resolution for raster output. Defaults to 300.
+        rasterize: When True, all axes content is rasterised before saving
+            as PDF. This embeds a high-resolution bitmap inside the PDF,
+            keeping file sizes small for scatter-heavy figures while
+            preserving vector text and axes. Defaults to False.
     """
     # Unwrap common return types from plotting functions
     if isinstance(fig, tuple):

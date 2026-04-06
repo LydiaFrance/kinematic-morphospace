@@ -24,26 +24,22 @@ def calibrate_position(
     perch_height: float = 1.25,
     z_columns: list[str] | None = None,
 ) -> pd.DataFrame:
-    """Subtract perch height from Z-coordinate columns.
+    """Subtract the perch height from Z-coordinate columns to zero the vertical datum.
 
-    Only columns that exist in *df* are modified. Multi-column fields
-    use the ``_3`` suffix convention for the Z component (e.g. ``XYZ_3``,
-    ``smooth_XYZ_3``, ``backpack_smooth_XYZ_3``).
+    Only columns present in ``df`` are modified. Multi-column fields use the
+    ``_3`` suffix convention for the Z component (e.g. ``XYZ_3``,
+    ``smooth_XYZ_3``, ``backpack_smooth_XYZ_3``). The 2020 dataset was
+    recorded with the perch at 1.25 m above the motion-capture floor.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Table with Z-coordinate columns.
-    perch_height : float
-        Height to subtract from Z values, in metres.
-    z_columns : list[str], optional
-        Explicit list of Z-column names to adjust. If ``None``, defaults
-        to ``["XYZ_3", "smooth_XYZ_3", "backpack_smooth_XYZ_3"]``.
+    Args:
+        df: DataFrame containing Z-coordinate columns to adjust.
+        perch_height: Height of the perch in metres, subtracted from all Z
+            values. Defaults to 1.25.
+        z_columns: Explicit list of Z-column names to adjust. Defaults to
+            ``["XYZ_3", "smooth_XYZ_3", "backpack_smooth_XYZ_3"]``.
 
     Returns:
-    -------
-    pd.DataFrame
-        Copy of *df* with adjusted Z columns.
+        Copy of ``df`` with the perch height subtracted from each Z column.
     """
     df = df.copy()
 
@@ -80,30 +76,27 @@ def find_jump_frame(
     distance_col: str = "HorzDistance",
     time_col: str = "time",
 ) -> float:
-    """Find the time at which a sequence crosses *jump_dist* horizontal distance.
+    """Find the time at which a flight sequence crosses a target horizontal distance.
 
-    Uses progressive tolerance relaxation: tries each tolerance in order,
-    returning the time of the closest matching frame. At the widest tolerance,
-    takes the mean time of all matching frames (replicating the MATLAB
-    interpolation behaviour).
+    Uses progressive tolerance relaxation: tries each tolerance in order and
+    returns the time of the closest matching frame. At the widest tolerance,
+    takes the mean time of all matching frames to replicate the MATLAB
+    interpolation behaviour.
 
-    Parameters
-    ----------
-    seq_df : pd.DataFrame
-        Single-sequence data with *distance_col* and *time_col*.
-    jump_dist : float
-        Target horizontal distance in metres.
-    tolerances : tuple of float
-        Progressive tolerance values for the distance match.
-    distance_col : str
-        Column containing horizontal distance.
-    time_col : str
-        Column containing time values.
+    Args:
+        seq_df: Single-sequence DataFrame with horizontal distance and time
+            columns.
+        jump_dist: Target horizontal distance in metres at which to find the
+            crossing frame. Defaults to 8.3.
+        tolerances: Progressive tolerance values (metres) used for the
+            distance match, tried in order from tightest to loosest.
+        distance_col: Name of the column containing horizontal distance
+            values.
+        time_col: Name of the column containing time values.
 
     Returns:
-    -------
-    float
-        Time at the jump frame, or ``NaN`` if no match found.
+        Time in seconds at the jump frame, or ``NaN`` if no matching frame
+        is found within any tolerance.
     """
     distances = seq_df[distance_col].values
     times = seq_df[time_col].values
@@ -129,34 +122,30 @@ def calibrate_time(
     distance_col: str = "HorzDistance",
     time_col: str = "time",
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Calibrate time so that t=0 is at the jump-distance frame.
+    """Set t=0 at the jump-distance crossing frame for each flight sequence.
 
-    For each unique sequence, finds the frame closest to *jump_dist*
-    horizontal distance and subtracts that time from all frames in the
-    sequence.
+    For each unique sequence, uses :func:`find_jump_frame` to locate the
+    frame where the bird crosses ``jump_dist`` metres of horizontal distance,
+    then subtracts that time from all frames in the sequence. The resulting
+    offset table can be applied to other tables (e.g. labelled markers) via
+    :func:`apply_time_offsets`.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Table with *seq_col*, *distance_col*, and *time_col* columns.
-    jump_dist : float
-        Target horizontal distance for t=0, in metres.
-    tolerances : tuple of float
-        Progressive tolerance values.
-    seq_col : str
-        Column identifying sequences.
-    distance_col : str
-        Column containing horizontal distance.
-    time_col : str
-        Column containing time values.
+    Args:
+        df: DataFrame with sequence identifier, horizontal distance, and time
+            columns.
+        jump_dist: Horizontal distance (metres) at which t=0 is defined.
+            Defaults to 8.3.
+        tolerances: Progressive tolerance values passed to
+            :func:`find_jump_frame`.
+        seq_col: Column name identifying individual flight sequences.
+        distance_col: Column name for horizontal distance values.
+        time_col: Column name for time values to calibrate.
 
     Returns:
-    -------
-    tuple[pd.DataFrame, pd.DataFrame]
-        - The calibrated DataFrame (copy of *df* with adjusted time).
-        - A lookup table with columns ``seqID`` and ``time_offset``
-          (the *newstart* values), useful for applying the same offsets
-          to other tables (e.g. labelled markers).
+        Tuple of (calibrated_df, offset_df). ``calibrated_df`` is a copy of
+        ``df`` with adjusted time values. ``offset_df`` has columns
+        ``seqID`` and ``time_offset`` (the subtracted values), suitable for
+        passing to :func:`apply_time_offsets`.
     """
     df = df.copy()
     sequences = df[seq_col].unique()
@@ -205,27 +194,21 @@ def apply_time_offsets(
     seq_col: str = "seqID",
     time_col: str = "time",
 ) -> pd.DataFrame:
-    """Apply pre-computed time offsets to another table.
+    """Apply pre-computed time offsets from :func:`calibrate_time` to another table.
 
-    This is used to apply the trajectory-derived time calibration to the
-    labelled and body marker tables.
+    Used to propagate the trajectory-derived t=0 calibration to other tables
+    such as the labelled marker or body-marker tables, ensuring consistent
+    time reference across all outputs.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Table to calibrate.
-    offset_df : pd.DataFrame
-        Lookup table with ``seqID`` and ``time_offset`` columns
-        (from :func:`calibrate_time`).
-    seq_col : str
-        Sequence column name.
-    time_col : str
-        Time column name.
+    Args:
+        df: Table whose time column should be adjusted.
+        offset_df: Lookup table with ``seqID`` and ``time_offset`` columns,
+            as returned by :func:`calibrate_time`.
+        seq_col: Column name identifying flight sequences.
+        time_col: Column name for time values to adjust.
 
     Returns:
-    -------
-    pd.DataFrame
-        Copy of *df* with calibrated time.
+        Copy of ``df`` with the per-sequence time offsets subtracted.
     """
     df = df.copy()
     offset_map = dict(zip(offset_df["seqID"], offset_df["time_offset"]))

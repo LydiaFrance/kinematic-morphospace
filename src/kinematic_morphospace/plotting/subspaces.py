@@ -15,33 +15,28 @@ HAWK_COLOURS = {
 
 
 def plot_method_comparison(method_results, ref_key, max_k, n_comp, colours=None):
-    """Plot cosine sweep and reconstruction RMSE comparison for multiple methods.
+    """Compare cosine sweep and reconstruction RMSE across alternative PCA methods.
 
-    Produces a 2-row figure:
+    Produces a 2-row figure. The top row shows the minimum principal cosine
+    between each method's subspace and the reference at increasing subspace
+    dimension k=1..max_k. The bottom row shows the reconstruction RMSE at
+    k=1..n_comp. This reveals which alternative methods best preserve the
+    shared morphospace structure.
 
-    - Top row: minimum principal cosine sweep (k=1..max_k) per method vs
-      reference.
-    - Bottom row: reconstruction RMSE (k=1..n_comp) per method vs reference.
-
-    Parameters
-    ----------
-    method_results : dict
-        Mapping of method name → dict with keys:
-        ``min_cosines`` (array of shape ``(max_k,)``) and
-        ``errors`` (array of shape ``(n_comp,)``).
-    ref_key : str
-        Key in *method_results* for the reference method (plotted in dark grey).
-    max_k : int
-        Length of the cosine sweep (x-axis for the top row).
-    n_comp : int
-        Number of components (x-axis for the bottom row).
-    colours : dict, optional
-        Mapping of method name → hex colour string.  Unrecognised names
-        fall back to ``'#51B3D4'``.
+    Args:
+        method_results: Dict mapping method name to a dict with keys
+            'min_cosines' (array of length max_k) and 'errors' (array of
+            length n_comp).
+        ref_key: Key in method_results identifying the reference method, drawn
+            in dark grey for comparison.
+        max_k: Number of subspace dimensions for the cosine sweep (x-axis of
+            the top row).
+        n_comp: Number of components for the RMSE plot (x-axis of the bottom row).
+        colours: Optional dict mapping method name to hex colour string.
+            Unrecognised names fall back to '#51B3D4'. Defaults to None.
 
     Returns:
-    -------
-    fig : matplotlib.figure.Figure
+        Figure containing the 2-row method comparison.
     """
     if colours is None:
         colours = {}
@@ -99,23 +94,24 @@ def plot_method_comparison(method_results, ref_key, max_k, n_comp, colours=None)
 
 
 def plot_cosine_profile(profile, null_mean, null_lo, null_hi, hawk_colours=None):
-    """Plot min principal cosine profile with random baseline.
+    """Plot minimum principal cosine profiles comparing pooled and per-hawk subspaces.
 
-    Parameters
-    ----------
-    profile : dict
-        Mapping of hawk name to 1-D array of min principal cosines
-        at each subspace dimension k=1…K.
-    null_mean, null_lo, null_hi : array-like
-        Mean and 2.5/97.5 percentile bands for the random baseline,
-        each of length K.
-    hawk_colours : dict, optional
-        Mapping of hawk name to colour string.  Defaults to the
-        standard project palette.
+    Shows how well each individual hawk's k-dimensional subspace aligns with the
+    pooled PCA subspace as k increases. Values above the random baseline indicate
+    that the individual and pooled solutions share genuine structure. A vertical
+    line marks the shared core dimension (k=4).
+
+    Args:
+        profile: Dict mapping hawk name to a 1-D array of minimum principal
+            cosines at each subspace dimension k=1…K.
+        null_mean: Mean of the random-baseline distribution, length K.
+        null_lo: 2.5th percentile of the random baseline, length K.
+        null_hi: 97.5th percentile of the random baseline, length K.
+        hawk_colours: Optional dict mapping hawk name to colour string. Defaults
+            to the standard project palette (HAWK_COLOURS).
 
     Returns:
-    -------
-    matplotlib.figure.Figure
+        Figure containing the cosine profile plot.
     """
     if hawk_colours is None:
         hawk_colours = HAWK_COLOURS
@@ -147,21 +143,21 @@ def plot_cosine_profile(profile, null_mean, null_lo, null_hi, hawk_colours=None)
 
 
 def plot_bootstrap_cosines(replicate_min_cos, max_k=None):
-    """Plot bootstrap replicate min principal cosine distributions.
+    """Plot bootstrap replicate distributions of the minimum principal cosine.
 
-    Parameters
-    ----------
-    replicate_min_cos : numpy.ndarray
-        Array of shape ``(n_replicates, max_k)`` containing the min
-        principal cosine for each bootstrap replicate at each subspace
-        dimension.
-    max_k : int, optional
-        Number of subspace dimensions to plot.  Defaults to the number
-        of columns in *replicate_min_cos*.
+    Creates one histogram panel per subspace dimension k=1…max_k, showing the
+    spread of minimum cosine values across bootstrap replicates. The 5th
+    percentile is marked to indicate the lower confidence bound. Useful for
+    assessing whether the shared subspace structure is stable across resamples.
+
+    Args:
+        replicate_min_cos: Array of shape (n_replicates, max_k) containing the
+            minimum principal cosine for each replicate at each k.
+        max_k: Number of subspace dimensions to plot. Defaults to the number of
+            columns in replicate_min_cos.
 
     Returns:
-    -------
-    matplotlib.figure.Figure
+        Figure containing the bootstrap cosine distribution plots.
     """
     if max_k is None:
         max_k = replicate_min_cos.shape[1]

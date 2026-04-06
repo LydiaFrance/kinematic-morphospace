@@ -1,3 +1,10 @@
+"""Rotation utilities for symmetry assessment and body-pitch correction.
+
+Provides functions for computing the Kabsch optimal rotation, extracting
+Euler angles, assessing bilateral symmetry of principal components, and
+removing whole-body pitch and roll from marker data prior to PCA.
+"""
+
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
@@ -6,14 +13,27 @@ from scipy.spatial.transform import Rotation as R
 
 
 def assess_symmetry(pc, axis='x', nMarkers=8):
-    """Calculate symmetry score for a given principal component.
+    """Calculate the sum of squared left-right differences for a principal component.
 
     Returns the **sum of squared differences** between each left marker
     and its mirrored right marker.  This is *not* RMS — to convert,
     use ``np.sqrt(score / nMarkers)``.
 
-    Allows mirroring around 'x', 'y', or 'z' axes to check for symmetry.
-    Assumes marker pairs are structured as (0,1), (2,3), (4,5), (6,7).
+    Assumes marker pairs are structured as (0, 1), (2, 3), (4, 5), (6, 7)
+    (left/right interleaved). A score of zero indicates perfect bilateral
+    symmetry; higher values indicate greater asymmetry.
+
+    Args:
+        pc: Principal component vector reshaped to ``(n_bilateral_markers, 3)``.
+        axis: Axis to mirror for symmetry comparison. Use ``'x'`` for the
+            standard left/right midline. Defaults to ``'x'``.
+        nMarkers: Total number of bilateral markers (left + right). Defaults to 8.
+
+    Returns:
+        Sum of squared differences between mirrored marker pairs.
+
+    Raises:
+        ValueError: If ``axis`` is not ``'x'``, ``'y'``, or ``'z'``.
     """
     axis_to_index = {'x': 0, 'y': 1, 'z': 2}
     if axis not in axis_to_index:
@@ -33,16 +53,26 @@ def assess_symmetry(pc, axis='x', nMarkers=8):
 
 
 def vectorised_kabsch(P, Q, centre=False):
-    """Vectorised Kabsch algorithm that computes the optimal rotation matrices.
+    """Compute the optimal rotation matrices aligning P to Q for each frame.
 
-    Parameters
-    ----------
-    P, Q : ndarray, shape (n, markers, 3)
-        Point clouds to align. P is rotated onto Q.
-    centre : bool, default False
-        If True, subtract per-frame centroid before computing the rotation.
-        The original pipeline did not centre (the markers are already
-        backpack-relative), so the default is False for reproducibility.
+    Uses the vectorised Kabsch algorithm (SVD-based) to find the rotation
+    matrix that minimises the RMSD between ``P`` and ``Q`` for every frame
+    simultaneously. Used to remove whole-body rotational drift from flight
+    sequences.
+
+    Args:
+        P: Point cloud array of shape ``(n, markers, 3)`` to be rotated.
+        Q: Reference point cloud array of shape ``(n, markers, 3)``.
+        centre: If True, subtract the per-frame centroid before computing
+            the rotation. The original pipeline does not centre (markers are
+            already backpack-relative), so the default is False for
+            reproducibility. Defaults to False.
+
+    Returns:
+        Rotation matrix array of shape ``(n, 3, 3)``.
+
+    Raises:
+        ValueError: If P and Q have mismatched shapes.
     """
     if P.shape[0] != Q.shape[0]:
         raise ValueError(
@@ -78,14 +108,31 @@ def vectorised_kabsch(P, Q, centre=False):
 
 
 def extract_euler_angles_from_matrices(rotation_matrices, sequence='xyz'):
-    """Extract the Euler angles (roll, pitch, yaw) from the rotation matrices."""
+    """Extract Euler angles (roll, pitch, yaw) from a batch of rotation matrices.
+
+    Args:
+        rotation_matrices: Array of shape ``(n, 3, 3)`` containing rotation matrices.
+        sequence: Euler angle convention string (e.g. ``'xyz'``, ``'zyx'``).
+            Defaults to ``'xyz'``.
+
+    Returns:
+        Array of shape ``(n, 3)`` containing Euler angles in degrees.
+    """
     rotations = R.from_matrix(rotation_matrices)
     euler_angles = rotations.as_euler(sequence, degrees=True)
     return euler_angles
 
 
 def apply_rotation(P, rotation_matrices):
-    """Apply rotation matrices to the original data."""
+    """Apply per-frame rotation matrices to a marker array.
+
+    Args:
+        P: Marker array of shape ``(n_frames, n_markers, 3)``.
+        rotation_matrices: Rotation matrix array of shape ``(n_frames, 3, 3)``.
+
+    Returns:
+        Rotated marker array of the same shape as ``P``.
+    """
     P_transformed = np.empty_like(P)
 
     for i in range(P_transformed.shape[0]):
@@ -98,14 +145,19 @@ def apply_rotation(P, rotation_matrices):
 
 
 def undo_body_pitch_rotation(markers, body_pitch):
-    """Undo the body pitch rotation of the markers.
+    """Remove the body pitch rotation from marker coordinates.
 
-    Parameters:
-    - markers (numpy.ndarray): A numpy array containing the markers.
-    - body_pitch (numpy.ndarray): A numpy array containing the body pitch angles.
+    Applies the inverse of the measured body pitch rotation (around the
+    x-axis) to each frame, producing wing marker positions relative to a
+    level body. This is required before PCA when body pitch varies
+    systematically across the flight approach.
+
+    Args:
+        markers: Marker array of shape ``(n_frames, n_markers, 3)``.
+        body_pitch: Array of body pitch angles in degrees, shape ``(n_frames,)``.
 
     Returns:
-    - corrected_markers (numpy.ndarray): Markers with body pitch rotation removed.
+        Marker array of the same shape with body pitch rotation removed.
     """
     body_pitch_rad = np.radians(body_pitch)
 
@@ -127,7 +179,7 @@ def undo_body_pitch_rotation(markers, body_pitch):
 
 
 def undo_body_rotation(markers, whole_body_angle, which_axis='z'):
-    """Undo the body rotation of the markers around a specified axis.
+    """Remove a whole-body rotation around a specified axis from marker coordinates.
 
     ``which_axis`` selects which plane the measured body angle lies in,
     **not** the geometric rotation axis.  The mapping is:
@@ -139,15 +191,19 @@ def undo_body_rotation(markers, whole_body_angle, which_axis='z'):
     * ``'y'`` — angle measured in the xy-plane → applies **Rz** (z-axis
       rotation).
 
-    Parameters:
-    - markers (numpy.ndarray): A numpy array containing the markers.
-    - whole_body_angle (numpy.ndarray): A numpy array containing the body angles
-      (degrees).
-    - which_axis (str): The correction plane ('x', 'y', or 'z'). See above for
-      the mapping to geometric rotation axes.
+    Args:
+        markers: Marker array of shape ``(n_frames, n_markers, 3)``.
+        whole_body_angle: Array of body rotation angles in degrees, shape
+            ``(n_frames,)``.
+        which_axis: Correction plane (``'x'``, ``'y'``, or ``'z'``). See
+            the note above for the mapping to geometric rotation axes.
+            Defaults to ``'z'``.
 
     Returns:
-    - corrected_markers (numpy.ndarray): Markers with body rotation removed.
+        Marker array of the same shape with the body rotation removed.
+
+    Raises:
+        ValueError: If ``which_axis`` is not ``'x'``, ``'y'``, or ``'z'``.
     """
     body_pitch_rad = np.radians(whole_body_angle)
 

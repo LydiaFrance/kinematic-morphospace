@@ -1,5 +1,6 @@
-"""Utility functions to support PCA null-model analyses with sequence-aware
-resampling. These helpers ensure that mirrored left/right frames remain paired
+"""Utility functions to support PCA null-model analyses with sequence-aware resampling.
+
+These helpers ensure that mirrored left/right frames remain paired
 throughout statistical procedures.
 """
 
@@ -14,17 +15,17 @@ import pandas as pd
 
 
 def flatten_frames(frames: np.ndarray) -> np.ndarray:
-    """Flatten marker frames to two dimensions.
+    """Flatten a 3-D marker array to 2-D, or return a copy if already 2-D.
 
-    Parameters
-    ----------
-    frames : np.ndarray
-        Either (n_frames, n_markers, n_dims) or (n_frames, n_features).
+    Args:
+        frames: Array of shape ``(n_frames, n_markers, n_dims)`` or
+            ``(n_frames, n_features)``.
 
     Returns:
-    -------
-    np.ndarray
-        A copy with shape (n_frames, n_features).
+        Copy with shape ``(n_frames, n_features)``.
+
+    Raises:
+        ValueError: If the input array does not have 2 or 3 dimensions.
     """
     array = np.asarray(frames)
     if array.ndim == 3:
@@ -36,7 +37,14 @@ def flatten_frames(frames: np.ndarray) -> np.ndarray:
 
 
 def ensure_rng(seed: int | None = None) -> np.random.Generator:
-    """Provide a NumPy Generator using a fixed seed when supplied.
+    """Return a NumPy Generator, passing through an existing one unchanged.
+
+    Args:
+        seed: Integer seed for a new Generator, an existing Generator to
+            pass through, or None for an unseeded Generator.
+
+    Returns:
+        NumPy Generator instance.
     """
     if isinstance(seed, np.random.Generator):
         return seed
@@ -51,10 +59,14 @@ def validate_frame_alignment(
 ) -> None:
     """Sanity-check that the frame array lines up with the frame metadata.
 
+    Args:
+        frames: Array of shape ``(n_frames, ...)``.
+        frame_info: DataFrame with one row per frame.
+        expected_columns: Column names that must be present in ``frame_info``.
+            Defaults to ``("seqID", "BirdID", "Obstacle", "Left")``.
+
     Raises:
-    ------
-    ValueError
-        If the lengths mismatch or required columns are missing.
+        ValueError: If the lengths mismatch or required columns are missing.
     """
     if frames.shape[0] != len(frame_info):
         raise ValueError(
@@ -78,7 +90,22 @@ def prepare_sequence_groups(
     individual_column: str = "BirdID",
     condition_column: str = "Obstacle",
 ) -> Dict[str, np.ndarray]:
-    """Derive grouping vectors used to keep mirrored frames paired.
+    """Derive grouping vectors used to keep mirrored frames paired during resampling.
+
+    Args:
+        frame_info: Per-frame metadata DataFrame.
+        sequence_column: Column identifying flight sequences. Defaults to
+            ``"seqID"``.
+        side_column: Column indicating left (1) or right (0) side. Defaults
+            to ``"Left"``.
+        individual_column: Column identifying individual birds. Defaults to
+            ``"BirdID"``.
+        condition_column: Column indicating whether an obstacle was present.
+            Defaults to ``"Obstacle"``.
+
+    Returns:
+        Dict containing arrays: ``seq_ids``, ``unique_seq_ids``,
+        ``seq_index``, ``side_flag``, ``bird_ids``, and ``obstacles``.
     """
     seq_ids = frame_info[sequence_column].astype(str).to_numpy()
     unique_seq_ids, seq_inverse = np.unique(seq_ids, return_inverse=True)
@@ -99,6 +126,14 @@ def prepare_sequence_groups(
 
 def sequence_lookup(seq_index: np.ndarray) -> List[np.ndarray]:
     """Build a list-of-indices lookup for quick sequence masking.
+
+    Args:
+        seq_index: Integer array of shape ``(n_frames,)`` mapping each
+            frame to a unique sequence index.
+
+    Returns:
+        List of arrays, one per unique sequence, each containing the
+        frame indices belonging to that sequence.
     """
     buckets: Dict[int, List[int]] = defaultdict(list)
     for frame_idx, seq_idx in enumerate(seq_index):
@@ -113,6 +148,19 @@ def grouped_bootstrap_indices(
     seed: int | None = None,
 ) -> np.ndarray:
     """Resample sequence indices with replacement and expand to frame indices.
+
+    Sequences (rather than individual frames) are resampled so that
+    mirrored left/right frames stay together, preserving the bilateral
+    pairing structure throughout the bootstrap.
+
+    Args:
+        seq_index: Integer array mapping each frame to a sequence index.
+        size: Number of sequences to resample. Defaults to the number of
+            unique sequences (standard bootstrap).
+        seed: Random seed for reproducibility. Defaults to None.
+
+    Returns:
+        Boolean mask of shape ``(n_frames,)`` indicating selected frames.
     """
     generator = ensure_rng(seed)
     unique_indices = np.unique(seq_index)
@@ -131,7 +179,19 @@ def grouped_permutation_labels(
     *,
     seed: int | None = None,
 ) -> np.ndarray:
-    """Permute labels at the sequence level.
+    """Permute labels at the sequence level to break group-level associations.
+
+    Shuffles labels across sequences rather than individual frames, so
+    within-sequence label consistency is preserved under the null.
+
+    Args:
+        labels: Per-frame label array of shape ``(n_frames,)``.
+        seq_index: Integer array mapping each frame to a sequence index.
+        seed: Random seed for reproducibility. Defaults to None.
+
+    Returns:
+        Permuted label array of shape ``(n_frames,)`` with sequence-level
+        shuffling applied.
     """
     generator = ensure_rng(seed)
     unique_seq = np.unique(seq_index)
@@ -151,7 +211,17 @@ def summarise_distribution(
     decimals: int = 4,
     percentiles: Sequence[float] = (2.5, 50.0, 97.5),
 ) -> pd.Series:
-    """Summarise an array using mean and percentile statistics.
+    """Summarise an array using mean, standard deviation, and percentile statistics.
+
+    Args:
+        values: 1-D array of numeric values to summarise.
+        decimals: Number of decimal places to round to. Defaults to 4.
+        percentiles: Percentile values to include in the summary. Defaults
+            to ``(2.5, 50.0, 97.5)``.
+
+    Returns:
+        Series with keys ``mean``, ``std``, and one key per percentile
+        formatted as ``p{value}`` (e.g. ``p2.5``).
     """
     array = np.asarray(values)
     summary: Dict[str, float] = {
@@ -171,6 +241,17 @@ def summarise_cumulative_variance(
     decimals: int = 4,
 ) -> pd.DataFrame:
     """Produce a tidy summary table for cumulative explained variance curves.
+
+    Args:
+        cev: Array of cumulative explained variance values. May be 1-D
+            ``(n_components,)`` for a single run or 2-D
+            ``(n_runs, n_components)`` for multiple runs.
+        components: Component indices (1-based) to include. Defaults to all.
+        decimals: Number of decimal places to round to. Defaults to 4.
+
+    Returns:
+        DataFrame with one row per component and columns ``mean``, ``std``,
+        and percentile columns.
     """
     array = np.asarray(cev)
     if array.ndim == 1:
@@ -197,15 +278,22 @@ def pairwise_distance_features(
     """Compute pairwise distances between markers for each frame, vectorised.
 
     Args:
-        frames: (n_frames, n_markers, 3) array of 3D marker coords.
-        max_markers: if set, only use the first max_markers markers (useful for tests).
-        sort_per_frame: if True, sort the distances within each frame (makes
-                        representation label-free).
-        descending: if True and sort_per_frame True, sort in descending order.
-        
+        frames: Array of shape ``(n_frames, n_markers, 3)`` containing 3-D
+            marker coordinates.
+        max_markers: If set, only use the first ``max_markers`` markers.
+            Useful for tests or when comparing subsets. Defaults to None.
+        sort_per_frame: If True, sort the distances within each frame so the
+            representation is label-free (order-invariant). Defaults to False.
+        descending: If True and ``sort_per_frame`` is True, sort in descending
+            order. Defaults to True.
+
     Returns:
-        distances: (n_frames, n_pairs) array where n_pairs = n_markers*(n_markers-1)//2.
-                   If sort_per_frame=True, the distances in each row are sorted.
+        Array of shape ``(n_frames, n_pairs)`` where
+        ``n_pairs = n_markers * (n_markers - 1) // 2``. If
+        ``sort_per_frame`` is True, distances within each row are sorted.
+
+    Raises:
+        ValueError: If ``frames`` is not 3-D or ``max_markers`` < 2.
     """
     array = np.asarray(frames, dtype=np.float64)
     if array.ndim != 3:
@@ -218,21 +306,14 @@ def pairwise_distance_features(
         array = array[:, :max_markers, :]
         n_markers = max_markers
 
-    # number of unique unordered pairs
-    pair_count = n_markers * (n_markers - 1) // 2
-    # compute pairwise differences efficiently:
-    # create all pair offsets using broadcasting
-    # result shape will be (n_frames, pair_count, 3)
     diffs = []
     for i in range(n_markers - 1):
-        # differences between marker i and markers i+1..end
-        d = array[:, i, None, :] - array[:, i + 1 :, :]
-        diffs.append(d)  # shape (n_frames, n_markers-i-1, 3)
-    diffs = np.concatenate(diffs, axis=1)  # (n_frames, pair_count, 3)
+        d = array[:, i, None, :] - array[:, i + 1:, :]
+        diffs.append(d)
+    diffs = np.concatenate(diffs, axis=1)
 
-    distances = np.linalg.norm(diffs, axis=2)  # (n_frames, pair_count)
+    distances = np.linalg.norm(diffs, axis=2)
 
-    # Optional per-frame sorting to remove pair identity
     if sort_per_frame:
         distances = np.sort(distances, axis=1)
         if descending:
@@ -240,10 +321,19 @@ def pairwise_distance_features(
 
     return distances
 
+
 def load_missing_marker_dataset(
     npz_path: Path,
 ) -> Tuple[np.ndarray, pd.DataFrame, Sequence[str]]:
-    """Load the labelled dataset with missing markers.
+    """Load the labelled dataset with missing markers from an npz file.
+
+    Args:
+        npz_path: Path to the ``labelled_markers_with_missing.npz`` file.
+
+    Returns:
+        Tuple of (markers, info, columns) where markers is the marker array,
+        info is a per-frame metadata DataFrame, and columns is the sequence
+        of marker column names.
     """
     loaded = np.load(npz_path, allow_pickle=True)
     markers = loaded["marker_data"]
@@ -260,24 +350,23 @@ def prepare_missing_marker_dataset(
 ) -> Tuple[np.ndarray, np.ndarray, pd.DataFrame]:
     """Load the missing-marker dataset, scale by wingspan, and convert to unilateral.
 
-    Parameters
-    ----------
-    npz_path : path to ``labelled_markers_with_missing.npz``.
-    wingspan_path : path to ``TotalWingspans.yml``.
-    straight_only : if True (default), keep only non-obstacle frames.
+    Args:
+        npz_path: Path to ``labelled_markers_with_missing.npz``.
+        wingspan_path: Path to ``TotalWingspans.yml``.
+        straight_only: If True (default), keep only non-obstacle frames.
 
     Returns:
-    -------
-    missing_unilateral : (2*N, 4, 3) unilateral array (left then right, x-mirrored).
-    missing_bilateral : (M, 8, 3) the full bilateral array (scaled, all flights).
-    missing_info : DataFrame with per-frame metadata.
+        Tuple of (missing_unilateral, missing_bilateral, missing_info) where
+        missing_unilateral has shape ``(2*N, 4, 3)`` (left then right,
+        x-mirrored), missing_bilateral has shape ``(M, 8, 3)`` (the full
+        scaled bilateral array), and missing_info is a per-frame metadata
+        DataFrame.
     """
     import yaml
     from .pca_reconstruct import to_unilateral
 
     bilateral, info, _cols = load_missing_marker_dataset(Path(npz_path))
 
-    # Scale each hawk/year combination by maximum wingspan
     with open(wingspan_path) as f:
         wingspans = yaml.safe_load(f)
 
@@ -293,7 +382,6 @@ def prepare_missing_marker_dataset(
             if mask.any():
                 bilateral[mask] /= wingspans[hawk_name][year]
 
-    # Filter to straight flight if requested
     if straight_only:
         keep = (info["Obstacle"].astype(int) == 0).values
         bilateral_subset = bilateral[keep]
@@ -310,15 +398,14 @@ def load_unlabelled_csv(
 ) -> Tuple[Dict[int, np.ndarray], List[int], List[int]]:
     """Load the unlabelled marker CSV and group by frame.
 
-    Parameters
-    ----------
-    csv_path : path to ``unlabelled_markers.csv``.
+    Args:
+        csv_path: Path to ``unlabelled_markers.csv``.
 
     Returns:
-    -------
-    frame_groups : dict mapping frameID → (n_markers, 3) coordinate array.
-    labelled_ids : frame IDs with exactly 8 markers.
-    unlabelled_ids : frame IDs with fewer than 8 markers.
+        Tuple of (frame_groups, labelled_ids, unlabelled_ids) where
+        frame_groups maps frameID → ``(n_markers, 3)`` coordinate array,
+        labelled_ids contains frame IDs with exactly 8 markers, and
+        unlabelled_ids contains frame IDs with fewer than 8 markers.
     """
     df = pd.read_csv(csv_path)
     frame_counts = df.groupby("frameID").size()
@@ -342,16 +429,30 @@ def principal_cosines(
 ) -> np.ndarray | Tuple[np.ndarray, np.ndarray]:
     """Compute principal cosines between the leading modes of two bases.
 
+    Principal cosines (the singular values of ``Qa.T @ Qb``) measure the
+    alignment between two PCA subspaces.  A value of 1 means the subspaces
+    are identical; 0 means they are orthogonal.  This is the standard
+    metric for comparing PCA stability across bootstrap resamples or data
+    subsets.
+
     Args:
-        basis_a: (n_features, n_components_a) array (columns = basis vectors).
-        basis_b: (n_features, n_components_b) array (columns = basis vectors).
-        modes: number of leading modes to compare (k).
-        return_angles: if True return (cosines, angles_in_radians).
+        basis_a: Array of shape ``(n_features, n_components_a)`` whose
+            columns are basis vectors (e.g. ``pca.components_.T``).
+        basis_b: Array of shape ``(n_features, n_components_b)`` whose
+            columns are basis vectors.
+        modes: Number of leading modes to compare (k).
+        return_angles: If True, also return ``arccos(cosines)`` in radians.
+            Defaults to False.
 
     Returns:
-        cosines: 1D array length `modes` with principal cosines in descending order.
-                 If modes > min(n_components_a, n_components_b) the tail is filled with np.nan.
-        (optional) angles: arccos(cosines) (nan where cosines is nan).
+        Array of length ``modes`` with principal cosines in descending order.
+        Padded with ``np.nan`` where ``modes`` exceeds the available
+        components. If ``return_angles`` is True, returns a tuple of
+        (cosines, angles_in_radians).
+
+    Raises:
+        ValueError: If the inputs are not 2-D or do not share the same
+            number of feature rows.
     """
     if basis_a.ndim != 2 or basis_b.ndim != 2:
         raise ValueError("basis_a and basis_b must be 2-D arrays")
@@ -359,37 +460,31 @@ def principal_cosines(
     if basis_a.shape[0] != basis_b.shape[0]:
         raise ValueError("Bases must have the same number of feature rows (same ambient dimension)")
 
-    # ensure float64 for stable numeric ops
     A = np.asarray(basis_a, dtype=np.float64)
     B = np.asarray(basis_b, dtype=np.float64)
 
-    # effective k we can compute
     k_avail = min(A.shape[1], B.shape[1], modes)
     if k_avail == 0:
-        # nothing to compute; return nans
         cosines = np.full(modes, np.nan, dtype=np.float64)
         if return_angles:
             return cosines, np.full_like(cosines, np.nan)
         return cosines
 
-    # reduced/ economy QR to orthonormalise the selected columns
     Qa, _ = np.linalg.qr(A[:, :k_avail], mode="reduced")
     Qb, _ = np.linalg.qr(B[:, :k_avail], mode="reduced")
 
-    # singular values of Qa.T @ Qb are the principal cosines (descending)
     s = np.linalg.svd(Qa.T @ Qb, compute_uv=False)
 
-    # numeric safety: clip to [-1,1]
     s = np.clip(s, -1.0, 1.0)
 
-    # build output array length `modes`, pad with nan if requested modes > available
     out = np.full(modes, np.nan, dtype=np.float64)
     out[:k_avail] = s
 
     if return_angles:
-        angles = np.arccos(out)  # nan where out is nan
+        angles = np.arccos(out)
         return out, angles
     return out
+
 
 def random_relabel_frames(
     frames: np.ndarray,
@@ -397,7 +492,21 @@ def random_relabel_frames(
     swap_fraction: float,
     rng: np.random.Generator,
 ) -> np.ndarray:
-    """Randomly relabel markers within frames for robustness checks.
+    """Randomly permute marker labels within a fraction of frames.
+
+    Used for robustness checks: shuffling marker identities within frames
+    tests whether the PCA structure is driven by consistent labelling or
+    genuine shape variation.
+
+    Args:
+        frames: Marker array of shape ``(n_frames, n_markers, 3)``.
+        swap_fraction: Fraction of frames in which markers are permuted
+            (e.g. 0.1 = 10 % of frames).
+        rng: NumPy Generator for reproducibility.
+
+    Returns:
+        Copy of ``frames`` with marker order randomly permuted within the
+        selected subset of frames.
     """
     n_frames, n_markers, _ = frames.shape
     shuffled = frames.copy()
@@ -413,7 +522,21 @@ def relabel_with_predictor(
     *,
     max_displacement: float = 0.4,
 ) -> np.ndarray:
-    """Simple predictor-based relabelling heuristic.
+    """Relabel markers across frames using a simple velocity-prediction heuristic.
+
+    At each frame, predicts marker positions from the previous frame plus a
+    smoothed velocity estimate, then uses the Hungarian algorithm to match
+    predicted to observed positions. Assignments with cost above
+    ``max_displacement`` are blocked to prevent large-displacement swaps.
+
+    Args:
+        frames: Marker array of shape ``(n_frames, n_markers, 3)``.
+        max_displacement: Maximum allowable distance between a predicted and
+            observed position for assignment. Assignments above this threshold
+            are given a prohibitive cost. Defaults to 0.4.
+
+    Returns:
+        Relabelled marker array of the same shape as ``frames``.
     """
     from scipy.optimize import linear_sum_assignment
     from scipy.spatial.distance import cdist
@@ -438,7 +561,3 @@ def relabel_with_predictor(
         velocity = 0.6 * velocity + 0.4 * new_velocity
         previous = relabelled[frame_idx].copy()
     return relabelled
-
-
-
-

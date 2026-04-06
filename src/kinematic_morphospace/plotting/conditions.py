@@ -12,22 +12,26 @@ from .scores import plot_score
 def plot_score_obstacle_control(scores_df, PC_name,
                                  hawkname_list=("Drogon", "Toothless", "Charmander", "Ruby"),
                                  **filters):
-    """Plot PC scores comparing obstacle vs control flights for each hawk.
+    """Plot binned PC score traces comparing obstacle and control flights for each hawk.
 
-    Parameters
-    ----------
-    scores_df : pandas.DataFrame
-        DataFrame containing PC scores and metadata.
-    PC_name : str
-        Name of the PC column to plot (e.g. 'PC01').
-    hawkname_list : sequence of str
-        Hawks to plot.
-    **filters
-        Additional filters passed to plot_score. Must not include 'obstacle'.
+    Creates a 1xN row of subplots (one per hawk). Within each subplot the control
+    flight trace is shown as a dotted line with lighter shading and the obstacle
+    flight as a solid line, so deviations in wing shape during obstacle avoidance
+    are immediately visible.
+
+    Args:
+        scores_df: DataFrame containing PC scores and per-frame metadata.
+        PC_name: Name of the PC column to plot (e.g. 'PC01').
+        hawkname_list: Hawks to include, one subplot each. Defaults to all four
+            hawks from the 2020 experiment.
+        **filters: Additional keyword filters forwarded to plot_score. Must not
+            include 'obstacle', which is managed internally.
 
     Returns:
-    -------
-    fig, axes : matplotlib Figure and Axes
+        Tuple of (fig, axes).
+
+    Raises:
+        ValueError: If 'obstacle' is included in filters.
     """
     if 'obstacle' in filters:
         raise ValueError("Obstacle should not be in filters")
@@ -92,22 +96,25 @@ def plot_score_obstacle_control(scores_df, PC_name,
 def plot_score_weight_control(scores_df, PC_name,
                                hawkname_list=("Drogon", "Toothless", "Charmander", "Ruby"),
                                **filters):
-    """Plot PC scores comparing weight vs control flights for each hawk.
+    """Plot binned PC score traces comparing weight-loaded and control flights for each hawk.
 
-    Parameters
-    ----------
-    scores_df : pandas.DataFrame
-        DataFrame containing PC scores and metadata.
-    PC_name : str
-        Name of the PC column to plot.
-    hawkname_list : sequence of str
-        Hawks to plot.
-    **filters
-        Additional filters. Must not include 'IMU'.
+    Creates a 1xN row of subplots (one per hawk). Control flights are shown as
+    dotted lines; weight-loaded flights as solid lines. This reveals how the
+    added IMU weight shifts wing-shape strategies during landing.
+
+    Args:
+        scores_df: DataFrame containing PC scores and per-frame metadata.
+        PC_name: Name of the PC column to plot (e.g. 'PC01').
+        hawkname_list: Hawks to include, one subplot each. Defaults to all four
+            hawks from the 2020 experiment.
+        **filters: Additional keyword filters forwarded to plot_score. Must not
+            include 'IMU', which is managed internally.
 
     Returns:
-    -------
-    fig, axes : matplotlib Figure and Axes
+        Tuple of (fig, axes).
+
+    Raises:
+        ValueError: If 'IMU' is included in filters.
     """
     if 'IMU' in filters:
         raise ValueError("IMU/Weight should not be in filters")
@@ -170,22 +177,26 @@ def plot_score_weight_control(scores_df, PC_name,
 def plot_score_naive_control(scores_df, PC_name,
                               hawkname_list=("Drogon", "Toothless", "Rhaegal"),
                               **filters):
-    """Plot PC scores comparing naive (juvenile) vs experienced flights for each hawk.
+    """Plot binned PC score traces comparing naive (juvenile) and experienced flights.
 
-    Parameters
-    ----------
-    scores_df : pandas.DataFrame
-        DataFrame containing PC scores and metadata.
-    PC_name : str
-        Name of the PC column to plot.
-    hawkname_list : sequence of str
-        Hawks to plot.
-    **filters
-        Additional filters. Must not include 'obstacle'.
+    Creates a 1xN row of subplots (one per hawk). 2017 (naive/juvenile) flights
+    are drawn as dotted lines; 2020 (experienced) flights as solid lines. This
+    reveals how wing-shape strategies change with experience over the hawks'
+    first years of landing practice.
+
+    Args:
+        scores_df: DataFrame containing PC scores and per-frame metadata.
+        PC_name: Name of the PC column to plot (e.g. 'PC01').
+        hawkname_list: Hawks to include; must have data in both years.
+            Defaults to the three hawks with 2017 data.
+        **filters: Additional keyword filters forwarded to plot_score. Must not
+            include 'obstacle', which is managed internally.
 
     Returns:
-    -------
-    fig, axes : matplotlib Figure and Axes
+        Tuple of (fig, axes).
+
+    Raises:
+        ValueError: If 'obstacle' is included in filters.
     """
     if 'obstacle' in filters:
         raise ValueError("Obstacle should not be in filters")
