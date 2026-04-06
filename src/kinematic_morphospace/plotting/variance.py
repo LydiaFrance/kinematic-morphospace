@@ -10,7 +10,6 @@ from ..pca_reconstruct import reconstruct
 
 def plot_explained(explained_ratio,
                     ax=None, colour_before=12, annotate=True, ci=None):
-
     """Plot cumulative explained variance ratio as a coloured bar chart.
 
     Parameters
@@ -27,7 +26,7 @@ def plot_explained(explained_ratio,
         Confidence-interval values (currently unused, reserved for
         future bootstrap intervals).
 
-    Returns
+    Returns:
     -------
     fig : matplotlib.figure.Figure
         The parent figure.
@@ -127,12 +126,11 @@ def table_cumulative_variance_ratios(unilateral_data, unilateral_frame_info_df,
         the data is centred before projection so that variance ratios
         are consistent with the fitted PCA model.
 
-    Returns
+    Returns:
     -------
     None
         Results are printed to stdout.
     """
-
     cumulative_explained_variance_ratios = {}
 
     if pca_mean is None:
@@ -162,7 +160,8 @@ def table_cumulative_variance_ratios(unilateral_data, unilateral_frame_info_df,
                 # Cumulative explained variance ratio
                 cumulative_explained_variance_ratio = np.cumsum(explained_variance_ratio)
 
-                key = f"{hawk} {year} {'obs' if obs == 1 else ''}"
+                period = "Period 1" if year == 2017 else "Period 2"
+                key = f"{hawk} {period} {'obs' if obs == 1 else ''}"
 
                 cumulative_explained_variance_ratios[key] = cumulative_explained_variance_ratio
 
@@ -171,9 +170,9 @@ def table_cumulative_variance_ratios(unilateral_data, unilateral_frame_info_df,
                 num_frames = np.sum(filter)
 
                 if obs == 0:
-                    print(f"{hawk} {year} \t \t  {cumulative_explained_variance_ratio}")
+                    print(f"{hawk} {period} \t \t  {cumulative_explained_variance_ratio}")
                 else:
-                    print(f"{hawk} {year} obs \t \t {cumulative_explained_variance_ratio}")
+                    print(f"{hawk} {period} obs \t \t {cumulative_explained_variance_ratio}")
 
 
 def calculate_cumulative_variance_ratios(data, frame_info_df, principal_components, n_components=9):
@@ -194,7 +193,7 @@ def calculate_cumulative_variance_ratios(data, frame_info_df, principal_componen
     n_components : int, optional
         Number of components to project onto (default 9).
 
-    Returns
+    Returns:
     -------
     dict
         Mapping of ``"hawk_year_condition"`` strings to
@@ -220,7 +219,8 @@ def calculate_cumulative_variance_ratios(data, frame_info_df, principal_componen
                 cumulative_ratio = np.cumsum(explained_variance_ratio)
 
                 # Create key that includes obstacle information
-                key = f"{hawk}_{year}_{'obs' if obs == 1 else 'straight'}"
+                period = "Period 1" if year == 2017 else "Period 2"
+                key = f"{hawk}_{period}_{'obs' if obs == 1 else 'straight'}"
                 cumulative_explained_variance_ratios[key] = cumulative_ratio
 
     return cumulative_explained_variance_ratios
@@ -238,12 +238,11 @@ def plot_cumulative_variance_ratios(cumulative_explained_variance_ratios):
         cumulative variance ratio arrays, as returned by
         :func:`calculate_cumulative_variance_ratios`.
 
-    Returns
+    Returns:
     -------
     matplotlib.figure.Figure
         The figure containing the line plot.
     """
-
     plt.figure(figsize=(10, 6))
 
     # Define colour scheme — matches standard hawk palette used project-wide
@@ -255,20 +254,30 @@ def plot_cumulative_variance_ratios(cumulative_explained_variance_ratios):
         "Charmander": "#A6D854",
     }
 
-    # Define line styles
-    conditions_styles = {
-        'straight': '-',
-        'obs': '--'
+    # Period → linestyle, condition → marker
+    period_styles = {
+        'Period 1': '-',
+        'Period 2': '--',
+    }
+    condition_markers = {
+        'straight': 'o',
+        'obs': '^',
     }
 
     for key, cum_exp_var_ratio in cumulative_explained_variance_ratios.items():
-        hawk, year, condition = key.split('_')
+        # Key format: "Hawk_Period N_condition"
+        parts = key.rsplit('_', 1)  # split from right to preserve "Period N"
+        hawk_period, condition = parts[0], parts[1]
+        hawk, period = hawk_period.split('_', 1)
+        label_condition = "obstacle" if condition == "obs" else "straight"
         plt.plot(range(1, len(cum_exp_var_ratio) + 1),
                 cum_exp_var_ratio,
-                marker='o',
-                label=f"{hawk} {year} {condition}",
+                marker=condition_markers[condition],
+                markersize=4,
+                label=f"{hawk} {period} {label_condition}",
                 color=individual_colors[hawk],
-                linestyle=conditions_styles[condition])
+                linestyle=period_styles.get(period, '-'),
+                lw=1.5)
 
     plt.title('Cumulative Explained Variance Ratio by Principal Components')
     plt.xlabel('Morphing Shape Mode')
@@ -299,7 +308,7 @@ def plot_explained_comparison(real_explained, shuffled_explained, ax=None):
     ax : matplotlib.axes.Axes, optional
         Axes to plot on. A new figure is created when *None*.
 
-    Returns
+    Returns:
     -------
     fig : matplotlib.figure.Figure
         The parent figure.
@@ -376,7 +385,7 @@ def plot_hist_similar_shapes(principal_components, scores, marker_data,
     threshold : float, optional
         RMS distance threshold for counting similar shapes.
 
-    Returns
+    Returns:
     -------
     fig : matplotlib.figure.Figure
         The figure.
@@ -424,17 +433,17 @@ def plot_hist_similar_shapes(principal_components, scores, marker_data,
         frame_counts = np.sum(distances < threshold, axis=1)
 
         ax_left = axes[i, 0]
-        ax_left.bar(score_bins, frame_counts, width=(score_bins[1] - score_bins[0]) * 0.9,
-                    color=colourList[pc_index], align='center')
-        ax_left.set_title(f'PC{pc_index + 1}: Similar Shapes')
+        ax_left.hist(pc_scores, bins=n_bins, color=colourList[pc_index], edgecolor='k')
+        ax_left.set_title(f'PC{pc_index + 1}: Score Frequency')
         ax_left.set_xlabel(f'PC{pc_index + 1} Score')
-        ax_left.set_ylabel('Frame Count')
+        ax_left.set_ylabel('Frequency')
 
         ax_right = axes[i, 1]
-        ax_right.hist(pc_scores, bins=n_bins, color=colourList[pc_index], edgecolor='k')
-        ax_right.set_title(f'PC{pc_index + 1}: Score Frequency')
+        ax_right.bar(score_bins, frame_counts, width=(score_bins[1] - score_bins[0]) * 0.9,
+                    color=colourList[pc_index], align='center')
+        ax_right.set_title(f'PC{pc_index + 1}: Similar Shapes')
         ax_right.set_xlabel(f'PC{pc_index + 1} Score')
-        ax_right.set_ylabel('Frequency')
+        ax_right.set_ylabel('Frame Count')
 
     # 2D histogram with adaptive resolution
     if len(pc_indices) >= 2 and 0 in pc_indices and 1 in pc_indices:
@@ -536,25 +545,25 @@ def plot_hist_similar_shapes(principal_components, scores, marker_data,
 
         # Create the 2D plots
         ax_left_2d = axes[-1, 0]
-        im_left = ax_left_2d.pcolormesh(pc1_fine_mesh, pc2_fine_mesh, fine_shape_counts,
-                                         cmap=custom_cmap, shading='auto', vmin=0, vmax=5000)
-        fig.colorbar(im_left, ax=ax_left_2d, label='Count')
-        ax_left_2d.set_title('PC1 vs PC2: Similar Shapes')
-        ax_left_2d.set_xlabel('PC1 Score')
-        ax_left_2d.set_ylabel('PC2 Score')
-        ax_left_2d.set_ylim(-0.7, 0.3)
-
-        ax_right_2d = axes[-1, 1]
-        im_right = ax_right_2d.pcolormesh(
+        im_left = ax_left_2d.pcolormesh(
             (pc1_fine_edges[:-1] + pc1_fine_edges[1:]) / 2,
             (pc2_fine_edges[:-1] + pc2_fine_edges[1:]) / 2,
             hist_2d.T,
             cmap=custom_cmap, shading='auto', vmin=0, vmax=300
         )
+        fig.colorbar(im_left, ax=ax_left_2d, label='Count')
+        ax_left_2d.set_title('PC1 vs PC2: Score Frequency')
+        ax_left_2d.set_xlabel('PC1 Score')
+        ax_left_2d.set_ylabel('PC2 Score')
+
+        ax_right_2d = axes[-1, 1]
+        im_right = ax_right_2d.pcolormesh(pc1_fine_mesh, pc2_fine_mesh, fine_shape_counts,
+                                         cmap=custom_cmap, shading='auto', vmin=0, vmax=5000)
         fig.colorbar(im_right, ax=ax_right_2d, label='Count')
-        ax_right_2d.set_title('PC1 vs PC2: Score Frequency')
+        ax_right_2d.set_title('PC1 vs PC2: Similar Shapes')
         ax_right_2d.set_xlabel('PC1 Score')
         ax_right_2d.set_ylabel('PC2 Score')
+        ax_right_2d.set_ylim(-0.7, 0.3)
 
     plt.tight_layout()
     return fig, axes
