@@ -27,14 +27,13 @@ def plot_components_grid(principal_components,
     ax : matplotlib.axes.Axes, optional
         Existing axes to draw into. Created if *None*.
 
-    Returns
+    Returns:
     -------
     fig : matplotlib.figure.Figure
         The figure.
     ax : matplotlib.axes.Axes
         The axes containing the heatmap.
     """
-
     # Set the number of principal components to plot
     maxPCs = 12
 
@@ -131,12 +130,11 @@ def compare_coeffs_hawks(principal_components,
     y_label : str, optional
         Label for the y-axis of the first panel.
 
-    Returns
+    Returns:
     -------
     matplotlib.figure.Figure
         The figure containing the row of heatmaps.
     """
-
     fig = plt.figure(figsize=(8, 2))
     gs = gridspec.GridSpec(1, 5, figure=fig, hspace=0, wspace=0.3)  # Adjust these values as needed
 
@@ -193,13 +191,11 @@ def compare_coeffs_grid(principal_components,
     ax : matplotlib.axes.Axes, optional
         Existing axes to draw into.
 
-    Returns
+    Returns:
     -------
     matplotlib.axes.Axes
         The axes containing the heatmap.
     """
-
-
     def check_data_consistency(data1, data2):
         if np.array_equal(data1, data2):
             print(f"{name} data is consistent.")
@@ -332,7 +328,7 @@ def plot_compare_components_grid(principal_components,
     ax : matplotlib.axes.Axes, optional
         Existing axes to draw into. Created if *None*.
 
-    Returns
+    Returns:
     -------
     fig : matplotlib.figure.Figure
         The figure.

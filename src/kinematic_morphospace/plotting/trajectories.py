@@ -38,12 +38,11 @@ def plot_trajectory_data(ax,
         Extra options. Pass ``print_n_flights=True`` to print frame and
         flight counts.
 
-    Returns
+    Returns:
     -------
     None
         The axes are modified in place.
     """
-
     # Filter the data based on the filter parameters.
     filter = filter_by(traj_df, **filter_params)
 
@@ -129,14 +128,13 @@ def plot_traj(traj_df,
         Base path for saving hybrid raster/vector figures. When *None*
         the figure is not saved.
 
-    Returns
+    Returns:
     -------
     fig : matplotlib.figure.Figure
         The figure.
     axes : numpy.ndarray of matplotlib.axes.Axes
         Flat array of subplot axes.
     """
-
     # Create the figure and axes.
     # 8 rows, 2 columns, sharex and sharey.
     # figsize is 8x8 inches.
@@ -279,7 +277,7 @@ def setup_trajectory_axis(ax, equal=True):
         suited to the flight corridor. When *False*, uses wider
         y-limits for angle data.
 
-    Returns
+    Returns:
     -------
     None
         The axes are modified in place.
@@ -328,7 +326,7 @@ def plot_traj_scatter(traj_df, x_axis_column='HorzDistance', y_axis_column='XYZ_
     save_path : str, optional
         Base path for saving hybrid raster/vector figures.
 
-    Returns
+    Returns:
     -------
     fig : matplotlib.figure.Figure
         The figure.

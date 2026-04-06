@@ -25,7 +25,7 @@ def plot_score_obstacle_control(scores_df, PC_name,
     **filters
         Additional filters passed to plot_score. Must not include 'obstacle'.
 
-    Returns
+    Returns:
     -------
     fig, axes : matplotlib Figure and Axes
     """
@@ -105,7 +105,7 @@ def plot_score_weight_control(scores_df, PC_name,
     **filters
         Additional filters. Must not include 'IMU'.
 
-    Returns
+    Returns:
     -------
     fig, axes : matplotlib Figure and Axes
     """
@@ -183,7 +183,7 @@ def plot_score_naive_control(scores_df, PC_name,
     **filters
         Additional filters. Must not include 'obstacle'.
 
-    Returns
+    Returns:
     -------
     fig, axes : matplotlib Figure and Axes
     """

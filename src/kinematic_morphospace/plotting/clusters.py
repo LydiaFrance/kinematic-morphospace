@@ -12,8 +12,7 @@ from ..data_filtering import filter_by
 # --- From clustering.py ---
 
 def get_cluster_colours(labels, n_clusters=8, noise_colour='blanchedalmond'):
-    """
-    Get a list of colours for cluster labels using the Set3 colourmap.
+    """Get a list of colours for cluster labels using the Set3 colourmap.
 
     Parameters
     ----------
@@ -24,7 +23,7 @@ def get_cluster_colours(labels, n_clusters=8, noise_colour='blanchedalmond'):
     noise_colour : str
         Colour name for noise points (label -1).
 
-    Returns
+    Returns:
     -------
     colours_by_cluster : list
         RGBA colour for each label.
@@ -46,8 +45,7 @@ def get_cluster_colours(labels, n_clusters=8, noise_colour='blanchedalmond'):
 
 
 def plot_clusters(selected_scores, cluster_centroids, cluster_colours, PC_pair=None, ax=None):
-    """
-    Scatter plot of scores coloured by cluster assignment.
+    """Scatter plot of scores coloured by cluster assignment.
 
     Parameters
     ----------
@@ -116,8 +114,7 @@ def get_cluster_counts(scores_df, all_labels=None):
 
 
 def plot_cluster_counts(unique, counts, colour_list, title=None, fig=None, ax=None):
-    """
-    Bar chart of cluster frame percentages.
+    """Bar chart of cluster frame percentages.
 
     Parameters
     ----------
@@ -162,8 +159,7 @@ def _ax_settings_cluster_diffs(ax, y_lim, y_tick):
 
 
 def plot_cluster_diffs(scores_df, colour_list):
-    """
-    Plot cluster count differences across conditions for each hawk.
+    """Plot cluster count differences across conditions for each hawk.
 
     Compares control vs weight, obstacle, and experience conditions.
     """
@@ -232,8 +228,7 @@ def plot_cluster_diffs(scores_df, colour_list):
 
 
 def plot_cluster_experience_diffs(scores_df, colour_list):
-    """
-    Plot cluster count differences between naive and experienced flights.
+    """Plot cluster count differences between naive and experienced flights.
     """
     fig, axes = plt.subplots(3, 2, figsize=(6, 6))
     axes = axes.flatten()
@@ -279,8 +274,7 @@ def plot_cluster_experience_diffs(scores_df, colour_list):
 # --- From labelling.py ---
 
 def plot_reconstruction_errors(errors, percentile=98):
-    """
-    Plot a histogram of reconstruction errors with a percentile threshold.
+    """Plot a histogram of reconstruction errors with a percentile threshold.
 
     Parameters
     ----------
@@ -289,7 +283,7 @@ def plot_reconstruction_errors(errors, percentile=98):
     percentile : int
         Percentile for threshold line.
 
-    Returns
+    Returns:
     -------
     threshold : float
         Error value at the given percentile.
@@ -319,8 +313,7 @@ def plot_marker_errors_with_thresholds(data,
                                         per_marker_thresholds,
                                         marker_labels,
                                         view_labels):
-    """
-    Plot per-marker reconstruction errors in XY, XZ, YZ views,
+    """Plot per-marker reconstruction errors in XY, XZ, YZ views,
     highlighting errors above threshold in red.
     """
     fig, axes = plt.subplots(4, 3, figsize=(12, 12))

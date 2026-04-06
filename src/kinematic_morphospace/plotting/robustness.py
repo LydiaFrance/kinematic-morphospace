@@ -81,7 +81,7 @@ def _place_results_under_schematics(fig, schem_axes, result_indices,
         Scale factor for result width relative to schematic width.
         Values < 1.0 narrow the result axes (centred under schematic).
 
-    Returns
+    Returns:
     -------
     result_axes : list of Axes
     """
@@ -360,7 +360,7 @@ def plot_hull_coverage(pts_labelled, pts_unlabelled, pca_embed,
     coverage_rev : float, optional
         Fraction of unlabelled frames inside the labelled convex hull.
 
-    Returns
+    Returns:
     -------
     fig : Figure
     """
@@ -470,7 +470,7 @@ def plot_hull_outlier_markers(marker_counts, outside_mask, figsize=(5, 3.5)):
     outside_mask : ndarray of bool
         True for frames outside the labelled convex hull.
 
-    Returns
+    Returns:
     -------
     fig : Figure
     """
@@ -553,7 +553,7 @@ def plot_occlusion_bias(complete_scores, partial_scores, labels,
     n_bins : int
         Number of equal-width histogram bins.
 
-    Returns
+    Returns:
     -------
     fig : Figure
     """
