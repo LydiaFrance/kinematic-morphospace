@@ -1,3 +1,9 @@
+"""Raw marker scatter plots and interactive 3-D visualisations.
+
+Functions here display the distribution of wing-marker positions in 2-D
+projections and 3-D interactive scatter plots, useful for quality-checking
+labelled marker data and inspecting marker cloud geometry.
+"""
 import numpy as np
 from matplotlib import pyplot as plt
 import plotly.graph_objects as go
@@ -5,29 +11,24 @@ import plotly.io as pio
 
 
 def plot_raw_markers(ax, x, y, filter=None, colour='k', alpha=0.1,  grid=False):
-    """Plot marker positions as a 2-D scatter cloud.
+    """Scatter plot of raw 2-D marker positions with standardised axis formatting.
 
-    Parameters
-    ----------
-    ax : matplotlib.axes.Axes
-        Axes to plot on.
-    x : numpy.ndarray
-        X coordinates of the markers.
-    y : numpy.ndarray
-        Y coordinates of the markers.
-    filter : numpy.ndarray, optional
-        Boolean mask selecting which frames to include.
-    colour : str, optional
-        Colour of the scatter points.
-    alpha : float, optional
-        Transparency of the scatter points.
-    grid : bool, optional
-        Whether to display grid lines.
+    Plots marker positions as a translucent scatter cloud with fixed axis limits
+    and equal aspect ratio. Suitable for overlaying multiple marker groups or
+    comparing left/right wings.
+
+    Args:
+        ax: Matplotlib Axes object to draw on.
+        x: X-coordinate array for each marker observation.
+        y: Y-coordinate array for each marker observation, aligned with x.
+        filter: Optional boolean mask selecting which observations to include.
+            If None, all observations are plotted.
+        colour: Scatter point colour string. Defaults to 'k' (black).
+        alpha: Scatter point opacity. Defaults to 0.1.
+        grid: Whether to display grid lines. Defaults to False.
 
     Returns:
-    -------
-    matplotlib.axes.Axes
-        The axes with the scatter plot.
+        Axes object containing the scatter plot.
     """
     if filter is not None:
         ax.scatter(x[filter], y[filter], marker='o', s=0.1, c=colour, alpha=alpha, edgecolors='none')
@@ -55,48 +56,25 @@ def plot_raw_markers(ax, x, y, filter=None, colour='k', alpha=0.1,  grid=False):
     # Change background colour
     ax.set_facecolor('white')
 
-    # Check y is not a numpy
-
-
-    # if y.name.startswith('rot_xyz_1'):
-    #     ax.set_ylabel('x (m)')
-    # if y.name.startswith('rot_xyz_2'):
-    #     ax.set_ylabel('y (m)')
-    # if y.name.startswith('rot_xyz_3'):
-    #     ax.set_ylabel('z (m)')
-
-    # if x.name.startswith('rot_xyz_1'):
-    #     ax.set_xlabel('x (m)')
-    # if x.name.startswith('rot_xyz_2'):
-    #     ax.set_xlabel('y (m)')
-    # if x.name.startswith('rot_xyz_3'):
-    #     ax.set_xlabel('z (m)')
-
     return ax
 
 def plot_uncorrected_markers(df, bird_configs, fig_size=(10, 20)):
-    """Plot a grid of three-view marker comparisons for multiple birds.
+    """Plot a grid of three-view scatter plots showing raw marker positions for multiple birds.
 
-    Each bird gets one row with XZ, XY, and YZ projections of the
-    raw (uncorrected) labelled marker data.
+    Each bird occupies one row with XZ, XY, and YZ projections of the raw
+    (uncorrected) labelled marker data. Useful for verifying that marker labelling
+    is consistent across birds before applying any rotation correction.
 
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        DataFrame containing the labelled marker data with ``BirdID``,
-        ``xyz_1``, ``xyz_2``, and ``xyz_3`` columns.
-    bird_configs : list of dict
-        One dict per bird with keys ``'bird_id'`` (int), ``'name'``
-        (str), ``'filters'`` (dict), and optionally ``'alpha'`` (float).
-    fig_size : tuple of float, optional
-        Figure size ``(width, height)`` in inches.
+    Args:
+        df: DataFrame containing the labelled marker data with BirdID, xyz_1,
+            xyz_2, and xyz_3 columns.
+        bird_configs: List of dicts, one per bird, each with keys 'bird_id' (int),
+            'name' (str), 'filters' (dict of additional filter criteria), and
+            optionally 'alpha' (float, defaults to 0.1).
+        fig_size: Figure size (width, height) in inches. Defaults to (10, 20).
 
     Returns:
-    -------
-    fig : matplotlib.figure.Figure
-        The figure.
-    axs : numpy.ndarray of matplotlib.axes.Axes
-        Flat array of subplot axes.
+        Tuple of (fig, axs) where axs is a flat array of subplot Axes.
     """
     n_birds = len(bird_configs)
     fig, axs = plt.subplots(n_birds, 3, figsize=fig_size, sharex=True, sharey=True)
@@ -122,32 +100,23 @@ def plot_uncorrected_markers(df, bird_configs, fig_size=(10, 20)):
     return fig, axs
 
 def plot_bird_marker_comparisons(frame_info_df, marker_data, birds_config, fig_size=(10, 20), alpha=0.1):
-    """Plot three-view marker comparisons from array-based marker data.
+    """Plot three-view marker scatter plots from array-based marker data for multiple birds.
 
-    Each bird gets one row with XZ, XY, and YZ projections, using the
-    first eight markers of the ``marker_data`` array.
+    Each bird occupies one row with XZ, XY, and YZ projections using the first
+    eight markers of the marker_data array (the wing and tail feather markers).
+    Used for quality-checking array-format data after preprocessing.
 
-    Parameters
-    ----------
-    frame_info_df : pandas.DataFrame
-        Per-frame metadata (must contain ``BirdID`` and any additional
-        filter columns specified in ``birds_config``).
-    marker_data : numpy.ndarray
-        Marker coordinates, shape ``(n_frames, n_markers, 3)``.
-    birds_config : list of dict
-        One dict per bird with keys ``'bird_id'`` (int), ``'name'``
-        (str), and ``'filters'`` (dict of extra filter criteria).
-    fig_size : tuple of float, optional
-        Figure size ``(width, height)`` in inches.
-    alpha : float, optional
-        Transparency of the scatter points.
+    Args:
+        frame_info_df: Per-frame metadata DataFrame containing BirdID and any
+            additional filter columns specified in birds_config.
+        marker_data: Marker position array of shape (n_frames, n_markers, 3).
+        birds_config: List of dicts, one per bird, each with keys 'bird_id' (int),
+            'name' (str), and 'filters' (dict of extra filter criteria).
+        fig_size: Figure size (width, height) in inches. Defaults to (10, 20).
+        alpha: Scatter point opacity. Defaults to 0.1.
 
     Returns:
-    -------
-    fig : matplotlib.figure.Figure
-        The figure.
-    axs : numpy.ndarray of matplotlib.axes.Axes
-        Flat array of subplot axes.
+        Tuple of (fig, axs) where axs is a flat array of subplot Axes.
     """
     n_birds = len(birds_config)
     fig, axs = plt.subplots(n_birds, 3, figsize=fig_size, sharex=True, sharey=True)
@@ -184,27 +153,21 @@ def plot_bird_marker_comparisons(frame_info_df, marker_data, birds_config, fig_s
 
 
 def plot_3d_scatter(x, y, z, time=None):
-    """Create an interactive 3-D scatter plot of wing markers.
+    """Create an interactive Plotly 3-D scatter plot of wing marker positions.
 
-    Renders marker positions relative to the backpack over multiple
-    flights using Plotly.
+    Renders marker positions relative to the backpack origin over multiple
+    flights. The equal-aspect cube layout preserves the true spatial extent of
+    the marker cloud.
 
-    Parameters
-    ----------
-    x : numpy.ndarray
-        X coordinates (1-D).
-    y : numpy.ndarray
-        Y coordinates (1-D).
-    z : numpy.ndarray
-        Z coordinates (1-D).
-    time : numpy.ndarray, optional
-        Values used to colour markers by time. When *None*, all
-        markers are drawn in black.
+    Args:
+        x: X-coordinate array, one value per marker observation.
+        y: Y-coordinate array, one value per marker observation.
+        z: Z-coordinate array, one value per marker observation.
+        time: Optional array used to colour markers by time. When None, all
+            markers are drawn in black.
 
     Returns:
-    -------
-    plotly.graph_objects.Figure
-        The interactive 3-D scatter figure.
+        Plotly Figure containing the interactive 3-D scatter plot.
     """
     marker_color = time if time is not None else 'black'
     fig = go.Figure(data=[
@@ -264,30 +227,23 @@ def plot_3d_scatter(x, y, z, time=None):
 def plot_3d_scatter_with_animation(x, y, z,
                                 time=None,
                                 browser=True):
-    """Create an animated 3-D scatter plot with azimuth rotation.
+    """Create an animated Plotly 3-D scatter plot with slow azimuth rotation.
 
-    Builds on :func:`plot_3d_scatter` and adds a Plotly animation
-    that slowly rotates the camera, demonstrating the 3-D structure of
-    the marker cloud.
+    Builds on plot_3d_scatter() and adds a Plotly animation that rotates the
+    camera through a range of azimuth angles, revealing the 3-D structure of the
+    marker cloud. A 'Rotate' button triggers the animation.
 
-    Parameters
-    ----------
-    x : numpy.ndarray
-        X coordinates (1-D).
-    y : numpy.ndarray
-        Y coordinates (1-D).
-    z : numpy.ndarray
-        Z coordinates (1-D).
-    time : numpy.ndarray, optional
-        Values used to colour markers by time.
-    browser : bool, optional
-        When *True* the plot opens in the default browser; otherwise it
-        renders inline in the notebook.
+    Args:
+        x: X-coordinate array, one value per marker observation.
+        y: Y-coordinate array, one value per marker observation.
+        z: Z-coordinate array, one value per marker observation.
+        time: Optional array used to colour markers by time. When None, all
+            markers are drawn in black.
+        browser: When True, the plot opens in the default web browser; when
+            False it renders inline in the notebook. Defaults to True.
 
     Returns:
-    -------
-    plotly.graph_objects.Figure
-        The animated 3-D scatter figure.
+        Plotly Figure containing the animated 3-D scatter plot.
     """
     # Setup the axes
     fig = plot_3d_scatter(x, y, z, time)

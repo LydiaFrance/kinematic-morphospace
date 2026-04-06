@@ -24,29 +24,24 @@ logger = logging.getLogger(__name__)
 
 
 def load_c3d(path: str | Path) -> tuple[pd.DataFrame, dict]:
-    """Load a single C3D file and return marker trajectories + metadata.
+    """Load a single C3D file and extract marker trajectories as a DataFrame.
 
-    Parameters
-    ----------
-    path : str or Path
-        Path to a ``.c3d`` file.
+    Reads all marker positions from the C3D file, converts them to a long-
+    format table, and marks missing observations (negative residual) as NaN.
+
+    Args:
+        path: Path to a ``.c3d`` motion-capture file.
 
     Returns:
-    -------
-    df : pd.DataFrame
-        Long-format table with columns:
-        ``frame``, ``marker_id``, ``marker_label``, ``X``, ``Y``, ``Z``,
-        ``residual``.
-    metadata : dict
-        Recording metadata including ``frame_rate``, ``n_frames``,
-        ``n_markers``, ``marker_labels``, ``first_frame``, ``last_frame``.
+        Tuple of (df, metadata). ``df`` is a long-format DataFrame with
+        columns ``frame``, ``marker_id``, ``marker_label``, ``X``, ``Y``,
+        ``Z``, ``residual``. ``metadata`` is a dict containing
+        ``frame_rate``, ``n_frames``, ``n_markers``, ``marker_labels``,
+        ``first_frame``, ``last_frame``, and ``source_file``.
 
     Raises:
-    ------
-    FileNotFoundError
-        If the C3D file does not exist.
-    ImportError
-        If ``ezc3d`` is not installed.
+        FileNotFoundError: If the C3D file does not exist.
+        ImportError: If ``ezc3d`` is not installed.
     """
     path = Path(path)
     if not path.exists():
@@ -147,19 +142,20 @@ BIRD_ID_MAP: dict[str, int] = {
 
 
 def build_file_list(mocap_folder: str | Path) -> pd.DataFrame:
-    """Scan a directory recursively for C3D files and extract metadata from filenames.
+    """Scan a directory recursively for C3D files and parse metadata from filenames.
 
-    Parameters
-    ----------
-    mocap_folder : str or Path
-        Root directory containing ``.c3d`` files (scans subdirectories).
+    Matches filenames against the 2020 hawk recording naming convention
+    (date, bird name, distance, IMU condition, trial number) and logs any
+    files that do not match.
+
+    Args:
+        mocap_folder: Root directory containing ``.c3d`` files; subdirectories
+            are scanned recursively.
 
     Returns:
-    -------
-    pd.DataFrame
-        Table with columns: ``path``, ``filename``, ``date``, ``bird``,
+        DataFrame with columns ``path``, ``filename``, ``date``, ``bird``,
         ``bird_id``, ``distance``, ``imu``, ``obstacle``, ``nobackpack``,
-        ``trial``.
+        and ``trial``.
     """
     mocap_folder = Path(mocap_folder)
     rows = []
@@ -190,21 +186,17 @@ def build_file_list(mocap_folder: str | Path) -> pd.DataFrame:
 
 
 def filter_file_list(file_list: pd.DataFrame) -> pd.DataFrame:
-    """Keep only recordings with a backpack (exclude ``nobackpack`` sessions).
+    """Retain only recordings that have a backpack, dropping nobackpack sessions.
 
-    All 2020 wing-marker sessions have wing markers by default; the MATLAB
-    pipeline's "wings" flag corresponded to the ``1130`` date sessions.
-    The only sessions to exclude are those explicitly tagged ``nobackpack``.
+    All 2020 wing-marker sessions include wing markers by default; the only
+    sessions to exclude are those explicitly tagged ``nobackpack`` in the
+    filename, which lack the body-marker pack needed for rotation.
 
-    Parameters
-    ----------
-    file_list : pd.DataFrame
-        Output of :func:`build_file_list`.
+    Args:
+        file_list: DataFrame produced by :func:`build_file_list`.
 
     Returns:
-    -------
-    pd.DataFrame
-        Filtered copy retaining only rows with ``nobackpack=False``.
+        Filtered copy retaining only rows where ``nobackpack`` is False.
     """
     mask = ~file_list["nobackpack"]
     filtered = file_list[mask].copy()

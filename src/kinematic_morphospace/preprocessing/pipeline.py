@@ -1,5 +1,4 @@
-"""Full preprocessing pipeline that orchestrates MAT loading, harmonisation,
-calibration, and shape-table construction.
+"""Full preprocessing pipeline that orchestrates MAT loading, harmonisation, calibration, and shape-table construction.
 
 Reproduces the MATLAB script ``fix_data_2024_03_23.m`` as a single
 ``run_preprocessing()`` call.
@@ -56,35 +55,34 @@ def run_preprocessing(
     """Run the full preprocessing pipeline from raw .mat files.
 
     Loads raw .mat files from both campaigns, harmonises column names and
-    metadata, calibrates position and time (2020 only), combines years,
-    and constructs unilateral and bilateral shape tables.
+    metadata, calibrates position and time (2020 only), concatenates both
+    years, and constructs unilateral and bilateral shape tables.
 
     .. note::
 
-       This requires .mat files with struct-based variables (not MATLAB
-       ``table`` objects). For the standard hawk dataset, use
-       :func:`run_from_csvs` instead, which loads from the per-year
-       intermediate CSVs that MATLAB already exported.
+       This requires .mat files containing struct-based variables, not MATLAB
+       ``table`` objects. For the standard hawk dataset, use
+       :func:`run_from_csvs` instead, which loads the per-year intermediate
+       CSVs already exported by MATLAB.
 
-    Parameters
-    ----------
-    config : PreprocessingConfig
-        Pipeline configuration.
+    Args:
+        config: Pipeline configuration including data directories, physical
+            constants, and processing options.
 
     Returns:
-    -------
-    dict[str, pd.DataFrame]
-        Output tables keyed by name:
+        Dict with output tables:
 
-        - ``"trajectory"`` — combined trajectory table
-        - ``"labelled"`` — combined labelled marker table (long format)
-        - ``"unilateral"`` — unilateral shape table (wide, rotated)
-        - ``"bilateral"`` — bilateral shape table (wide, rotated)
+        - ``"trajectory"`` — combined trajectory table for both years.
+        - ``"labelled"`` — combined labelled marker table (long format).
+        - ``"unilateral"`` — unilateral shape table (wide, rotated).
+        - ``"bilateral"`` — bilateral shape table (wide, rotated).
 
         If ``config.include_unrotated`` is True, also includes:
 
-        - ``"unilateral_unrotated"`` — unilateral with ``xyz`` coordinates
-        - ``"bilateral_unrotated"`` — bilateral with ``xyz`` coordinates
+        - ``"unilateral_unrotated"`` — unilateral table with raw ``xyz``
+          coordinates.
+        - ``"bilateral_unrotated"`` — bilateral table with raw ``xyz``
+          coordinates.
     """
     logger.info("=" * 60)
     logger.info("kinematic-morphospace Preprocessing Pipeline")
@@ -232,39 +230,38 @@ def run_from_csvs(
     include_unrotated: bool = False,
     date_prefix: str = "2024-03-24-",
 ) -> dict[str, pd.DataFrame]:
-    """Run shape-table construction from MATLAB-exported intermediate CSVs.
+    """Run shape-table construction from the MATLAB-exported intermediate CSVs.
 
-    This is the recommended entry point for the hawk dataset. It loads the
+    This is the recommended entry point for the hawk dataset. Loads the
     per-year trajectory and labelled CSVs, concatenates them, drops NaN
-    coordinate rows, adds ``VertDistance``, and builds unilateral + bilateral
-    shape tables.
+    coordinate rows, adds ``VertDistance``, and builds unilateral and
+    bilateral shape tables.
 
-    Parameters
-    ----------
-    csv_dir : str or Path
-        Directory containing the intermediate CSVs (e.g.
-        ``2024-03-24-Traj2017.csv``).
-    output_dir : str or Path, optional
-        If provided, save output CSVs here.
-    include_unrotated : bool
-        Also produce unilateral/bilateral tables with ``xyz`` coordinates.
-    date_prefix : str
-        Prefix on the CSV file names (default ``"2024-03-24-"``).
+    Args:
+        csv_dir: Directory containing the intermediate CSV files (e.g.
+            ``2024-03-24-Traj2017.csv``).
+        output_dir: If provided, save all output tables as CSVs to this
+            directory.
+        include_unrotated: If True, also produce unilateral and bilateral
+            tables using raw ``xyz`` coordinates (before rotation). Defaults
+            to False.
+        date_prefix: Prefix on the CSV file names. Defaults to
+            ``"2024-03-24-"``.
 
     Returns:
-    -------
-    dict[str, pd.DataFrame]
-        Output tables keyed by name:
+        Dict with output tables:
 
-        - ``"trajectory"`` — combined trajectory table
-        - ``"labelled"`` — combined labelled marker table
-        - ``"unilateral"`` — unilateral shape table (wide, rotated)
-        - ``"bilateral"`` — bilateral shape table (wide, rotated)
+        - ``"trajectory"`` — combined trajectory table for both years.
+        - ``"labelled"`` — combined labelled marker table (long format).
+        - ``"unilateral"`` — unilateral shape table (wide, rotated).
+        - ``"bilateral"`` — bilateral shape table (wide, rotated).
 
-        If *include_unrotated* is True, also includes:
+        If ``include_unrotated`` is True, also includes:
 
-        - ``"unilateral_unrotated"`` — unilateral with ``xyz`` coordinates
-        - ``"bilateral_unrotated"`` — bilateral with ``xyz`` coordinates
+        - ``"unilateral_unrotated"`` — unilateral with raw ``xyz``
+          coordinates.
+        - ``"bilateral_unrotated"`` — bilateral with raw ``xyz``
+          coordinates.
     """
     logger.info("=" * 60)
     logger.info("kinematic-morphospace CSV Pipeline")
@@ -366,23 +363,21 @@ def save_csvs(
     file_names: dict[str, str] | None = None,
     date_prefix: str | None = None,
 ) -> dict[str, Path]:
-    """Write output DataFrames to CSV files.
+    """Write a dict of DataFrames to CSV files in the specified output directory.
 
-    Parameters
-    ----------
-    tables : dict[str, pd.DataFrame]
-        Tables to write, keyed by name (matching :data:`_DEFAULT_OUTPUT_NAMES`).
-    output_dir : str or Path
-        Directory to write CSVs into.
-    file_names : dict[str, str], optional
-        Override default file names.
-    date_prefix : str, optional
-        If provided, prepend this to each file name (e.g. ``"2024-03-24-"``).
+    Args:
+        tables: DataFrames to write, keyed by name matching
+            :data:`_DEFAULT_OUTPUT_NAMES` (e.g. ``"trajectory"``,
+            ``"unilateral"``).
+        output_dir: Directory to write the CSV files into. Created if it
+            does not exist.
+        file_names: Override default output file names. Keys should match
+            those in ``tables``.
+        date_prefix: Optional string prepended to each filename, e.g.
+            ``"2024-03-24-"``.
 
     Returns:
-    -------
-    dict[str, Path]
-        Mapping of table name to the written file path.
+        Dict mapping each table name to the path of the written CSV file.
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)

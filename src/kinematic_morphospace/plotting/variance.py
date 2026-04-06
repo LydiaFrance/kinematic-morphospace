@@ -1,3 +1,9 @@
+"""Explained variance and scree plots for PCA morphospace analysis.
+
+Functions here visualise cumulative explained variance ratios, compare
+real data against null (shuffled) controls, and provide per-condition
+breakdowns across hawks, years, and flight conditions.
+"""
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
@@ -10,28 +16,25 @@ from ..pca_reconstruct import reconstruct
 
 def plot_explained(explained_ratio,
                     ax=None, colour_before=12, annotate=True, ci=None):
-    """Plot cumulative explained variance ratio as a coloured bar chart.
+    """Plot cumulative explained variance ratio as a colour-coded bar chart.
 
-    Parameters
-    ----------
-    explained_ratio : numpy.ndarray
-        Explained variance ratio per component.
-    ax : matplotlib.axes.Axes, optional
-        Axes to plot on. A new figure is created when *None*.
-    colour_before : int, optional
-        Number of leading components to colour individually.
-    annotate : bool, optional
-        Whether to annotate cumulative-variance thresholds on the plot.
-    ci : array-like, optional
-        Confidence-interval values (currently unused, reserved for
-        future bootstrap intervals).
+    Each bar represents one additional principal component; bar height is the
+    cumulative explained variance up to that component. Leading components are
+    colour-coded individually using the standard project palette; remaining
+    components are shown in light grey.
+
+    Args:
+        explained_ratio: Explained variance ratio per component, length n_comp.
+        ax: Matplotlib Axes to draw on; if None, a new figure is created.
+        colour_before: Number of leading components to colour individually.
+            Defaults to 12 (all components coloured).
+        annotate: When True, annotates the x-axis with >95%, >97%, and >98%
+            cumulative-variance threshold markers. Defaults to True.
+        ci: Reserved for future bootstrap confidence-interval bands; currently
+            unused. Defaults to None.
 
     Returns:
-    -------
-    fig : matplotlib.figure.Figure
-        The parent figure.
-    ax : matplotlib.axes.Axes
-        The axes containing the bar chart.
+        Tuple of (fig, ax).
     """
     fig = None
 
@@ -106,30 +109,20 @@ def plot_explained(explained_ratio,
 
 def table_cumulative_variance_ratios(unilateral_data, unilateral_frame_info_df,
                                      principal_components, pca_mean=None):
-    """Print cumulative explained variance ratios per hawk, year, and obstacle.
+    """Print cumulative explained variance ratios for each hawk, year, and obstacle condition.
 
-    Iterates over all hawk/year/obstacle combinations, projects each
-    subset onto the first nine principal components, and prints the
-    cumulative explained variance ratio for each condition.
+    Projects each subset of frames onto the first nine principal components and
+    prints the cumulative explained variance ratio. Used to verify that the pooled
+    PCA explains a consistent proportion of variance across conditions.
 
-    Parameters
-    ----------
-    unilateral_data : numpy.ndarray
-        Marker data, shape ``(n_frames, n_markers)``.
-    unilateral_frame_info_df : pandas.DataFrame
-        Per-frame metadata used for filtering (must contain hawk name,
-        year, obstacle, and seqID columns).
-    principal_components : numpy.ndarray
-        PCA component matrix, shape ``(n_components, n_markers)``.
-    pca_mean : numpy.ndarray, optional
-        PCA training-set mean, shape ``(n_markers,)``.  When provided
-        the data is centred before projection so that variance ratios
-        are consistent with the fitted PCA model.
-
-    Returns:
-    -------
-    None
-        Results are printed to stdout.
+    Args:
+        unilateral_data: Marker data array of shape (n_frames, n_markers).
+        unilateral_frame_info_df: Per-frame metadata DataFrame used for filtering;
+            must contain hawk name, year, obstacle, and seqID columns.
+        principal_components: PCA component matrix of shape (n_components, n_markers).
+        pca_mean: PCA training-set mean of shape (n_markers,). When provided the
+            data is centred before projection so that variance ratios are consistent
+            with the fitted PCA model. Defaults to None (no centring).
     """
     cumulative_explained_variance_ratios = {}
 
@@ -176,28 +169,21 @@ def table_cumulative_variance_ratios(unilateral_data, unilateral_frame_info_df,
 
 
 def calculate_cumulative_variance_ratios(data, frame_info_df, principal_components, n_components=9):
-    """Calculate cumulative explained variance ratios per condition.
+    """Calculate cumulative explained variance ratios per hawk/year/obstacle condition.
 
-    Projects each hawk/year/obstacle subset onto the principal
-    components and returns the cumulative variance ratio for every
-    condition that contains data.
+    Projects each condition's frames onto the principal components and returns
+    the cumulative variance ratio for every condition that has data. The result
+    can be passed directly to plot_cumulative_variance_ratios().
 
-    Parameters
-    ----------
-    data : numpy.ndarray
-        Marker data, shape ``(n_frames, n_markers)``.
-    frame_info_df : pandas.DataFrame
-        Per-frame metadata used for filtering.
-    principal_components : numpy.ndarray
-        PCA component matrix, shape ``(n_components, n_markers)``.
-    n_components : int, optional
-        Number of components to project onto (default 9).
+    Args:
+        data: Marker data array of shape (n_frames, n_markers).
+        frame_info_df: Per-frame metadata DataFrame used for filtering.
+        principal_components: PCA component matrix of shape (n_components, n_markers).
+        n_components: Number of components to project onto. Defaults to 9.
 
     Returns:
-    -------
-    dict
-        Mapping of ``"hawk_year_condition"`` strings to
-        ``numpy.ndarray`` cumulative variance ratios.
+        Dict mapping 'hawk_Period N_condition' strings to cumulative variance
+        ratio arrays of length n_components.
     """
     cumulative_explained_variance_ratios = {}
 
@@ -226,22 +212,19 @@ def calculate_cumulative_variance_ratios(data, frame_info_df, principal_componen
     return cumulative_explained_variance_ratios
 
 def plot_cumulative_variance_ratios(cumulative_explained_variance_ratios):
-    """Plot cumulative explained variance ratios for all conditions.
+    """Plot cumulative explained variance ratios for all hawk/year/condition combinations.
 
-    Draws one line per hawk/year/condition, colour-coded by hawk and
-    styled by obstacle presence.
+    Draws one line per condition, colour-coded by hawk and styled by year and
+    obstacle presence. This allows rapid visual comparison of how much variance
+    each condition's frames are captured by the pooled PCA.
 
-    Parameters
-    ----------
-    cumulative_explained_variance_ratios : dict
-        Mapping of ``"hawk_year_condition"`` keys to
-        cumulative variance ratio arrays, as returned by
-        :func:`calculate_cumulative_variance_ratios`.
+    Args:
+        cumulative_explained_variance_ratios: Dict mapping 'hawk_Period N_condition'
+            key strings to cumulative variance ratio arrays, as returned by
+            calculate_cumulative_variance_ratios().
 
     Returns:
-    -------
-    matplotlib.figure.Figure
-        The figure containing the line plot.
+        Figure containing the cumulative variance ratio line plot.
     """
     plt.figure(figsize=(10, 6))
 
@@ -293,27 +276,21 @@ def plot_cumulative_variance_ratios(cumulative_explained_variance_ratios):
 
 
 def plot_explained_comparison(real_explained, shuffled_explained, ax=None):
-    """Compare cumulative variance of real data against a shuffled control.
+    """Compare cumulative explained variance of real data against a shuffled control.
 
-    Overlays the shuffled-data cumulative variance as a black line on
-    top of the coloured real-data bar chart, highlighting the
-    additional structure captured by the PCA.
+    Overlays the shuffled-data cumulative variance as a black line on top of the
+    colour-coded real-data bar chart. The gap between the real and shuffled curves
+    reveals the additional structure captured by the PCA that is not explained
+    by random correlations.
 
-    Parameters
-    ----------
-    real_explained : numpy.ndarray
-        Explained variance ratio per component for the real data.
-    shuffled_explained : numpy.ndarray
-        Explained variance ratio per component for the shuffled control.
-    ax : matplotlib.axes.Axes, optional
-        Axes to plot on. A new figure is created when *None*.
+    Args:
+        real_explained: Explained variance ratio per component for the real data.
+        shuffled_explained: Explained variance ratio per component for the
+            shuffled (null) control.
+        ax: Matplotlib Axes to draw on; if None, a new figure is created.
 
     Returns:
-    -------
-    fig : matplotlib.figure.Figure
-        The parent figure.
-    ax : matplotlib.axes.Axes
-        The axes containing the comparison plot.
+        Tuple of (fig, ax).
     """
     import matplotlib.pyplot as plt
     import numpy as np
@@ -366,31 +343,24 @@ def plot_explained_comparison(real_explained, shuffled_explained, ax=None):
 
 def plot_hist_similar_shapes(principal_components, scores, marker_data,
                               pc_indices=None, threshold=0.025):
-    """Plot histograms of similar shapes at each PC score.
+    """Plot histograms and 2-D maps of how many observed shapes resemble each PC score.
 
-    Counts how many observed frames fall within a threshold RMS distance
-    of reconstructed shapes at each PC score. Also produces 2-D
-    adaptive-resolution similar-shape maps for PC1 vs PC2.
+    For each PC in pc_indices, counts how many observed frames have an RMS
+    distance below the threshold from the reconstructed shape at each score
+    value. This reveals which regions of the morphospace are densely populated
+    versus rarely occupied. Also produces adaptive-resolution 2-D maps for PC1
+    vs PC2.
 
-    Parameters
-    ----------
-    principal_components : numpy.ndarray
-        PCA component matrix.
-    scores : numpy.ndarray
-        Score matrix, shape ``(n_frames, n_components)``.
-    marker_data : numpy.ndarray
-        Original marker data, shape ``(n_frames, n_markers, 3)``.
-    pc_indices : list of int, optional
-        PC indices to analyse. Defaults to ``[0, 1]``.
-    threshold : float, optional
-        RMS distance threshold for counting similar shapes.
+    Args:
+        principal_components: PCA component matrix of shape (n_components, n_markers).
+        scores: PCA score matrix of shape (n_frames, n_components).
+        marker_data: Observed marker data of shape (n_frames, n_markers, 3).
+        pc_indices: List of PC indices (0-based) to analyse. Defaults to [0, 1].
+        threshold: RMS distance threshold in metres for counting similar shapes.
+            Defaults to 0.025.
 
     Returns:
-    -------
-    fig : matplotlib.figure.Figure
-        The figure.
-    axes : numpy.ndarray of matplotlib.axes.Axes
-        Array of subplot axes.
+        Tuple of (fig, axes).
     """
     def compare_shapes(shapes1, shapes2):
         """Compute RMS difference between two sets of shapes."""

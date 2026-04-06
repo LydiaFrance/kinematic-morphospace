@@ -1,3 +1,9 @@
+"""PC score time-trace and morphospace scatter plots.
+
+Functions here display how PC scores evolve along the approach trajectory (binned
+by horizontal distance to the perch) and provide pairwise scatter diagnostics for
+exploring the structure of the morphospace.
+"""
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -6,29 +12,22 @@ from ..pca_scores import get_binned_scores
 
 def plot_score(scores_df,
                 PC_name = 'PC01', ax=None, alpha=1, **filters):
-    """Plot a single PC score profile against horizontal distance to the perch.
+    """Plot a single PC score trace against horizontal distance to the perch.
 
-    Bins the scores by horizontal distance and draws the mean score with
-    +/-1 standard deviation shading.
+    Bins the scores by horizontal distance and draws the mean score as a line
+    with ±1 standard deviation shading. Axis limits are determined from the
+    flight phase (excluding the perch-grab region within 1 m of the perch).
 
-    Parameters
-    ----------
-    scores_df : pandas.DataFrame
-        DataFrame containing PC scores and flight metadata.
-    PC_name : str, optional
-        Name of the PC column to plot (e.g. ``'PC01'``).
-    ax : matplotlib.axes.Axes, optional
-        Axes to plot on. A new figure is created when *None*.
-    alpha : float, optional
-        Opacity of the mean line.
-    **filters
-        Keyword arguments forwarded to :func:`~kinematic_morphospace.pca_scores.get_binned_scores`
-        for subsetting (e.g. ``hawkname``, ``obstacle``).
+    Args:
+        scores_df: DataFrame containing PC scores and per-frame flight metadata.
+        PC_name: Name of the PC column to plot (e.g. 'PC01'). Defaults to 'PC01'.
+        ax: Matplotlib Axes object to draw on; if None, a new figure is created.
+        alpha: Opacity of the mean line. Defaults to 1.
+        **filters: Keyword arguments forwarded to get_binned_scores() for
+            subsetting the data (e.g. hawkname='Drogon', obstacle=0).
 
     Returns:
-    -------
-    matplotlib.axes.Axes
-        The axes containing the score plot.
+        Axes object containing the score trace.
     """
     if ax is None:
         fig, ax = plt.subplots()
@@ -77,27 +76,23 @@ def plot_score(scores_df,
     return ax
 
 def plot_score_multi_PCs(scores_df, PC_num_list=range(1, 13), **filters):
-    """Plot score profiles for multiple PCs in a grid sized to the request.
+    """Plot binned score traces for multiple morphing shape modes in a grid.
 
-    Each panel shows one morphing shape mode.  When all nine interpretable
-    modes are requested (PC_num_list contains PC08), PC08 is re-ordered next
-    to PC05 for thematic grouping.  The grid is sized dynamically: up to 3
-    columns, with as many rows as needed.
+    Creates one panel per PC. When all nine interpretable modes are requested,
+    PC8 is re-ordered adjacent to PC5 for thematic grouping. The grid is sized
+    dynamically (up to 3 columns, as many rows as needed).
 
-    Parameters
-    ----------
-    scores_df : pandas.DataFrame
-        DataFrame containing PC scores and flight metadata.
-    PC_num_list : iterable of int, optional
-        PC numbers to include (default 1--12).
-    **filters
-        Keyword arguments forwarded to :func:`plot_score`. Must include
-        ``perchDist``.
+    Args:
+        scores_df: DataFrame containing PC scores and per-frame metadata.
+        PC_num_list: PC numbers to include; defaults to 1–12.
+        **filters: Keyword arguments forwarded to plot_score(). Must include
+            perchDist.
 
     Returns:
-    -------
-    matplotlib.figure.Figure
-        The figure.
+        Figure containing the grid of score traces.
+
+    Raises:
+        ValueError: If perchDist is not included in filters.
     """
     if 'perchDist' not in filters:
         raise ValueError("perchDist should be in filters")
@@ -162,26 +157,23 @@ def plot_score_multi_PCs(scores_df, PC_num_list=range(1, 13), **filters):
     return fig
 
 def plot_score_multi_distance(scores_df,PC_name, **filters):
-    """Plot a single PC score at four perch distances (5, 7, 9, 12 m).
+    """Plot a single PC score trace at each of four perch distances (5, 7, 9, 12 m).
 
-    Creates a 4x1 stack of subplots with shared axes, one per distance.
+    Creates a 4x1 stack of subplots with shared axes, one per perch distance.
+    Useful for comparing how a particular morphing mode changes with approach
+    distance.
 
-    Parameters
-    ----------
-    scores_df : pandas.DataFrame
-        DataFrame containing PC scores and flight metadata.
-    PC_name : str
-        Name of the PC column to plot (e.g. ``'PC01'``).
-    **filters
-        Keyword arguments forwarded to :func:`plot_score`. Must *not*
-        include ``perchDist``.
+    Args:
+        scores_df: DataFrame containing PC scores and per-frame metadata.
+        PC_name: Name of the PC column to plot (e.g. 'PC01').
+        **filters: Keyword arguments forwarded to plot_score(). Must not include
+            perchDist, which is set internally for each row.
 
     Returns:
-    -------
-    fig : matplotlib.figure.Figure
-        The figure.
-    axes : numpy.ndarray of matplotlib.axes.Axes
-        Array of subplot axes.
+        Tuple of (fig, axes).
+
+    Raises:
+        ValueError: If perchDist is included in filters.
     """
     if 'perchDist' in filters:
         raise ValueError("perchDist should not be in filters")
@@ -227,32 +219,24 @@ def plot_score_multi_distance(scores_df,PC_name, **filters):
 
 
 def plot_pc_comparison_grid(scores_df, score_5, score_95, n_pcs=9, alpha=0.1, bkgrd_color='white', filter_condition=None):
-    """Create a pairwise scatter-plot grid comparing PC scores.
+    """Create a pairwise scatter-plot grid for exploring PC score correlations.
 
-    Diagonal panels show histograms; off-diagonal panels show scatter
-    plots of each PC pair.
+    Diagonal panels show histograms of each PC score distribution;
+    off-diagonal panels show scatter plots of each PC pair. Useful for
+    identifying non-independence between morphing modes.
 
-    Parameters
-    ----------
-    scores_df : pandas.DataFrame
-        DataFrame containing PC scores.
-    score_5 : pandas.Series
-        5th-percentile scores for axis limits per PC.
-    score_95 : pandas.Series
-        95th-percentile scores for axis limits per PC.
-    n_pcs : int, optional
-        Number of PCs to include (default 9).
-    alpha : float, optional
-        Transparency of scatter points.
-    bkgrd_color : str, optional
-        Background colour of the panels.
-    filter_condition : pandas.Series, optional
-        Boolean mask to subset ``scores_df`` before plotting.
+    Args:
+        scores_df: DataFrame containing PC scores.
+        score_5: 5th-percentile scores per PC, used for axis limits.
+        score_95: 95th-percentile scores per PC, used for axis limits.
+        n_pcs: Number of PCs to include. Defaults to 9.
+        alpha: Scatter-point opacity. Defaults to 0.1.
+        bkgrd_color: Background colour for each panel. Defaults to 'white'.
+        filter_condition: Optional boolean mask to subset scores_df before
+            plotting. If None, all rows are used.
 
     Returns:
-    -------
-    matplotlib.figure.Figure
-        The figure containing the grid.
+        Figure containing the pairwise comparison grid.
     """
     # Apply filter if provided
     if filter_condition is not None:
@@ -328,27 +312,21 @@ def plot_pc_comparison_grid(scores_df, score_5, score_95, n_pcs=9, alpha=0.1, bk
 
 
 def plot_score_multi_bird(scores_df,PC_name, birdname_list = ['Drogon', 'Ruby','Toothless', 'Charmander'], **filters):
-    """Plot a single PC score profile for multiple individual birds.
+    """Plot a single PC score trace separately for each individual hawk.
 
-    Creates a 4x1 stack of subplots, one per bird, with shared axes.
+    Creates a 4x1 stack of subplots with shared axes, one per bird. Useful for
+    comparing how individual birds differ in their use of a particular morphing
+    mode along the approach.
 
-    Parameters
-    ----------
-    scores_df : pandas.DataFrame
-        DataFrame containing PC scores and flight metadata.
-    PC_name : str
-        Name of the PC column to plot (e.g. ``'PC01'``).
-    birdname_list : list of str, optional
-        Bird names to plot, one per row.
-    **filters
-        Keyword arguments forwarded to :func:`plot_score`.
+    Args:
+        scores_df: DataFrame containing PC scores and per-frame metadata.
+        PC_name: Name of the PC column to plot (e.g. 'PC01').
+        birdname_list: Bird names to show, one per row. Defaults to
+            ['Drogon', 'Ruby', 'Toothless', 'Charmander'].
+        **filters: Keyword arguments forwarded to plot_score().
 
     Returns:
-    -------
-    fig : matplotlib.figure.Figure
-        The figure.
-    axes : numpy.ndarray of matplotlib.axes.Axes
-        Array of subplot axes.
+        Tuple of (fig, axes).
     """
     fig, axes = plt.subplots(4,1,figsize=(5, 4), sharex=True, sharey=True)
 

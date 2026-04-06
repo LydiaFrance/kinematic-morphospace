@@ -1,5 +1,4 @@
-"""kinematic-morphospace: Running PCA on bird wings and tails in flight.
-"""
+"""kinematic-morphospace: PCA-based morphospace analysis of bird wings and tails in flight."""
 from __future__ import annotations
 
 # --- Data layer ---

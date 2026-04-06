@@ -133,24 +133,25 @@ def run_single_c3d(
     path: str | Path,
     config: C3DConfig | None = None,
 ) -> dict[str, pd.DataFrame]:
-    """Process a single C3D recording through the full pipeline.
+    """Process a single C3D recording through the complete 8-step pipeline.
 
-    Parameters
-    ----------
-    path : str or Path
-        Path to a ``.c3d`` file.
-    config : C3DConfig, optional
-        Pipeline configuration. Uses defaults if not provided.
+    Chains C3D loading, stationary detection, trial splitting, body marker
+    labelling, body statistics, coordinate transformation, time
+    synchronisation, and body pitch estimation into a single call.
+
+    Args:
+        path: Path to a ``.c3d`` motion-capture file.
+        config: Pipeline configuration. Uses :class:`C3DConfig` defaults if
+            not provided.
 
     Returns:
-    -------
-    dict[str, pd.DataFrame]
-        Processed tables:
+        Dict with keys:
 
-        - ``"markers"`` — full marker table with labels and trial column
-        - ``"body_stats"`` — per-frame body statistics
-        - ``"body_pitch"`` — per-frame pitch estimates
-        - ``"metadata"`` — single-row metadata table
+        - ``"markers"`` — full marker table with anatomical labels and trial
+          column.
+        - ``"body_stats"`` — per-frame body position, velocity, and speed.
+        - ``"body_pitch"`` — per-frame body pitch estimates (degrees).
+        - ``"metadata"`` — single-row table of recording-level metadata.
     """
     if config is None:
         config = C3DConfig()
@@ -270,26 +271,29 @@ def run_single_c3d(
 def run_from_c3d(
     config: C3DConfig,
 ) -> dict[str, pd.DataFrame]:
-    """Process all C3D files in a directory through the full pipeline.
+    """Process all C3D recordings in a directory and concatenate the results.
 
-    Scans the ``config.mocap_folder`` for C3D files, filters for recordings
-    with wing markers and backpack, processes each one, and concatenates
-    the results.
+    Scans ``config.mocap_folder`` for C3D files, filters out nobackpack
+    sessions, runs each recording through :func:`run_single_c3d`, and
+    concatenates all outputs. Failed recordings are logged and skipped.
 
-    Parameters
-    ----------
-    config : C3DConfig
-        Pipeline configuration.
+    Args:
+        config: Pipeline configuration including the input folder, processing
+            parameters, and optional output directory.
 
     Returns:
-    -------
-    dict[str, pd.DataFrame]
-        Concatenated output tables:
+        Dict with concatenated tables across all recordings:
 
-        - ``"markers"`` — all marker data with labels, trials, time
-        - ``"body_stats"`` — per-frame body statistics for all recordings
-        - ``"body_pitch"`` — per-frame pitch for all recordings
-        - ``"metadata"`` — one row per recording
+        - ``"markers"`` — all marker data with anatomical labels, trial
+          assignments, and time.
+        - ``"body_stats"`` — per-frame body statistics for all recordings.
+        - ``"body_pitch"`` — per-frame pitch estimates for all recordings.
+        - ``"metadata"`` — one row per successfully processed recording.
+
+    Raises:
+        FileNotFoundError: If no C3D files are found in the mocap folder.
+        ValueError: If no recordings have both wing markers and a backpack.
+        RuntimeError: If all recordings fail to process.
     """
     logger.info("=" * 60)
     logger.info("kinematic-morphospace C3D Pipeline")

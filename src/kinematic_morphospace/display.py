@@ -17,14 +17,13 @@ def print_cev_comparison(
     rows: Sequence[tuple[str, np.ndarray]],
     n_modes: int = 4,
 ) -> None:
-    """Print a method × CEV table.
+    """Print a method × cumulative-explained-variance table.
 
-    Parameters
-    ----------
-    rows : sequence of (method_name, cev_array)
-        Each *cev_array* must have at least *n_modes* entries.
-    n_modes : int
-        Number of cumulative-explained-variance columns.
+    Args:
+        rows: Sequence of (method_name, cev_array) tuples. Each
+            ``cev_array`` must have at least ``n_modes`` entries.
+        n_modes: Number of cumulative-explained-variance columns to show.
+            Defaults to 4.
     """
     header = f"{'Method':>25s}"
     for m in range(1, n_modes + 1):
@@ -41,13 +40,13 @@ def print_cev_comparison(
 def print_occlusion_pca(
     rows: Sequence[dict],
 ) -> None:
-    """Print marker-occlusion PCA comparison.
+    """Print a marker-occlusion PCA comparison table.
 
-    Parameters
-    ----------
-    rows : sequence of dicts with keys
-        ``marker``, ``n_occluded``, ``cev_complete``, ``cev_occluded``,
-        ``cosines`` (array).  If *n_occluded* < 100 set ``cosines=None``.
+    Args:
+        rows: Sequence of dicts with keys ``marker``, ``n_occluded``,
+            ``cev_complete``, ``cev_occluded``, and ``cosines`` (array).
+            Set ``cosines=None`` when ``n_occluded`` is too small to
+            compute a meaningful cosine.
     """
     n_cos = max((len(r["cosines"]) for r in rows if r["cosines"] is not None), default=4)
     cos_hdr = "  ".join(f"{i + 1:>5d}" for i in range(n_cos))
@@ -82,15 +81,16 @@ def print_projection_validation(
     pc2_sd: float,
     rows: Sequence[dict],
 ) -> None:
-    """Print projection-validation table (single & double marker masking).
+    """Print a projection-validation table for single and double marker masking.
 
-    Parameters
-    ----------
-    n_frames, pc1_sd, pc2_sd : summary statistics printed in the header.
-    rows : sequence of dicts with keys
-        ``label``, ``rmse_pc1``, ``rmse_pc2``, ``corr_pc1``, ``corr_pc2``.
-        Insert a dict ``{"separator": True}`` to emit a blank line between
-        single- and double-marker blocks.
+    Args:
+        n_frames: Total number of frames used (printed in the header).
+        pc1_sd: Standard deviation of PC1 scores (printed in the header).
+        pc2_sd: Standard deviation of PC2 scores (printed in the header).
+        rows: Sequence of dicts with keys ``label``, ``rmse_pc1``,
+            ``rmse_pc2``, ``corr_pc1``, ``corr_pc2``. Insert a dict
+            ``{"separator": True}`` to emit a blank line between
+            single- and double-marker blocks.
     """
     print("Least-squares projection validation")
     print(f"Frames: {n_frames:,}  |  PC1 SD: {pc1_sd:.4f}  |  PC2 SD: {pc2_sd:.4f}")
@@ -117,14 +117,12 @@ def print_thinned_pca(
     rows: Sequence[dict],
     n_components: int = 4,
 ) -> None:
-    """Print thinned-PCA table.
+    """Print a thinned-PCA stability table across temporal subsampling steps.
 
-    Parameters
-    ----------
-    rows : sequence of dicts with keys
-        ``step``, ``n_frames``, ``cev``, ``variance_per_mode`` (array),
-        ``cosines`` (array).
-    n_components : number of modes shown.
+    Args:
+        rows: Sequence of dicts with keys ``step``, ``n_frames``, ``cev``,
+            ``variance_per_mode`` (array), and ``cosines`` (array).
+        n_components: Number of modes to show per row. Defaults to 4.
     """
     pc_hdr = "".join(f" {'PC' + str(i + 1):>7s}" for i in range(n_components))
     print(
@@ -148,13 +146,14 @@ def print_bootstrap_stability(
     rows: Sequence[dict],
     observed_cev4: float | None = None,
 ) -> None:
-    """Print bootstrap CEV₄ and cosine summary.
+    """Print a bootstrap CEV₄ and cosine stability summary.
 
-    Parameters
-    ----------
-    rows : sequence of dicts with keys
-        ``label``, ``n_bootstraps``, ``cev4`` (array), ``cosines`` (n×k array).
-    observed_cev4 : if given, printed once before the table.
+    Args:
+        rows: Sequence of dicts with keys ``label``, ``n_bootstraps``,
+            ``cev4`` (array of bootstrap CEV₄ values), and ``cosines``
+            (n_bootstraps × k array of principal cosines).
+        observed_cev4: If provided, the observed (non-bootstrap) CEV₄
+            value is printed before the table. Defaults to None.
     """
     if observed_cev4 is not None:
         print(f"Observed CEV₄: {observed_cev4:.4f}")
@@ -185,7 +184,15 @@ def print_residual_eigenvalues(
     shuffled_variance: np.ndarray,
     n_show: int = 8,
 ) -> None:
-    """Print residual vs. shuffled eigenvalue comparison."""
+    """Print residual vs. shuffled eigenvalue comparison.
+
+    Args:
+        residual_variance: Per-component variance remaining after removing
+            the leading modes.
+        shuffled_variance: Per-component variance from column-shuffled data,
+            representing the null distribution.
+        n_show: Number of components to display. Defaults to 8.
+    """
     print("Residual eigenvalue structure (after removing 4 modes):")
     print(f"{'Component':>10s} {'Residual':>14s} {'Shuffled':>14s} {'Ratio':>8s}")
     print("─" * 50)
@@ -208,7 +215,14 @@ def print_quintile_rmse(
     frame_rmse: np.ndarray,
     pc_pairs: Sequence[tuple[int, str]] = ((0, "PC1 (wing lifting)"), (1, "PC2 (wing spreading)")),
 ) -> None:
-    """Print reconstruction RMSE broken down by PC-score quintile."""
+    """Print reconstruction RMSE broken down by PC-score quintile.
+
+    Args:
+        all_scores: PCA score array of shape ``(n_frames, n_components)``.
+        frame_rmse: Per-frame reconstruction RMSE array of shape ``(n_frames,)``.
+        pc_pairs: Sequence of (component_index, display_name) tuples
+            specifying which PCs to break down. Defaults to PC1 and PC2.
+    """
     import pandas as pd
 
     print("Reconstruction RMSE by PC score quintile:")
@@ -228,11 +242,12 @@ def print_local_pca_stability(
     rows: Sequence[dict],
     n_modes: int = 4,
 ) -> None:
-    """Print local-PCA cosine table.
+    """Print a local-PCA cosine table stratified by PC1 quintile.
 
-    Parameters
-    ----------
-    rows : sequence of dicts with keys ``label`` and ``cosines`` (array).
+    Args:
+        rows: Sequence of dicts with keys ``label`` (quintile name) and
+            ``cosines`` (array of principal cosines for each mode).
+        n_modes: Number of modes to display. Defaults to 4.
     """
     cos_hdr = "".join(f" {'cos' + str(i + 1):>6s}" for i in range(n_modes))
     print("Local PCA stability (splitting data by PC1 quintile):")
@@ -249,12 +264,11 @@ def print_local_pca_stability(
 def print_intrinsic_dimensionality(
     rows: Sequence[dict],
 ) -> None:
-    """Print Levina-Bickel intrinsic-dimensionality table.
+    """Print a Levina-Bickel intrinsic-dimensionality table.
 
-    Parameters
-    ----------
-    rows : sequence of dicts with keys
-        ``n_neighbours``, ``median_id``, ``mean_id``.
+    Args:
+        rows: Sequence of dicts with keys ``n_neighbours``, ``median_id``,
+            and ``mean_id``.
     """
     print("Intrinsic dimensionality (Levina–Bickel, 5 000-point sample):")
     print(f"{'Neighbours':>12s} {'Median ID':>10s} {'Mean ID':>10s}")
@@ -266,17 +280,13 @@ def print_intrinsic_dimensionality(
 # ── §13 Flight-behaviour continuum (NB12) ─────────────────────────────
 
 def print_flight_phase_trace_summary(traces) -> None:
-    """Print per-flight-phase PC1/PC2 within-bin std at low/mid/high distance bins.
+    """Print per-flight-phase PC1/PC2 within-bin standard deviation at representative distances.
 
-    Parameters
-    ----------
-    traces : dict[str, DataFrame | None]
-        Output of ``compute_flight_phase_traces``. Each DataFrame is indexed
-        by distance-bin midpoint and has columns ``PC1_std``, ``PC2_std``.
+    Args:
+        traces: Dict mapping phase name to a DataFrame (or None). Each
+            DataFrame is indexed by distance-bin midpoint and has columns
+            ``PC1_std`` and ``PC2_std``. ``None`` values are skipped.
     """
-    # Collect representative rows (low/mid/high distance per phase), then
-    # sort globally by distance so the table reads as a spatial progression
-    # from far (take-off) to near (landing).
     rows = []
     for name, g in traces.items():
         if g is None or len(g) == 0:
@@ -307,7 +317,20 @@ def print_overlap_metrics(
     lda_std: float,
     class_prior: float,
 ) -> None:
-    """Print silhouette / Mahalanobis / LDA overlap summary for flapping vs gliding."""
+    """Print a silhouette / Mahalanobis / LDA overlap summary for flapping vs gliding.
+
+    Args:
+        n_dims: Number of PCA dimensions used for the analysis.
+        n_flap: Number of flapping frames.
+        n_glide: Number of gliding frames.
+        silhouette: Silhouette score using a priori labels.
+        centroid_dist: Euclidean distance between class centroids.
+        within_spread: Square root of mean within-class variance.
+        mahalanobis: Mahalanobis distance between centroids.
+        lda_mean: Mean LDA 5-fold cross-validation accuracy.
+        lda_std: Standard deviation of LDA cross-validation accuracy.
+        class_prior: Always-predict-majority-class accuracy (baseline).
+    """
     print(f"Flapping vs gliding in {n_dims}-D score space")
     print(f"  n (flapping): {n_flap:,}")
     print(f"  n (gliding):  {n_glide:,}")
@@ -330,14 +353,11 @@ def print_method_comparison(
 ) -> None:
     """Print a formatted comparison table of dimensionality reduction methods.
 
-    Parameters
-    ----------
-    method_results : dict
-        Mapping of method name → dict with keys:
-        ``min_cosine_4`` (float) and ``rmse_4`` (float).
-    notes_map : dict, optional
-        Mapping of method name → notes string.  If omitted, all notes
-        columns are left blank.
+    Args:
+        method_results: Mapping of method name → dict with keys
+            ``min_cosine_4`` (float) and ``rmse_4`` (float).
+        notes_map: Optional mapping of method name → notes string. If
+            omitted, all notes columns are left blank. Defaults to None.
     """
     if notes_map is None:
         notes_map = {}
@@ -350,7 +370,13 @@ def print_method_comparison(
 
 
 def print_bic_summary(bic_curve, best_k: int) -> None:
-    """Print BIC at k=2, at the BIC minimum, and the difference."""
+    """Print BIC at k=2, at the BIC minimum, and the decrease between them.
+
+    Args:
+        bic_curve: Array of BIC values indexed by k-1 (i.e. bic_curve[0]
+            corresponds to k=1).
+        best_k: The cluster count at which BIC is minimised.
+    """
     print(f"BIC at k=2:   {bic_curve[1]:,.0f}")
     print(f"BIC at k={best_k}:  {bic_curve[best_k - 1]:,.0f}")
     print(f"BIC decrease from k=2 to k={best_k}: {bic_curve[1] - bic_curve[best_k - 1]:,.0f}")
@@ -364,12 +390,10 @@ def print_complete_markers_summary(
 ) -> None:
     """Print shape summary for the complete-marker dataset.
 
-    Parameters
-    ----------
-    n_complete : int
-        Number of unilateral frames.
-    complete_markers : ndarray, shape (N, n_markers, 3)
-        The complete-marker array (used for shape metadata only).
+    Args:
+        n_complete: Number of unilateral frames with all markers present.
+        complete_markers: Complete-marker array of shape
+            ``(N, n_markers, 3)`` used for shape metadata only.
     """
     print(f"Complete markers: {n_complete:,} unilateral frames")
     print(f"  ({n_complete // 2:,} bilateral x 2 sides)")
@@ -385,14 +409,12 @@ def print_partial_markers_summary(
 ) -> None:
     """Print frame-count summary for the partial-marker dataset.
 
-    Parameters
-    ----------
-    partial_bilateral : ndarray
-        Bilateral partial-marker array.
-    partial_unilateral : ndarray
-        Unilateral partial-marker array (straight-flight subset).
-    complete_unilateral : ndarray
-        Complete straight-flight unilateral frames (for comparison count).
+    Args:
+        partial_bilateral: Bilateral partial-marker array (≥1 NaN marker).
+        partial_unilateral: Unilateral partial-marker array restricted to
+            straight flight.
+        complete_unilateral: Complete straight-flight unilateral frames
+            used as the comparison count.
     """
     print(f"Partial markers: {partial_bilateral.shape[0]:,} bilateral frames")
     print(f"  Straight-flight unilateral: {partial_unilateral.shape[0]:,}")
@@ -404,16 +426,13 @@ def print_dataset_split(
     partial_data: "np.ndarray",
     partial_unilateral: "np.ndarray",
 ) -> None:
-    """Print complete-vs-partial frame counts and fraction.
+    """Print complete-vs-partial frame counts and the partial fraction.
 
-    Parameters
-    ----------
-    complete_data : ndarray
-        Frames with all markers present (no NaN).
-    partial_data : ndarray
-        Frames with at least one missing marker.
-    partial_unilateral : ndarray
-        Full unilateral dataset (complete_data + partial_data).
+    Args:
+        complete_data: Frames with all markers present (no NaN).
+        partial_data: Frames with at least one missing marker.
+        partial_unilateral: Full unilateral dataset combining complete
+            and partial frames, used for computing the partial fraction.
     """
     print("Within the broader dataset:")
     print(f"  Complete frames (all 4 markers): {complete_data.shape[0]:,}")
@@ -431,17 +450,16 @@ def print_density_shift_table(
 
     For each marker, bins positions using the complete-frame distribution and
     reports what fraction of each group falls in the densest 25 % of bins.
+    A negative shift indicates that partial frames are under-represented
+    in the high-density (spread/gliding) region relative to complete frames.
 
-    Parameters
-    ----------
-    marker_names : sequence of str
-        Names for each marker column.
-    complete_data : ndarray, shape (N_complete, n_markers, 3)
-        Complete (no-NaN) frames.
-    partial_data : ndarray, shape (N_partial, n_markers, 3)
-        Partial (≥1 NaN) frames.
-    bins : int
-        Number of histogram bins per axis (default 60).
+    Args:
+        marker_names: Names for each marker column.
+        complete_data: Complete (no-NaN) frames of shape
+            ``(N_complete, n_markers, 3)``.
+        partial_data: Partial (≥1 NaN) frames of shape
+            ``(N_partial, n_markers, 3)``.
+        bins: Number of histogram bins per axis. Defaults to 60.
     """
     print(f'{"Marker":<12} {"Complete in densest 25%":>24} {"Partial in densest 25%":>24} {"Shift":>8}')
     print('-' * 72)
@@ -483,12 +501,10 @@ def print_marker_dropout_rates(
 ) -> None:
     """Print per-marker dropout rates within partial frames.
 
-    Parameters
-    ----------
-    marker_names : sequence of str
-        Names for each marker column.
-    partial_data : ndarray, shape (N_partial, n_markers, 3)
-        Frames containing at least one missing marker.
+    Args:
+        marker_names: Names for each marker column.
+        partial_data: Frames containing at least one missing marker,
+            of shape ``(N_partial, n_markers, 3)``.
     """
     n_partial = partial_data.shape[0]
     print('Marker dropout rates in partial frames:')
@@ -506,21 +522,18 @@ def print_anatomical_violations(
 ) -> "dict[str, np.ndarray]":
     """Print anatomical ordering violations and return per-pair boolean masks.
 
-    Tests whether the expected lateral x-ordering holds for each marker pair.
-    Prints a table of testable frame counts, violation counts, and rates.
+    Tests whether the expected lateral x-ordering holds for each marker pair
+    (inner/medial marker should have a smaller x value than outer/lateral).
 
-    Parameters
-    ----------
-    all_data : ndarray, shape (N, n_markers, 3)
-        All unilateral frames (complete + partial).
-    pairs : sequence of (name_inner, name_outer, idx_inner, idx_outer)
-        Each tuple names the expected inner (medial) and outer (lateral)
-        markers and gives their column indices.
+    Args:
+        all_data: All unilateral frames of shape ``(N, n_markers, 3)``.
+        pairs: Sequence of (name_inner, name_outer, idx_inner, idx_outer)
+            tuples naming the expected inner (medial) and outer (lateral)
+            markers and giving their column indices.
 
     Returns:
-    -------
-    violation_masks : dict[str, ndarray of bool]
-        Full-length boolean mask for each pair (key = ``name_inner_vs_name_outer``).
+        Dict mapping pair keys (``'name_inner_vs_name_outer'``) to full-length
+        boolean arrays where True indicates a violation frame.
     """
     print(f'{"Pair":<25} {"Testable":>10} {"Violations":>12} {"Rate":>8}')
     print('-' * 58)
@@ -553,12 +566,11 @@ def print_violation_breakdown(
 ) -> None:
     """Print violation counts split by complete vs partial frames.
 
-    Parameters
-    ----------
-    violation_masks : dict[str, ndarray of bool]
-        Per-pair boolean masks from :func:`print_anatomical_violations`.
-    any_nan : ndarray of bool, shape (N,)
-        True where a frame has at least one missing marker.
+    Args:
+        violation_masks: Per-pair boolean masks from
+            :func:`print_anatomical_violations`.
+        any_nan: Boolean array of shape ``(N,)`` where True indicates a
+            frame with at least one missing marker.
     """
     print(f'{"Pair":<25} {"Complete":>12} {"Partial":>12}')
     print('-' * 52)

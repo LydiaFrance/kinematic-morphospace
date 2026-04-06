@@ -1,3 +1,9 @@
+"""PC score heatmap visualisation for comparing flight conditions.
+
+Functions here produce heatmaps of PC scores binned by horizontal distance to the
+perch. Two-row colour images allow direct visual comparison of conditions such as
+obstacle vs control or naive vs experienced flight.
+"""
 import numpy as np
 import matplotlib as mpl
 from matplotlib import pyplot as plt
@@ -23,28 +29,24 @@ PC_NAMES = {
 
 
 def prepare_heatmap_comparison(scores_df, reference_filters, condition1, condition2):
-    """Prepare PC scores for comparison between two conditions.
+    """Filter and scale PC scores for a two-condition heatmap comparison.
 
-    Parameters
-    ----------
-    scores_df : pandas.DataFrame
-        DataFrame containing PC scores and metadata.
-    reference_filters : str or dict
-        Either a bird name (str) for score normalisation, or a dict of filters
-        to select reference data.
-    condition1, condition2 : dict
-        Dictionaries containing filters for each condition to compare.
+    Selects scores for each condition and computes 1st/99th percentile limits
+    from the reference dataset. These limits are used to set a consistent colour
+    scale across all PC panels.
+
+    Args:
+        scores_df: DataFrame containing PC scores and per-frame metadata.
+        reference_filters: Either a hawk name string (scores for that bird are
+            used as the colour-scale reference) or a dict of filter kwargs to
+            select the reference subset.
+        condition1: Dict of filter kwargs selecting the first condition.
+        condition2: Dict of filter kwargs selecting the second condition.
 
     Returns:
-    -------
-    condition1_df : pandas.DataFrame
-        Filtered scores for first condition.
-    condition2_df : pandas.DataFrame
-        Filtered scores for second condition.
-    score_5 : pandas.Series
-        1st percentile scores for scaling.
-    score_95 : pandas.Series
-        99th percentile scores for scaling.
+        Tuple of (condition1_df, condition2_df, score_5, score_95) where
+        condition1_df and condition2_df are filtered DataFrames and score_5 /
+        score_95 are per-PC 1st and 99th percentile Series used for colour scaling.
     """
     # Handle reference data selection
     if isinstance(reference_filters, str):
@@ -79,24 +81,24 @@ def prepare_heatmap_comparison(scores_df, reference_filters, condition1, conditi
 def plot_difference_PC_scores_heatmap(df_control,
                                       df_exp,
                                       PC_cols, score_5, score_95):
-    """Plot a heatmap comparing PC scores between control and experimental conditions.
+    """Plot a stacked heatmap comparing mean PC scores between obstacle and control flights.
 
-    Parameters
-    ----------
-    df_control : pandas.DataFrame
-        DataFrame containing the control scores.
-    df_exp : pandas.DataFrame
-        DataFrame containing the experimental scores.
-    PC_cols : list
-        List of PC columns to plot.
-    score_5 : dict
-        1st percentile scores for colour scaling.
-    score_95 : dict
-        99th percentile scores for colour scaling.
+    Creates one subplot per PC component. Each subplot is a two-row colour image:
+    the top row shows the experimental condition and the bottom row the control,
+    both binned by horizontal distance to the perch and colour-scaled by
+    1st/99th percentile limits. A vertical line marks the obstacle position at
+    −4.5 m. The last five bins (nearest the perch) are removed to avoid
+    contamination from the perch-grab phase.
+
+    Args:
+        df_control: Control-condition scores DataFrame with a 'bins' column.
+        df_exp: Experimental-condition scores DataFrame with a 'bins' column.
+        PC_cols: List of PC column names to include (e.g. ['PC01', 'PC02', ...]).
+        score_5: Per-PC 1st percentile scores used as vmin for colour scaling.
+        score_95: Per-PC 99th percentile scores used as vmax for colour scaling.
 
     Returns:
-    -------
-    ax : matplotlib.axes.Axes
+        Axes object for the last subplot created.
     """
     # Convert bins to float when finding common bins
     control_bins = df_control['bins'].astype(float).unique()
@@ -210,24 +212,24 @@ def plot_difference_PC_scores_heatmap(df_control,
 
 
 def plot_PC_score_heatmaps(scores_df, PC_cols, score_5, score_95, score_mid, title):
-    """Plot a single heatmap of PC scores binned by horizontal distance.
+    """Plot a single heatmap of mean PC scores binned by horizontal distance to the perch.
 
-    Parameters
-    ----------
-    scores_df : pandas.DataFrame
-        DataFrame containing PC scores with a 'bins' column.
-    PC_cols : list
-        List of PC column names.
-    score_5, score_95 : dict
-        Percentile scores for colour scaling per PC.
-    score_mid : dict
-        Median scores for reference.
-    title : str
-        Plot title.
+    Creates one image where rows are PC components and columns are distance bins.
+    Colour represents the mean score within each bin, scaled per component using
+    the supplied percentile limits.
+
+    Args:
+        scores_df: DataFrame containing PC scores with a 'bins' column for
+            horizontal distance bins.
+        PC_cols: List of PC column names to include as rows.
+        score_5: Per-PC lower percentile scores used as vmin for colour scaling.
+        score_95: Per-PC upper percentile scores used as vmax for colour scaling.
+        score_mid: Per-PC median scores (currently unused; reserved for future
+            diverging-colour centring).
+        title: Title text displayed above the heatmap.
 
     Returns:
-    -------
-    ax : matplotlib.axes.Axes
+        Axes object containing the heatmap.
     """
     pc_scores = scores_df.pivot_table(index='bins', values=PC_cols, aggfunc='mean',
                                        observed=False).T
@@ -255,26 +257,25 @@ def plot_difference_exp_scores_heatmap(df_control,
                                         df_exp,
                                         name_exp,
                                         PC_cols, score_5, score_95):
-    """Plot a heatmap comparing two experimental conditions side by side.
+    """Plot a stacked heatmap comparing two experimental conditions side by side.
 
-    Parameters
-    ----------
-    df_control : pandas.DataFrame
-        Control condition scores.
-    name_control : str
-        Label for control condition.
-    df_exp : pandas.DataFrame
-        Experimental condition scores.
-    name_exp : str
-        Label for experimental condition.
-    PC_cols : list
-        List of PC column names.
-    score_5, score_95 : dict
-        Percentile scores for colour scaling.
+    Similar to plot_difference_PC_scores_heatmap() but designed for comparing any
+    two labelled conditions (e.g. naive vs experienced) rather than specifically
+    obstacle vs control. Uses 5th/95th percentile colour scaling, which is more
+    appropriate when both conditions may contain outliers. The last five bins are
+    trimmed to exclude the perch-grab phase.
+
+    Args:
+        df_control: First (reference) condition scores DataFrame with a 'bins' column.
+        name_control: Display label for the first condition (shown on the right axis).
+        df_exp: Second (experimental) condition scores DataFrame with a 'bins' column.
+        name_exp: Display label for the second condition (shown on the right axis).
+        PC_cols: List of PC column names to include.
+        score_5: Per-PC 5th percentile scores used as vmin.
+        score_95: Per-PC 95th percentile scores used as vmax.
 
     Returns:
-    -------
-    ax : matplotlib.axes.Axes
+        Axes object for the last subplot created.
     """
     mean_scores_control = df_control.pivot_table(index='bins', values=PC_cols,
                                                   aggfunc='mean', observed=False).T

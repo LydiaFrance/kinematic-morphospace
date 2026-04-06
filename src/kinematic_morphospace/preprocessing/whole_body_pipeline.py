@@ -84,27 +84,22 @@ def smooth_backpack_per_sequence(
     *,
     marker_label: str = "backpack",
 ) -> pd.DataFrame:
-    """Smooth a body marker (backpack/tailpack/headpack) per sequence.
+    """Smooth a body marker trajectory sequence-by-sequence using gap-aware splines.
 
-    Groups by sequence, computes mean position per frame, then applies
-    gap-aware spline smoothing.
+    Groups the labelled table by ``seqID``, computes the mean marker position
+    per frame, then applies :func:`smooth_trajectory_with_gaps` to each
+    sequence independently. Used for backpack, tailpack, and headpack.
 
-    Parameters
-    ----------
-    labelled_df : pd.DataFrame
-        Labelled marker table with columns: ``seqID``, ``frame``, ``time``,
-        ``frameID``, ``label``, ``X``, ``Y``, ``Z``.
-    config : WholeBodyConfig
-        Pipeline configuration.
-    marker_label : str
-        Which body marker to smooth (default ``"backpack"``).
+    Args:
+        labelled_df: Labelled marker table with columns ``seqID``, ``frame``,
+            ``time``, ``frameID``, ``label``, ``X``, ``Y``, ``Z``.
+        config: Pipeline configuration supplying smoothing parameters.
+        marker_label: Anatomical label of the body marker to smooth. Defaults
+            to ``"backpack""``.
 
     Returns:
-    -------
-    pd.DataFrame
-        Smooth table with columns: ``frame``, ``time``, ``seqID``,
-        ``frameID``, ``smooth_X``, ``smooth_Y``, ``smooth_Z``,
-        ``vel_X``, ``vel_Y``, ``vel_Z``, ``horzDist``.
+        DataFrame with columns ``frame``, ``time``, ``seqID``, ``frameID``,
+        ``smooth_X/Y/Z``, ``vel_X/Y/Z``, and ``horzDist``.
     """
     markers = labelled_df[
         labelled_df["label"].str.contains(marker_label, na=False)
@@ -184,44 +179,41 @@ def run_whole_body_analysis(
     *,
     info_df: pd.DataFrame | None = None,
 ) -> dict[str, pd.DataFrame]:
-    """Execute the whole-body analysis pipeline.
+    """Execute the 17-step whole-body analysis pipeline.
 
-    Reproduces the 17-step pipeline from ``run_whole_body_analysis.m``:
+    Converts raw labelled and unlabelled marker tables into body-frame-
+    rotated coordinates with pitch, yaw, and roll angles. Reproduces the
+    pipeline from ``run_whole_body_analysis.m``:
 
-    1. Smooth backpack per sequence (spline with gap detection)
-    2. Combine sequences (already done if input is combined)
-    3. Fix mislabelled tailpack -> headpack
-    4. Compute relative positions (marker - smooth backpack)
-    5-6. Label unlabelled markers by polygon boundaries (if polygon_path set)
-    7. Distance-based filtering
-    8. Re-smooth backpack/tailpack/headpack with new markers
-    9. Compute body pitch from tailpack vector
-    10. Join body pitch to all tables
-    11. Rotate markers by pitch
-    12. Compute yaw from head-tail vector
-    13. Build body frame via cross products
-    14. Rotate markers into body-fixed coordinates
-    15. Extract pitch/yaw/roll Euler angles
-    16. Label metadata (if info_df provided)
-    17. Return results
+    1. Smooth backpack per sequence (gap-aware spline).
+    3. Correct mislabelled tailpack markers → headpack.
+    4. Compute relative positions (marker − smooth backpack).
+    5–6. Label unlabelled markers via polygon boundaries (optional).
+    7. Distance-based marker filtering.
+    8. Re-smooth backpack, tailpack, headpack.
+    9. Compute body pitch from the tailpack vector.
+    10. Join body pitch to all tables.
+    11. Rotate markers by pitch.
+    12. Compute yaw from the head-to-tail vector.
+    13–15. Build body frame via cross products and extract Euler angles.
+    16. Attach metadata flags (Obstacle, IMU) if ``info_df`` is provided.
 
-    Parameters
-    ----------
-    labelled_df : pd.DataFrame
-        Combined labelled marker table with columns: ``seqID``, ``frame``,
-        ``time``, ``frameID``, ``label``, ``X``, ``Y``, ``Z``.
-    unlabelled_df : pd.DataFrame
-        Combined unlabelled marker table (same columns, ``label`` = ``""``).
-    config : WholeBodyConfig
-        Pipeline configuration.
-    info_df : pd.DataFrame, optional
-        Sequence info table with ``seqID``, ``Obstacle``, ``IMU`` columns.
+    Args:
+        labelled_df: Combined labelled marker table with columns ``seqID``,
+            ``frame``, ``time``, ``frameID``, ``label``, ``X``, ``Y``,
+            ``Z``.
+        unlabelled_df: Combined unlabelled marker table with the same
+            columns and ``label`` set to ``""``.
+        config: Pipeline configuration including smoothing parameters,
+            distance thresholds, optional polygon path, and flight-phase
+            boundaries.
+        info_df: Optional sequence metadata table with ``seqID``,
+            ``Obstacle``, and ``IMU`` columns.
 
     Returns:
-    -------
-    dict[str, pd.DataFrame]
-        ``"smooth_backpack"``, ``"smooth_tailpack"``, ``"smooth_headpack"``,
-        ``"labelled"``, ``"body_frame"`` (with rotated coords and angles).
+        Dict with keys ``"smooth_backpack"``, ``"smooth_tailpack"``,
+        ``"smooth_headpack"``, ``"labelled"``, and ``"body_frame"``
+        (containing rotated coordinates and Euler angles).
     """
     logger.info("=" * 60)
     logger.info("Whole-Body Analysis Pipeline")
