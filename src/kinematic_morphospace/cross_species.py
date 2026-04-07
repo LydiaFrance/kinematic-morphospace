@@ -47,9 +47,15 @@ def select_max_wingspan_row(df,
     """
     df = df.copy()
 
-    # Extract 3D coordinates (X,Y,Z) for left and right wing markers into numpy arrays
-    left_coords = df[[f"{left_marker}_X", f"{left_marker}_Y", f"{left_marker}_Z"]].to_numpy()
-    right_coords = df[[f"{right_marker}_X", f"{right_marker}_Y", f"{right_marker}_Z"]].to_numpy()
+    # Extract 3D coordinates (X,Y,Z) for left and right wing markers
+    left_cols = [f"{left_marker}_X", f"{left_marker}_Y", f"{left_marker}_Z"]
+    right_cols = [
+        f"{right_marker}_X",
+        f"{right_marker}_Y",
+        f"{right_marker}_Z",
+    ]
+    left_coords = df[left_cols].to_numpy()
+    right_coords = df[right_cols].to_numpy()
 
     # Calculate Euclidean distance between left and right markers for each row
     df['wingspan'] = np.linalg.norm(left_coords - right_coords, axis=1)
@@ -167,13 +173,22 @@ def filter_marker_columns(df, marker_names, base_columns):
         DataFrame containing ``base_columns`` plus any columns whose names
         contain one of the ``marker_names``.
     """
-    marker_cols = [col for col in df.columns if any(marker in col for marker in marker_names)]
+    marker_cols = [
+        col
+        for col in df.columns
+        if any(marker in col for marker in marker_names)
+    ]
     return df[base_columns + marker_cols]
 
 
 # 7. Set a new origin (e.g., level with the shoulder from a chosen marker).
 
-def set_new_origin_and_axes(df, origin_marker=['pt11', 'pt2'], origin_axes=('x', 'y', 'z'), new_axes=('y', '-x', 'z')):
+def set_new_origin_and_axes(
+    df,
+    origin_marker=None,
+    origin_axes=('x', 'y', 'z'),
+    new_axes=('y', '-x', 'z'),
+):
     """Recentre marker coordinates on a new origin and remap axes.
 
     Used to align the Harvey et al. coordinate frame with the hawk
@@ -192,14 +207,17 @@ def set_new_origin_and_axes(df, origin_marker=['pt11', 'pt2'], origin_axes=('x',
         Copy of ``df`` with all marker coordinates transformed to the new
         origin and axis convention.
     """
+    if origin_marker is None:
+        origin_marker = ['pt11', 'pt2']
     df = df.copy()
     n_rows = len(df)
 
     # If two markers are provided, use the average of the two as the origin
     if isinstance(origin_marker, list):
-        df['avg_origin_X'] = (df[origin_marker[0] + '_X'] + df[origin_marker[1] + '_X']) / 2
-        df['avg_origin_Y'] = (df[origin_marker[0] + '_Y'] + df[origin_marker[1] + '_Y']) / 2
-        df['avg_origin_Z'] = (df[origin_marker[0] + '_Z'] + df[origin_marker[1] + '_Z']) / 2
+        m0, m1 = origin_marker[0], origin_marker[1]
+        df['avg_origin_X'] = (df[m0 + '_X'] + df[m1 + '_X']) / 2
+        df['avg_origin_Y'] = (df[m0 + '_Y'] + df[m1 + '_Y']) / 2
+        df['avg_origin_Z'] = (df[m0 + '_Z'] + df[m1 + '_Z']) / 2
         origin_marker = 'avg_origin'
 
     # Compute origin coordinates from the specified marker and axes
@@ -214,7 +232,9 @@ def set_new_origin_and_axes(df, origin_marker=['pt11', 'pt2'], origin_axes=('x',
     df["origin_z"] = origin_coords['z']
 
     # Identify all marker prefixes
-    marker_prefixes = sorted(set(col.split('_')[0] for col in df.columns if col.startswith('pt')))
+    marker_prefixes = sorted(
+        {col.split('_')[0] for col in df.columns if col.startswith('pt')}
+    )
 
     # Axis mapping: convert shorthand to operations
     axis_map = {
@@ -290,7 +310,14 @@ def compute_derived_markers(df):
     df['primary_avg_x'] = (df['pt8_X'] + df['pt4_X']) / 2
     df['primary_avg_y'] = (df['pt8_Y'] + df['pt4_Y']) / 2
     df['primary_avg_z'] = (df['pt8_Z'] + df['pt4_Z']) / 2
-    mirror_marker(df, 'right_primary', 'left_primary', 'primary_avg_x', 'primary_avg_y', 'primary_avg_z')
+    mirror_marker(
+        df,
+        'right_primary',
+        'left_primary',
+        'primary_avg_x',
+        'primary_avg_y',
+        'primary_avg_z',
+    )
 
     # Secondary markers from pt10
     mirror_marker(df, 'right_secondary', 'left_secondary', 'pt10_X', 'pt10_Y', 'pt10_Z')
@@ -299,7 +326,14 @@ def compute_derived_markers(df):
     df['tailtip_x'] = df['pt11_X']
     df['tailtip_y'] = df['pt11_Y'] - (df['tail_length_cm'] / 100)
     df['tailtip_z'] = df['pt11_Z']
-    mirror_marker(df, 'right_tailtip', 'left_tailtip', 'tailtip_x', 'tailtip_y', 'tailtip_z')
+    mirror_marker(
+        df,
+        'right_tailtip',
+        'left_tailtip',
+        'tailtip_x',
+        'tailtip_y',
+        'tailtip_z',
+    )
 
     # Tail base from pt11
     mirror_marker(df, 'right_tailbase', 'left_tailbase', 'pt11_X', 'pt11_Y', 'pt11_Z')
@@ -313,14 +347,18 @@ def compute_derived_markers(df):
     df['hood_z'] = 0
 
     # Drop temporary intermediate columns
-    df.drop(columns=['primary_avg_x', 'primary_avg_y', 'primary_avg_z',
-                     'tailtip_x', 'tailtip_y', 'tailtip_z'], errors='ignore', inplace=True)
+    cols_to_drop = [
+        'primary_avg_x', 'primary_avg_y', 'primary_avg_z',
+        'tailtip_x', 'tailtip_y', 'tailtip_z'
+    ]
+    df.drop(columns=cols_to_drop, errors='ignore', inplace=True)
 
     return df
 
 
 def fix_leftright_sign(df):
-    """Ensure left markers have negative x-values and right markers have positive x-values.
+    """Ensure left markers have negative x-values and right markers have
+    positive x-values.
 
     Corrects sign errors that can arise when the Harvey et al. data is
     processed, where some birds may have left/right conventions inverted
@@ -334,7 +372,9 @@ def fix_leftright_sign(df):
     """
     df = df.copy()
 
-    marker_names = ['shoulder', 'wingtip', 'primary', 'secondary', 'tailtip', 'tailbase']
+    marker_names = [
+        'shoulder', 'wingtip', 'primary', 'secondary', 'tailtip', 'tailbase'
+    ]
 
     for marker in marker_names:
         left_col = f'left_{marker}_x'
@@ -495,7 +535,8 @@ def check_and_fix_shoulder_distance(df, tolerance=0.05):
     return df
 
 
-# 11. Integrate coordinates from a DataFrame into a single marker dictionary for Animal3D.
+# 11. Integrate coordinates from a DataFrame into a marker dictionary
+# for Animal3D.
 def integrate_dataframe_to_bird3D(df, row_idx=0):
     """Build a marker dictionary from a DataFrame row for use with ``Animal3D``.
 

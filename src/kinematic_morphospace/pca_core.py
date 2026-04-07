@@ -4,11 +4,7 @@ Provides functions to run PCA on marker data, project onto fitted
 components, and run per-bird PCA for individual-level comparisons.
 """
 
-import numpy as np
-import pandas as pd
 from sklearn.decomposition import PCA
-from scipy.spatial.transform import Rotation as R
-
 
 from .data_filtering import filter_by
 
@@ -60,18 +56,23 @@ def run_PCA(markers, project_data=None, n_components=None, flat_input=False):
     if n_components is None and not flat_input:
         try:
             test_PCA_output(project_data, principal_components, scores)
-        except AssertionError as msg:
-            raise ValueError(f"PCA output validation failed: {str(msg)}")
+        except AssertionError as err:
+            msg = f"PCA output validation failed: {err!s}"
+            raise ValueError(msg) from err
     else:
         n_features = pca_input.shape[1]
         n_out = n_components if n_components is not None else n_features
         if principal_components.shape != (n_out, n_features):
-            raise ValueError(
+            msg = (
                 f"Components shape {principal_components.shape} does not match "
-                f"expected ({n_out}, {n_features})")
-        if scores.shape[1] != n_out:
+                f"expected ({n_out}, {n_features})"
+            )
             raise ValueError(
-                f"Scores have {scores.shape[1]} columns, expected {n_out}")
+                msg)
+        if scores.shape[1] != n_out:
+            msg = f"Scores have {scores.shape[1]} columns, expected {n_out}"
+            raise ValueError(
+                msg)
 
     return principal_components, scores, pca
 
@@ -103,8 +104,11 @@ def run_PCA_birds(markers, frame_info_df, filter_on=True, birds=None, year=None)
                        4: "Toothless", 5: "Charmander"}
 
     if birds is None:
-        birds = [hawk_id_to_name[bid] for bid in sorted(frame_info_df["BirdID"].unique())
-                 if bid in hawk_id_to_name]
+        birds = [
+            hawk_id_to_name[bid]
+            for bid in sorted(frame_info_df["BirdID"].unique())
+            if bid in hawk_id_to_name
+        ]
 
     components_by_bird = {}
     for bird in birds:
@@ -152,9 +156,8 @@ def get_PCA_input(markers):
         Array of shape ``(n_frames, n_markers * 3)`` suitable for sklearn PCA.
     """
     n_markers = markers.shape[1]
-    pca_input = markers.reshape(-1, n_markers * 3)
+    return markers.reshape(-1, n_markers * 3)
 
-    return pca_input
 
 
 def test_PCA_output(pca_input, principal_components, scores):
@@ -171,7 +174,15 @@ def test_PCA_output(pca_input, principal_components, scores):
     n_frames, n_markers, n_vars = get_PCA_input_sizes(pca_input)
 
     assert n_vars == n_markers * 3, "n_vars is not equal to n_markers*3."
-    assert principal_components.shape[0] == n_vars, "principal_components is not the right shape."
-    assert principal_components.shape[1] == n_vars, "principal_components is not the right shape."
-    assert scores.shape[0] == n_frames, "scores first dim is not the right shape."
-    assert scores.shape[1] == n_vars, "scores second dim is not the right shape."
+    assert principal_components.shape[0] == n_vars, (
+        "principal_components is not the right shape."
+    )
+    assert principal_components.shape[1] == n_vars, (
+        "principal_components is not the right shape."
+    )
+    assert scores.shape[0] == n_frames, (
+        "scores first dim is not the right shape."
+    )
+    assert scores.shape[1] == n_vars, (
+        "scores second dim is not the right shape."
+    )

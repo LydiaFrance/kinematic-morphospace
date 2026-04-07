@@ -6,6 +6,7 @@ shape labels to motion-capture frames.
 """
 
 import numpy as np
+from matplotlib import pyplot as plt
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.metrics import silhouette_score
 
@@ -31,8 +32,7 @@ def lower_dim_reconstruction(markers, pca_model, n_components=4):
     projected_markers = lower_dim_projection(markers, pca_model, n_components)
 
     reconstructed_data = pca_model.inverse_transform(projected_markers)
-    reconstructed_data = reconstructed_data.reshape(-1, n_markers, 3)
-    return reconstructed_data
+    return reconstructed_data.reshape(-1, n_markers, 3)
 
 
 def calculate_reconstruction_errors(markers, reconstructed_markers):
@@ -57,7 +57,9 @@ def calculate_reconstruction_errors(markers, reconstructed_markers):
     # shape [n_frames]
     markers_frames = markers.reshape(-1, n_markers * n_dims)
     reconstructed_frames = reconstructed_markers.reshape(-1, n_markers * n_dims)
-    reconstruction_errors = np.linalg.norm(markers_frames - reconstructed_frames, axis=1)
+    reconstruction_errors = np.linalg.norm(
+        markers_frames - reconstructed_frames, axis=1
+    )
 
     # shape [n_frames, n_markers]
     per_marker_errors = np.linalg.norm(markers - reconstructed_markers, axis=2)
@@ -65,7 +67,9 @@ def calculate_reconstruction_errors(markers, reconstructed_markers):
     return reconstruction_errors, per_marker_errors
 
 
-def calculate_marker_thresholds(per_marker_errors, wing_percentile=99, tail_percentile=99.7):
+def calculate_marker_thresholds(
+    per_marker_errors, wing_percentile=99, tail_percentile=99.7
+):
     """Calculate per-marker error thresholds based on specified percentiles.
 
     Wing markers (first three) and the tail marker use different percentile
@@ -85,8 +89,7 @@ def calculate_marker_thresholds(per_marker_errors, wing_percentile=99, tail_perc
     """
     wing_thresholds = np.percentile(per_marker_errors[:, :3], wing_percentile, axis=0)
     tail_threshold = np.percentile(per_marker_errors[:, 3], tail_percentile)
-    per_marker_thresholds = np.concatenate((wing_thresholds, [tail_threshold]))
-    return per_marker_thresholds
+    return np.concatenate((wing_thresholds, [tail_threshold]))
 
 
 def filter_low_error_frames(per_marker_errors, per_marker_thresholds):
@@ -111,21 +114,28 @@ def filter_low_error_frames(per_marker_errors, per_marker_thresholds):
             match the length of ``per_marker_thresholds``.
     """
     if per_marker_errors.shape[1] != len(per_marker_thresholds):
-        raise ValueError(
-            f"Number of markers in errors ({per_marker_errors.shape[1]}) does not match "
-            f"number of thresholds ({len(per_marker_thresholds)})"
+        msg = (
+            f"Number of markers in errors ({per_marker_errors.shape[1]}) "
+            f"does not match number of thresholds "
+            f"({len(per_marker_thresholds)})"
         )
+        raise ValueError(msg)
     low_error_mask = np.ones(len(per_marker_errors), dtype=bool)
     for marker_idx in range(per_marker_errors.shape[1]):
-        low_error_mask &= (per_marker_errors[:, marker_idx] <= per_marker_thresholds[marker_idx])
+        low_error_mask &= (
+            per_marker_errors[:, marker_idx]
+            <= per_marker_thresholds[marker_idx]
+        )
 
     total_frames = len(per_marker_errors)
     low_error_frames = np.sum(low_error_mask)
     excluded_frames = total_frames - low_error_frames
 
     print(f"Total frames: {total_frames}")
-    print(f"Excluded frames: {excluded_frames} ({(excluded_frames / total_frames) * 100:.1f}%)")
-    print(f"Remaining frames: {low_error_frames} ({(low_error_frames / total_frames) * 100:.1f}%)")
+    excluded_pct = (excluded_frames / total_frames) * 100
+    remaining_pct = (low_error_frames / total_frames) * 100
+    print(f"Excluded frames: {excluded_frames} ({excluded_pct:.1f}%)")
+    print(f"Remaining frames: {low_error_frames} ({remaining_pct:.1f}%)")
 
     return low_error_mask
 
@@ -133,7 +143,14 @@ def filter_low_error_frames(per_marker_errors, per_marker_thresholds):
 # ---------- Clustering ----------
 
 
-def clustering_analysis(data, cluster_range, sample_size=10000, is_log_scale=True, title="Clustering Analysis", random_state=42):
+def clustering_analysis(
+    data,
+    cluster_range,
+    sample_size=10000,
+    is_log_scale=True,
+    title="Clustering Analysis",
+    random_state=42,
+):
     """Evaluate clustering quality over a range of cluster counts.
 
     Computes inertia and silhouette scores for each value in
@@ -174,14 +191,20 @@ def clustering_analysis(data, cluster_range, sample_size=10000, is_log_scale=Tru
         kmeans.fit(data)
         inertias.append(kmeans.inertia_)
 
-        sample_indices = rng.choice(len(data), min(sample_size, len(data)), replace=False)
-        silhouette = silhouette_score(data[sample_indices], kmeans.predict(data[sample_indices]))
+        sample_indices = rng.choice(
+            len(data), min(sample_size, len(data)), replace=False
+        )
+        silhouette = silhouette_score(
+            data[sample_indices], kmeans.predict(data[sample_indices])
+        )
         silhouettes.append(silhouette)
 
-        print(f"Clusters: {n_clusters}, Inertia: {kmeans.inertia_:.0f}, Silhouette: {silhouette:.3f}")
+        print(
+            f"Clusters: {n_clusters}, Inertia: {kmeans.inertia_:.0f}, "
+            f"Silhouette: {silhouette:.3f}"
+        )
 
-    from matplotlib import pyplot as plt
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+    _fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
 
     if is_log_scale:
         ax1.semilogx(cluster_range, inertias, 'bo-')
@@ -252,7 +275,9 @@ def analyse_clusters(kmeans_labels, n_clusters):
     """
     cluster_sizes = np.bincount(kmeans_labels)
 
-    cluster_frame_indices = {i: np.where(kmeans_labels == i)[0] for i in range(n_clusters)}
+    cluster_frame_indices = {
+        i: np.where(kmeans_labels == i)[0] for i in range(n_clusters)
+    }
 
     print(f"Number of clusters: {n_clusters}")
     print(f"Average cluster size: {np.mean(cluster_sizes):.1f} frames")
@@ -295,7 +320,8 @@ def generate_knock_out_representations(cluster_centers, missing_marker_indices):
 
 
 def lower_dim_projection(markers, pca_model, n_components=4):
-    """Project markers into a truncated PCA space, zero-padding the remaining dimensions.
+    """Project markers into a truncated PCA space, zero-padding the
+    remaining dimensions.
 
     Transforms ``markers`` using ``pca_model``, retains only the first
     ``n_components`` scores, and zero-pads the remaining dimensions so
@@ -313,7 +339,11 @@ def lower_dim_projection(markers, pca_model, n_components=4):
     n_markers = markers.shape[1]
     n_dims = markers.shape[2]
 
-    projected_data = pca_model.transform(markers.reshape(-1, n_markers * n_dims))[:, :n_components]
-    padded_projected = np.zeros((projected_data.shape[0], pca_model.components_.shape[1]))
+    transformed = pca_model.transform(
+        markers.reshape(-1, n_markers * n_dims)
+    )
+    projected_data = transformed[:, :n_components]
+    n_features = pca_model.components_.shape[1]
+    padded_projected = np.zeros((projected_data.shape[0], n_features))
     padded_projected[:, :n_components] = projected_data
     return padded_projected

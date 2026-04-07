@@ -5,14 +5,12 @@ KMO sampling adequacy, and eigenvalue distinctness checks.
 """
 
 import numpy as np
-from sklearn.decomposition import PCA
 import scipy.stats as stats
+from sklearn.decomposition import PCA
 from tqdm import tqdm
 
-
+from .null_testing import principal_cosines
 from .pca_core import get_PCA_input
-
-
 
 # ------ Testing PCA with Bootstrapping etc ---------
 
@@ -44,11 +42,12 @@ def calculate_phi(eigenvalues, num_components):
     p_num_traits = num_components
     phi_numerator = np.sum(eigenvalues[:num_components]**2) - p_num_traits
     phi_denominator = p_num_traits * (p_num_traits - 1)
-    phi = np.sqrt(abs(phi_numerator) / phi_denominator)
-    return phi
+    return np.sqrt(abs(phi_numerator) / phi_denominator)
 
 
-def test_PCA_with_random(markers, num_randomisations=1000, num_components=5, seed=None):
+def test_PCA_with_random(
+    markers, num_randomisations=1000, num_components=5, seed=None  # noqa: PT028
+):
     """Test PCA significance via column-wise permutation (randomisation test).
 
     Computes Psi and Phi statistics on the real data and compares them
@@ -82,8 +81,18 @@ def test_PCA_with_random(markers, num_randomisations=1000, num_components=5, see
 
     print(f"Eigenvalues: {eigenvalues}")
 
-    for i, (var, cum_var, se) in enumerate(zip(explained_variance_ratio, cumulative_variance_ratio, standard_errors)):
-        print(f"PC{i+1}: Variance explained: {var:.4f}, Cumulative variance explained: {cum_var:.4f}, SE: {se:.4f}")
+    for i, (var, cum_var, se) in enumerate(
+        zip(
+            explained_variance_ratio,
+            cumulative_variance_ratio,
+            standard_errors,
+            strict=False,
+        )
+    ):
+        print(
+            f"PC{i+1}: Variance explained: {var:.4f}, "
+            f"Cumulative variance explained: {cum_var:.4f}, SE: {se:.4f}"
+        )
 
     # Psi = Σ(λᵢ - 1)²  — designed for correlation-matrix PCA where
     # eigenvalues of uncorrelated data = 1.  With covariance-matrix PCA
@@ -153,7 +162,13 @@ def kmo_test(data):
     return kmo_total, kmo_per_variable
 
 
-def pca_suitability_test(markers, n_bootstrap=1000, variance_threshold=0.8, alpha=0.05, seed=None):
+def pca_suitability_test(
+    markers,
+    n_bootstrap=1000,
+    variance_threshold=0.8,
+    alpha=0.05,
+    seed=None,
+):
     """Run a battery of suitability tests to assess whether PCA is appropriate.
 
     Combines KMO sampling adequacy, Bartlett's sphericity test, bootstrap
@@ -193,7 +208,10 @@ def pca_suitability_test(markers, n_bootstrap=1000, variance_threshold=0.8, alph
 
     bootstrap_eigenvalues = []
     for _ in range(n_bootstrap):
-        X_boot = pca_input[rng.choice(pca_input.shape[0], size=pca_input.shape[0], replace=True)]
+        indices = rng.choice(
+            pca_input.shape[0], size=pca_input.shape[0], replace=True
+        )
+        X_boot = pca_input[indices]
         pca_boot = PCA()
         pca_boot.fit(X_boot)
         bootstrap_eigenvalues.append(pca_boot.explained_variance_)
@@ -208,7 +226,12 @@ def pca_suitability_test(markers, n_bootstrap=1000, variance_threshold=0.8, alph
     cumulative_var = np.cumsum(eigenvalues) / np.sum(eigenvalues)
     k = np.argmax(cumulative_var >= variance_threshold) + 1
 
-    var_test_statistic = (cumulative_var[k-1] - variance_threshold) / np.std(np.cumsum(bootstrap_eigenvalues, axis=1)[:, k-1] / np.sum(bootstrap_eigenvalues, axis=1))
+    cumsum_boot = np.cumsum(bootstrap_eigenvalues, axis=1)[:, k - 1]
+    sum_boot = np.sum(bootstrap_eigenvalues, axis=1)
+    boot_cev = cumsum_boot / sum_boot
+    var_test_statistic = (
+        (cumulative_var[k - 1] - variance_threshold) / np.std(boot_cev)
+    )
     var_p_value = 1 - stats.norm.cdf(var_test_statistic)
 
     return {
@@ -222,8 +245,15 @@ def pca_suitability_test(markers, n_bootstrap=1000, variance_threshold=0.8, alph
     }
 
 
-def bootstrapping_pca(markers, n_components, n_iterations=1000, confidence_level=0.95, seed=None):
-    """Estimate bootstrap confidence intervals for PCA components and explained variance.
+def bootstrapping_pca(
+    markers,
+    n_components,
+    n_iterations=1000,
+    confidence_level=0.95,
+    seed=None,
+):
+    """Estimate bootstrap confidence intervals for PCA components and
+    explained variance.
 
     Repeatedly resamples the data with replacement, fits PCA, and collects
     components and explained variance ratios to build empirical confidence
@@ -264,8 +294,11 @@ def bootstrapping_pca(markers, n_components, n_iterations=1000, confidence_level
     ci_lower = (1 - confidence_level) / 2
     ci_upper = 1 - ci_lower
 
-    component_ci = np.percentile(all_components, [ci_lower * 100, ci_upper * 100], axis=0)
-    explained_variance_ci = np.percentile(all_explained_variances, [ci_lower * 100, ci_upper * 100], axis=0)
+    percentiles = [ci_lower * 100, ci_upper * 100]
+    component_ci = np.percentile(all_components, percentiles, axis=0)
+    explained_variance_ci = np.percentile(
+        all_explained_variances, percentiles, axis=0
+    )
 
     return {
         'mean_components': np.mean(all_components, axis=0),
@@ -371,7 +404,10 @@ def stats_bootstrap_pca(markers, n_bootstraps=1000, alpha=0.05, seed=None):
     print("Starting eigenvalue distinctness test.")
     distinct_pcs = []
     for i in range(n_features - 1):
-        t_stat = (mean_eigvals[i] - mean_eigvals[i+1]) / np.sqrt(se_eigvals[i]**2 + se_eigvals[i+1]**2)
+        se_sq_sum = se_eigvals[i] ** 2 + se_eigvals[i + 1] ** 2
+        t_stat = (mean_eigvals[i] - mean_eigvals[i + 1]) / np.sqrt(
+            se_sq_sum
+        )
         p_value = 1 - stats.t.cdf(t_stat, n_bootstraps - 1)
         if p_value < alpha:
             distinct_pcs.append(i)
@@ -438,7 +474,6 @@ def compute_cosine_sweep(components_ref, components, max_k):
         Array of shape ``(max_k,)`` giving the minimum principal cosine
         (worst-aligned direction) at each k.
     """
-    from kinematic_morphospace import principal_cosines
     min_cosines = np.zeros(max_k)
     for k in range(1, max_k + 1):
         cosines_k = principal_cosines(components_ref.T, components.T, modes=k)
@@ -529,20 +564,29 @@ def analyse_and_report_pca(markers, n_bootstraps=1000, seed=None):
     print("PCA Analysis Results:")
     print("1. Distinct Principal Components:")
     for pc in results['distinct_pcs']:
-        print(f"PC{pc+1}: {results['mean_eigvals'][pc]:.4f} ± {results['se_eigvals'][pc]:.4f}")
-        print(f"   Variance explained: {results['pca'].explained_variance_ratio_[pc]*100:.2f}%")
+        mean_val = results['mean_eigvals'][pc]
+        se_val = results['se_eigvals'][pc]
+        var_ratio = results['pca'].explained_variance_ratio_[pc]
+        print(f"PC{pc + 1}: {mean_val:.4f} ± {se_val:.4f}")
+        print(f"   Variance explained: {var_ratio * 100:.2f}%")
 
     print("\n2. Significant Loadings:")
     for pc in results['distinct_pcs']:
         print(f"\nPC{pc+1}:")
-        for i, is_significant in enumerate(results['significant_loadings'][:, pc]):
+        for i, is_significant in enumerate(
+            results['significant_loadings'][:, pc]
+        ):
             if is_significant:
-                print(f"   Feature {i+1}: {results['mean_loadings'][i, pc]:.4f} ± {results['se_loadings'][i, pc]:.4f}")
+                mean_load = results['mean_loadings'][i, pc]
+                se_load = results['se_loadings'][i, pc]
+                print(f"   Feature {i + 1}: {mean_load:.4f} ± {se_load:.4f}")
 
     print("\n3. PC Scores (first 5 samples):")
     for i in range(min(5, pca_input.shape[0])):
-        print(f"Sample {i+1}:")
+        print(f"Sample {i + 1}:")
         for pc in results['distinct_pcs']:
-            print(f"   PC{pc+1}: {results['mean_scores'][i, pc]:.4f} ± {results['se_scores'][i, pc]:.4f}")
+            mean_score = results['mean_scores'][i, pc]
+            se_score = results['se_scores'][i, pc]
+            print(f"   PC{pc + 1}: {mean_score:.4f} ± {se_score:.4f}")
 
     return results
