@@ -13,6 +13,7 @@ import logging
 
 import numpy as np
 import pandas as pd
+from scipy.interpolate import UnivariateSpline
 
 logger = logging.getLogger(__name__)
 
@@ -75,8 +76,6 @@ def smooth_spline(
     Raises:
         ImportError: If scipy is not installed.
     """
-    from scipy.interpolate import UnivariateSpline
-
     s = rms**2 * len(x)
     spline = UnivariateSpline(x, y, s=s, k=3)
 
@@ -196,9 +195,8 @@ def smooth_trajectory_with_gaps(
     acceleration = np.empty((n_out, 3))
 
     for coord in range(3):
-        s, v, a = smooth_spline(time, xyz[:, coord], rms=rms)
+        _s, _v, _a = smooth_spline(time, xyz[:, coord], rms=rms)
         # Re-evaluate at the output time signal
-        from scipy.interpolate import UnivariateSpline
         s_param = rms**2 * len(time)
         spline = UnivariateSpline(time, xyz[:, coord], s=s_param, k=3)
         smooth[:, coord] = spline(time_signal)
@@ -266,14 +264,26 @@ def compute_body_statistics(
     frames = frame_mean.index.values.astype(float)
 
     # Smooth XYZ with moving mean
-    frame_mean["smooth_X"] = moving_mean_smooth(frame_mean["mean_X"].values, smooth_window)
-    frame_mean["smooth_Y"] = moving_mean_smooth(frame_mean["mean_Y"].values, smooth_window)
-    frame_mean["smooth_Z"] = moving_mean_smooth(frame_mean["mean_Z"].values, smooth_window)
+    smooth_x_vals = frame_mean["mean_X"].values
+    smooth_y_vals = frame_mean["mean_Y"].values
+    smooth_z_vals = frame_mean["mean_Z"].values
+    frame_mean["smooth_X"] = moving_mean_smooth(smooth_x_vals, smooth_window)
+    frame_mean["smooth_Y"] = moving_mean_smooth(smooth_y_vals, smooth_window)
+    frame_mean["smooth_Z"] = moving_mean_smooth(smooth_z_vals, smooth_window)
 
     # Velocity: gradient of smoothed position, scaled by frame rate
-    frame_mean["vel_X"] = np.gradient(frame_mean["smooth_X"].values, frames) * frame_rate
-    frame_mean["vel_Y"] = np.gradient(frame_mean["smooth_Y"].values, frames) * frame_rate
-    frame_mean["vel_Z"] = np.gradient(frame_mean["smooth_Z"].values, frames) * frame_rate
+    vel_x_vals = frame_mean["smooth_X"].values
+    vel_y_vals = frame_mean["smooth_Y"].values
+    vel_z_vals = frame_mean["smooth_Z"].values
+    frame_mean["vel_X"] = (
+        np.gradient(vel_x_vals, frames) * frame_rate
+    )
+    frame_mean["vel_Y"] = (
+        np.gradient(vel_y_vals, frames) * frame_rate
+    )
+    frame_mean["vel_Z"] = (
+        np.gradient(vel_z_vals, frames) * frame_rate
+    )
 
     # Speed: norm of velocity, with additional smoothing
     velocity = frame_mean[["vel_X", "vel_Y", "vel_Z"]].values

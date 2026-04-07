@@ -320,8 +320,7 @@ def generate_knock_out_representations(cluster_centers, missing_marker_indices):
 
 
 def lower_dim_projection(markers, pca_model, n_components=4):
-    """Project markers into a truncated PCA space, zero-padding the
-    remaining dimensions.
+    """Project markers into truncated PCA space with zero-padding.
 
     Transforms ``markers`` using ``pca_model``, retains only the first
     ``n_components`` scores, and zero-pads the remaining dimensions so

@@ -291,8 +291,7 @@ def print_intrinsic_dimensionality(
 # ── §13 Flight-behaviour continuum (NB12) ─────────────────────────────
 
 def print_flight_phase_trace_summary(traces) -> None:
-    """Print per-flight-phase PC1/PC2 within-bin standard deviation at
-    representative distances.
+    """Print per-flight-phase PC1/PC2 within-bin standard deviation.
 
     Args:
         traces: Dict mapping phase name to a DataFrame (or None). Each

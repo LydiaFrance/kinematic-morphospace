@@ -51,7 +51,9 @@ def restrict_cluster_labels(data, cluster_centroids, cluster_labels, threshold_v
         restricted_labels replaces distant-point assignments with -1
         and reordered_centroids are sorted by distance from the origin.
     """
-    cluster_labels, cluster_centroids = reorder_cluster_labels(cluster_labels, cluster_centroids)
+    cluster_labels, cluster_centroids = reorder_cluster_labels(
+        cluster_labels, cluster_centroids
+    )
 
     # Calculate the distance between each data point and the cluster centroids
     distances = cdist(data, cluster_centroids, 'euclidean')

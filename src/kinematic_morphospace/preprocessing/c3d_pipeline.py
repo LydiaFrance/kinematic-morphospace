@@ -12,6 +12,7 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from .body_frame import estimate_body_pitch
@@ -106,10 +107,10 @@ class C3DConfig:
 
     # --- Coordinate transforms ---
     left_perch: list[float] = field(
-        default_factory=lambda: LEFT_PERCH.tolist()
+        default_factory=LEFT_PERCH.tolist
     )
     right_perch: list[float] = field(
-        default_factory=lambda: RIGHT_PERCH.tolist()
+        default_factory=RIGHT_PERCH.tolist
     )
 
     # --- Time sync ---
@@ -155,8 +156,6 @@ def run_single_c3d(
     """
     if config is None:
         config = C3DConfig()
-
-    import numpy as np
 
     logger.info("Processing: %s", Path(path).name)
 

@@ -64,8 +64,7 @@ def plot_raw_markers(ax, x, y, filter=None, colour='k', alpha=0.1, grid=False):
     return ax
 
 def plot_uncorrected_markers(df, bird_configs, fig_size=(10, 20),):
-    """Plot a grid of three-view scatter plots showing raw marker positions for
-    multiple birds.
+    """Plot three-view scatter plots showing raw marker positions for birds.
 
     Each bird occupies one row with XZ, XY, and YZ projections of the raw
     (uncorrected) labelled marker data. Useful for verifying that marker
@@ -118,8 +117,7 @@ def plot_uncorrected_markers(df, bird_configs, fig_size=(10, 20),):
 def plot_bird_marker_comparisons(
     frame_info_df, marker_data, birds_config, fig_size=(10, 20), alpha=0.1
 ):
-    """Plot three-view marker scatter plots from array-based marker data for
-    multiple birds.
+    """Plot three-view marker scatter plots from array-based marker data.
 
     Each bird occupies one row with XZ, XY, and YZ projections using the
     first eight markers of the marker_data array (the wing and tail feather

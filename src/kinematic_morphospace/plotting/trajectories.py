@@ -76,7 +76,7 @@ def plot_trajectory_data(ax,
             "Charmander": "#A6D854"
         }
 
-        for hawk in hawk_colors:
+        for hawk, hawk_colour in hawk_colors.items():
             # Filter the data by hawk, finds
             # the mean per binned y-axis.
             hawk_filter = filter_by(traj_df, hawkname=hawk, **filter_params)
@@ -101,7 +101,7 @@ def plot_trajectory_data(ax,
 
             # Plots the mean of each bin per hawk.
             ax.plot(
-                x_bins, y_median, color=hawk_colors[hawk], label=hawk, linewidth=0.5
+                x_bins, y_median, color=hawk_colour, label=hawk, linewidth=0.5
             )
 
 def plot_traj(
@@ -340,8 +340,7 @@ def plot_traj_scatter(
     print_n_flights=False,
     save_path=None,
 ):
-    """Create 8 scatter plots of trajectories across experimental conditions
-    in a single column.
+    """Create 8 scatter plots of trajectories across experimental conditions.
 
     A single-column layout (8x1) where each row corresponds to a different
     distance/year/obstacle/weight combination. Unlike plot_traj(), no

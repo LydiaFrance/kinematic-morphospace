@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 def compute_marker_movement(df: pd.DataFrame) -> pd.DataFrame:
     """Compute the coordinate-wise movement range for each marker across all frames.
 
-    The range (max − min) for each of X, Y, Z is summed into ``total_range``,
+    The range (max - min) for each of X, Y, Z is summed into ``total_range``,
     which is used as the primary feature for stationary marker detection.
 
     Args:
@@ -58,7 +58,7 @@ def detect_stationary_markers(
 ) -> pd.Series:
     """Identify stationary markers (perches, obstacles) using K-means clustering.
 
-    Clusters markers by their total movement range using K-means (k=2–5),
+    Clusters markers by their total movement range using K-means (k=2-5),
     selecting the number of clusters with the highest Calinski-Harabasz
     score. The cluster with the lowest mean range is labelled stationary.
     Outlier markers within the stationary cluster are iteratively removed
@@ -86,13 +86,15 @@ def detect_stationary_markers(
     marker_ids = movement["marker_id"].values
 
     if len(marker_ids) < 5:
-        logger.warning("  Too few markers (%d) for clustering, using threshold", len(marker_ids))
-        is_stationary = pd.Series(
+        logger.warning(
+            "  Too few markers (%d) for clustering, using threshold",
+            len(marker_ids),
+        )
+        return pd.Series(
             movement["total_range"].values < threshold,
             index=marker_ids,
             name="stationary",
         )
-        return is_stationary
 
     # Try k=2..5, pick best Calinski-Harabasz
     best_score = -1
@@ -110,12 +112,11 @@ def detect_stationary_markers(
 
     if best_labels is None:
         logger.warning("  Clustering failed, using threshold fallback")
-        is_stationary = pd.Series(
+        return pd.Series(
             movement["total_range"].values < threshold,
             index=marker_ids,
             name="stationary",
         )
-        return is_stationary
 
     # Identify stationary cluster (lowest mean range)
     cluster_means = {}
@@ -139,7 +140,11 @@ def detect_stationary_markers(
 
     result = pd.Series(is_stationary, index=marker_ids, name="stationary")
     n_stat = result.sum()
-    logger.info("  Detected %d stationary / %d moving markers", n_stat, len(result) - n_stat)
+    logger.info(
+        "  Detected %d stationary / %d moving markers",
+        n_stat,
+        len(result) - n_stat,
+    )
     return result
 
 

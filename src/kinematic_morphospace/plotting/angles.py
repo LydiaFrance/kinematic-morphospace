@@ -30,10 +30,14 @@ def bin_and_plot(ax, x, y, color, label):
     bin_indices = np.digitize(x, bins) - 1
 
     # Calculate means and standard deviations for each bin
-    bin_means = [np.mean(y[bin_indices == i]) if np.sum(bin_indices == i) > 0 else np.nan
-                for i in range(len(bins) - 1)]
-    bin_stds = [np.std(y[bin_indices == i]) if np.sum(bin_indices == i) > 0 else np.nan
-                for i in range(len(bins) - 1)]
+    bin_means = [
+        np.mean(y[bin_indices == i]) if np.sum(bin_indices == i) > 0 else np.nan
+        for i in range(len(bins) - 1)
+    ]
+    bin_stds = [
+        np.std(y[bin_indices == i]) if np.sum(bin_indices == i) > 0 else np.nan
+        for i in range(len(bins) - 1)
+    ]
 
     # Convert to numpy arrays
     bin_means = np.array(bin_means)
@@ -128,15 +132,13 @@ def plot_whole_body_angles(info_df, euler_angles):
 
 
     turn_list = ['Left Turn', 'Right Turn', 'Control']
-    counter = 0
-    for i in range(2, 9, 3):
+    for counter, i in enumerate(range(2, 9, 3)):
         # Put a text label right of the plot at 0
         ax[i].text(0.5, 0.5, turn_list[counter])
-        counter += 1
 
 
 
-    for i in range(0, 3):
+    for i in range(3):
         ax[i].set_title(titles[i])
 
     # Set common labels
@@ -182,7 +184,9 @@ def plot_angles_by_distance(info_df, euler_angles):
     # Plot for each distance
     for row, distance in enumerate(distances):
         # Filter data for specific distance and year
-        distance_filter = (info_df['PerchDistance'] == distance) & (info_df['Year'] == 2017)
+        distance_filter = (
+            (info_df['PerchDistance'] == distance) & (info_df['Year'] == 2017)
+        )
 
         x_data = info_df['HorzDistance'][distance_filter]
         y_pitch = pitch_angles[distance_filter]

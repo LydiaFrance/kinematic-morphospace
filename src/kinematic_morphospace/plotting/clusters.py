@@ -155,8 +155,7 @@ def _ax_settings_cluster_diffs(ax, y_lim, y_tick):
 
 
 def plot_cluster_diffs(scores_df, colour_list):
-    """Plot cluster count differences between control and treatment conditions
-    for each hawk.
+    """Plot cluster count differences between control and treatment conditions.
 
     Creates a 4x4 grid of bar charts. Each row is one hawk (Drogon,
     Toothless, Ruby, Charmander); columns show the absolute control counts
@@ -232,8 +231,7 @@ def plot_cluster_diffs(scores_df, colour_list):
 
 
 def plot_cluster_experience_diffs(scores_df, colour_list):
-    """Plot cluster count differences between naive (2017) and experienced
-    (2020) flights.
+    """Plot cluster count differences between naive and experienced flights.
 
     Creates a 3x2 grid of bar charts: left column shows absolute cluster
     counts for the experienced year; right column shows the count difference
@@ -333,8 +331,7 @@ def plot_marker_errors_with_thresholds(
     marker_labels,
     view_labels,
 ):
-    """Scatter plot of per-marker positions highlighting frames with high
-    reconstruction error.
+    """Scatter plot of per-marker positions with high reconstruction error.
 
     Creates a 4x3 grid (one row per marker, three columns for XY, XZ, YZ
     views). Frames whose reconstruction error exceeds the per-marker

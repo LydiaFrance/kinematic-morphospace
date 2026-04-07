@@ -51,7 +51,7 @@ def load_mat(path: str | Path) -> dict[str, Any]:
 
 def _load_mat_scipy(path: Path) -> dict[str, Any]:
     """Load a v5/v7 .mat file using scipy."""
-    from scipy.io import loadmat
+    from scipy.io import loadmat  # noqa: PLC0415
 
     data = loadmat(str(path), squeeze_me=True, struct_as_record=False)
     # Remove MATLAB metadata keys
@@ -60,7 +60,7 @@ def _load_mat_scipy(path: Path) -> dict[str, Any]:
 
 def _load_mat73(path: Path) -> dict[str, Any]:
     """Load a v7.3 (HDF5) .mat file using mat73."""
-    import mat73
+    import mat73  # noqa: PLC0415
 
     return mat73.loadmat(str(path))
 
@@ -100,8 +100,8 @@ def matlab_table_to_dataframe(table_struct: Any) -> pd.DataFrame:
     data = _struct_to_dict(table_struct)
     columns: dict[str, Any] = {}
 
-    for name, values in data.items():
-        values = np.asarray(values)
+    for name, raw_values in data.items():
+        values = np.asarray(raw_values)
 
         if values.dtype.kind == "O":
             # Object array — likely cell array of strings
@@ -125,8 +125,10 @@ def _flatten_string_array(arr: np.ndarray) -> list[str]:
     for item in arr:
         if isinstance(item, np.ndarray):
             # Nested array — take first element
-            item = item.flat[0] if item.size > 0 else ""
-        result.append(str(item) if item is not None else "")
+            val = item.flat[0] if item.size > 0 else ""
+        else:
+            val = item
+        result.append(str(val) if val is not None else "")
     return result
 
 

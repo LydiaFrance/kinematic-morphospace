@@ -217,7 +217,7 @@ def rename_tailpack_data(markers_df):
     new_name_cols = ["tailpack_x", "tailpack_y", "tailpack_z"]
 
     markers_df.rename(
-        columns=dict(zip(rot_markers_cols, new_name_cols)), inplace=True
+        columns=dict(zip(rot_markers_cols, new_name_cols, strict=False)), inplace=True
     )
 
     remove_cols = ["xyz_1", "xyz_2", "xyz_3"]

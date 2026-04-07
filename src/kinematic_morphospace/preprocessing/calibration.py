@@ -211,7 +211,7 @@ def apply_time_offsets(
         Copy of ``df`` with the per-sequence time offsets subtracted.
     """
     df = df.copy()
-    offset_map = dict(zip(offset_df["seqID"], offset_df["time_offset"]))
+    offset_map = dict(zip(offset_df["seqID"], offset_df["time_offset"], strict=False))
 
     for seq, t0 in offset_map.items():
         if np.isnan(t0):

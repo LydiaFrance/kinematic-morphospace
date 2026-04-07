@@ -8,7 +8,6 @@ removing whole-body pitch and roll from marker data prior to PCA.
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
-
 # --------- Symmetry and Kabsch rotation ---------
 
 
@@ -37,7 +36,8 @@ def assess_symmetry(pc, axis='x', nMarkers=8):
     """
     axis_to_index = {'x': 0, 'y': 1, 'z': 2}
     if axis not in axis_to_index:
-        raise ValueError(f"Invalid axis '{axis}'. Use 'x', 'y', or 'z'.")
+        msg = f"Invalid axis '{axis}'. Use 'x', 'y', or 'z'."
+        raise ValueError(msg)
 
     symmetry = 0
     for ii in range(0, nMarkers, 2):
@@ -75,15 +75,21 @@ def vectorised_kabsch(P, Q, centre=False):
         ValueError: If P and Q have mismatched shapes.
     """
     if P.shape[0] != Q.shape[0]:
-        raise ValueError(
+        msg = (
             f"P and Q must have the same batch size (first dimension). "
             f"Got P.shape={P.shape} and Q.shape={Q.shape}. "
             f"P has {P.shape[0]} instances but Q has {Q.shape[0]} instances."
         )
-    if P.shape[1:] != Q.shape[1:]:
         raise ValueError(
+            msg
+        )
+    if P.shape[1:] != Q.shape[1:]:
+        msg = (
             f"P and Q must have the same shape for markers and coordinates. "
             f"Got P.shape={P.shape} and Q.shape={Q.shape}."
+        )
+        raise ValueError(
+            msg
         )
 
     if centre:
@@ -97,14 +103,13 @@ def vectorised_kabsch(P, Q, centre=False):
     C = np.einsum('nik,nij->nkj', P_centred, Q_centred)
 
     # Perform SVD for each cross-covariance matrix
-    U, S, Vt = np.linalg.svd(C)
+    U, _S, Vt = np.linalg.svd(C)
 
     # Compute the optimal rotation matrices
     d = (np.linalg.det(U) * np.linalg.det(Vt)) < 0.0
     Vt[d, -1, :] *= -1
-    rotation_matrices = np.einsum('nij,njk->nik', U, Vt)
+    return np.einsum('nij,njk->nik', U, Vt)
 
-    return rotation_matrices
 
 
 def extract_euler_angles_from_matrices(rotation_matrices, sequence='xyz'):
@@ -119,8 +124,7 @@ def extract_euler_angles_from_matrices(rotation_matrices, sequence='xyz'):
         Array of shape ``(n, 3)`` containing Euler angles in degrees.
     """
     rotations = R.from_matrix(rotation_matrices)
-    euler_angles = rotations.as_euler(sequence, degrees=True)
-    return euler_angles
+    return rotations.as_euler(sequence, degrees=True)
 
 
 def apply_rotation(P, rotation_matrices):
@@ -232,7 +236,8 @@ def undo_body_rotation(markers, whole_body_angle, which_axis='z'):
                 [0, 0, 1]
             ])
         else:
-            raise ValueError(f"Invalid axis: {which_axis}. Use 'x', 'y', or 'z'.")
+            msg = f"Invalid axis: {which_axis}. Use 'x', 'y', or 'z'."
+            raise ValueError(msg)
 
         corrected_markers[i] = markers[i] @ rotation_matrix.T
 

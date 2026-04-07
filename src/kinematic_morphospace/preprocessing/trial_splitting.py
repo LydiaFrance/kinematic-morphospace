@@ -15,6 +15,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.signal import find_peaks, peak_widths
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +58,6 @@ def detect_velocity_peaks(
         ``peak_frame``, ``peak_height``, ``width``, ``start_frame``, and
         ``end_frame``.
     """
-    from scipy.signal import find_peaks, peak_widths
-
     # Filter to moving markers if label_stationary column exists
     if "label_stationary" in df.columns:
         moving = df[~df["label_stationary"]].copy()
@@ -80,7 +79,7 @@ def detect_velocity_peaks(
     abs_velocity = np.abs(velocity)
 
     # Find peaks
-    peaks, properties = find_peaks(
+    peaks, _properties = find_peaks(
         abs_velocity,
         distance=min_peak_distance,
         height=min_peak_height,

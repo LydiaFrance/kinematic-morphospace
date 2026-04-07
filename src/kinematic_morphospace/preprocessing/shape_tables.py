@@ -42,7 +42,11 @@ _INFO_COLS = [
 
 def _get_coord_columns(df: pd.DataFrame, coord_prefix: str) -> list[str]:
     """Find the _1, _2, _3 columns for a given coordinate prefix."""
-    return [f"{coord_prefix}_{i}" for i in (1, 2, 3) if f"{coord_prefix}_{i}" in df.columns]
+    return [
+        f"{coord_prefix}_{i}"
+        for i in (1, 2, 3)
+        if f"{coord_prefix}_{i}" in df.columns
+    ]
 
 
 def pivot_markers_wide(
@@ -132,7 +136,7 @@ def mirror_left_markers(
     coord_prefix: str = "rot_xyz",
     marker_col: str = "MarkerName",
 ) -> pd.DataFrame:
-    """Negate the X coordinate of left-side markers to produce a mirrored right-side shape.
+    """Negate X coordinate of left-side markers to produce a mirrored shape.
 
     Identifies left markers by checking whether ``marker_col`` contains
     ``"left"``, then negates the ``_1`` (X) component so left-wing

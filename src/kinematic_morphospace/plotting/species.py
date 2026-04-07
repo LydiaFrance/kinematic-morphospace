@@ -22,7 +22,7 @@ def _add_derivation_line(fig, row, pt_name, derived_name, pt_uppercase=True):
     fig.add_trace(go.Scatter3d(
         x=[src[0], dst[0]], y=[src[1], dst[1]], z=[src[2], dst[2]],
         mode='lines',
-        line=dict(color='grey', width=1),
+        line={"color": 'grey', "width": 1},
         showlegend=False,
         hoverinfo='skip',
     ))
@@ -49,7 +49,7 @@ def plot_bird_markers(df, row_idx=0, show_derived_lines=True):
 
     # Gather pt markers
     pt_columns = [col for col in df.columns if col.startswith('pt')]
-    pt_markers = sorted(set([col.split('_')[0] for col in pt_columns]))
+    pt_markers = sorted({col.split('_')[0] for col in pt_columns})
     x_pt, y_pt, z_pt, labels_pt = [], [], [], []
     for marker in pt_markers:
         coords = _get_coords(row, marker, uppercase=True)
@@ -62,8 +62,10 @@ def plot_bird_markers(df, row_idx=0, show_derived_lines=True):
     # Gather derived markers
     derived_keywords = ['wingtip_', 'primary_', 'secondary_', 'tailtip_',
                         'tailbase_', 'shoulder_', 'hood_']
-    other_markers = [col.rsplit('_', 1)[0] for col in df.columns
-                     if any(kw in col for kw in derived_keywords) and col.endswith('_x')]
+    other_markers = [
+        col.rsplit('_', 1)[0] for col in df.columns
+        if any(kw in col for kw in derived_keywords) and col.endswith('_x')
+    ]
     x_other, y_other, z_other, labels_other = [], [], [], []
     for marker in other_markers:
         coords = _get_coords(row, marker, uppercase=False)
@@ -78,7 +80,7 @@ def plot_bird_markers(df, row_idx=0, show_derived_lines=True):
         go.Scatter3d(
             x=x_pt, y=y_pt, z=z_pt,
             mode='markers',
-            marker=dict(size=5, color='blue', opacity=0.2),
+            marker={"size": 5, "color": 'blue', "opacity": 0.2},
             hovertemplate=('<b>Point</b>: %{text}<br>'
                            'x: %{x:.3f}<br>'
                            'y: %{y:.3f}<br>'
@@ -90,7 +92,7 @@ def plot_bird_markers(df, row_idx=0, show_derived_lines=True):
         go.Scatter3d(
             x=x_other, y=y_other, z=z_other,
             mode='markers',
-            marker=dict(size=5, color='red', opacity=0.2),
+            marker={"size": 5, "color": 'red', "opacity": 0.2},
             hovertemplate=('<b>Point</b>: %{text}<br>'
                            'x: %{x:.3f}<br>'
                            'y: %{y:.3f}<br>'
@@ -126,26 +128,26 @@ def plot_bird_markers(df, row_idx=0, show_derived_lines=True):
     min_lim = 0.6
     fig.update_layout(
         title=df.iloc[row_idx]['species_common'],
-        scene=dict(
-            aspectmode='cube',
-            xaxis=dict(range=[-min_lim, min_lim], backgroundcolor="white",
-                       gridcolor="grey", gridwidth=0.5, showbackground=True,
-                       zerolinecolor="grey", dtick=0.1,
-                       tickvals=[-0.6, -0.3, 0, 0.3, 0.6],
-                       ticktext=['', '-0.3', '0', '0.3', '']),
-            yaxis=dict(range=[-min_lim, min_lim], backgroundcolor="white",
-                       gridcolor="grey", gridwidth=0.5, showbackground=True,
-                       zerolinecolor="grey", dtick=0.1,
-                       tickvals=[-0.6, -0.3, 0, 0.3, 0.6],
-                       ticktext=['', '-0.3', '0', '0.3', '']),
-            zaxis=dict(range=[-min_lim, min_lim], backgroundcolor="white",
-                       gridcolor="grey", gridwidth=0.5, showbackground=True,
-                       zerolinecolor="grey", dtick=0.1,
-                       tickvals=[-0.6, -0.3, 0, 0.3, 0.6],
-                       ticktext=['', '-0.3', '0', '0.3', '']),
-        ),
+        scene={
+            "aspectmode": 'cube',
+            "xaxis": {"range": [-min_lim, min_lim], "backgroundcolor": "white",
+                       "gridcolor": "grey", "gridwidth": 0.5, "showbackground": True,
+                       "zerolinecolor": "grey", "dtick": 0.1,
+                       "tickvals": [-0.6, -0.3, 0, 0.3, 0.6],
+                       "ticktext": ['', '-0.3', '0', '0.3', '']},
+            "yaxis": {"range": [-min_lim, min_lim], "backgroundcolor": "white",
+                       "gridcolor": "grey", "gridwidth": 0.5, "showbackground": True,
+                       "zerolinecolor": "grey", "dtick": 0.1,
+                       "tickvals": [-0.6, -0.3, 0, 0.3, 0.6],
+                       "ticktext": ['', '-0.3', '0', '0.3', '']},
+            "zaxis": {"range": [-min_lim, min_lim], "backgroundcolor": "white",
+                       "gridcolor": "grey", "gridwidth": 0.5, "showbackground": True,
+                       "zerolinecolor": "grey", "dtick": 0.1,
+                       "tickvals": [-0.6, -0.3, 0, 0.3, 0.6],
+                       "ticktext": ['', '-0.3', '0', '0.3', '']},
+        },
         width=500,
         height=500,
-        margin=dict(l=10, r=10, t=10, b=10)
+        margin={"l": 10, "r": 10, "t": 10, "b": 10}
     )
     fig.show()

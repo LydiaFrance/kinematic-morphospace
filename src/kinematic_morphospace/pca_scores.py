@@ -9,7 +9,6 @@ import pandas as pd
 
 from .data_filtering import filter_by
 
-
 # ------- Sign conventions -------
 # Keys are 0-indexed component indices; values are the multiplier.
 # PC07 (index 6) = m-folding: negated so positive = more folded.
@@ -74,7 +73,7 @@ def get_score_df(scores, frame_info_df, filter=None, size_bin=0.05):
     return scores_df, horzDist_bins
 
 
-def prepare_heatmap_mode_order(scores_df, n_modes=9):
+def prepare_heatmap_mode_order(_scores_df, n_modes=9):
     """Return mode columns in thematic display order for heatmap plotting.
 
     PC08 (collective pitching) is moved after PC05 (counter pitching)
@@ -123,8 +122,15 @@ def get_binned_scores(scores_df, **filters):
 
     binned_info = get_binned_info(scores_df[filter])
 
-    if mean_scores.shape[0] != median_scores.shape[0] or mean_scores.shape[0] != stdev_scores.shape[0]:
-        raise ValueError("Mean, median, and stdev scores must have the same number of bins.")
+    if (
+        mean_scores.shape[0] != median_scores.shape[0]
+        or mean_scores.shape[0] != stdev_scores.shape[0]
+    ):
+        msg = (
+            "Mean, median, and stdev scores must have the "
+            "same number of bins."
+        )
+        raise ValueError(msg)
 
     return binned_info, mean_scores, stdev_scores, median_scores
 
@@ -142,10 +148,8 @@ def get_score_range(scores, num_frames=30):
 
     Returns:
         Score array of shape ``(num_frames, n_components)`` sweeping from
-        mean−2σ to mean+2σ and back.
+        mean - 2*std to mean + 2*std and back.
     """
-    num_components = scores.shape[1]
-
     min_score = np.mean(scores, axis=0) - (2 * np.std(scores, axis=0))
     max_score = np.mean(scores, axis=0) + (2 * np.std(scores, axis=0))
 
@@ -153,9 +157,8 @@ def get_score_range(scores, num_frames=30):
     triangle_wave = np.linspace(0, 1, half_length)
     triangle_wave = np.concatenate([triangle_wave, triangle_wave[-2:0:-1]])
 
-    score_frames = min_score + (max_score - min_score) * triangle_wave[:, np.newaxis]
+    return min_score + (max_score - min_score) * triangle_wave[:, np.newaxis]
 
-    return score_frames
 
 
 # ....... Helper functions .......
@@ -184,15 +187,17 @@ def concat_df(scores, frame_info_df, filter=None):
         frame_info_df = frame_info_df[filter].reset_index(drop=True)
 
     if scores.shape[0] != frame_info_df.shape[0]:
-        raise ValueError(
+        msg = (
             f"Size mismatch: scores has {scores.shape[0]} rows but "
             f"frame_info_df has {frame_info_df.shape[0]} rows. "
             f"Include the filter used for PCA!"
         )
+        raise ValueError(
+            msg
+        )
 
-    scores_df = create_scores_info_df(scores, frame_info_df)
+    return create_scores_info_df(scores, frame_info_df)
 
-    return scores_df
 
 
 def create_scores_info_df(scores, frame_info_df):
@@ -214,9 +219,8 @@ def create_scores_info_df(scores, frame_info_df):
 
     score_df = pd.DataFrame(scores, columns=PC_names)
 
-    scores_df = pd.concat([frame_info_df, score_df], axis=1)
+    return pd.concat([frame_info_df, score_df], axis=1)
 
-    return scores_df
 
 
 def bin_by_horz_distance(df, size_bin=0.05):
@@ -257,7 +261,10 @@ def get_binned_info(scores_df):
         DataFrame indexed by distance bin with mean flight-dynamics
         columns and first-value metadata columns.
     """
-    mean_cols = ['time', 'HorzDistance', 'VertDistance', 'body_pitch', 'body_roll', 'body_yaw']
+    mean_cols = [
+        'time', 'HorzDistance', 'VertDistance',
+        'body_pitch', 'body_roll', 'body_yaw',
+    ]
     mean_cols = [col for col in mean_cols if col in scores_df.columns]
 
     if mean_cols:
@@ -292,9 +299,8 @@ def get_mean_by_bin(scores_df, col_name='PC'):
         DataFrame of mean PC scores indexed by distance bin.
     """
     PC_columns = scores_df.filter(like=col_name)
-    mean_scores = PC_columns.groupby(scores_df['bins'], observed=True).mean()
+    return PC_columns.groupby(scores_df['bins'], observed=True).mean()
 
-    return mean_scores
 
 
 def get_median_by_bin(scores_df):
@@ -308,9 +314,8 @@ def get_median_by_bin(scores_df):
         DataFrame of median PC scores indexed by distance bin.
     """
     PC_columns = scores_df.filter(like='PC')
-    median_scores = PC_columns.groupby(scores_df['bins'], observed=True).median()
+    return PC_columns.groupby(scores_df['bins'], observed=True).median()
 
-    return median_scores
 
 
 def get_stdev_by_bin(scores_df) -> pd.DataFrame:
@@ -324,6 +329,5 @@ def get_stdev_by_bin(scores_df) -> pd.DataFrame:
         DataFrame of PC score standard deviations indexed by distance bin.
     """
     PC_columns = scores_df.filter(like='PC')
-    stdev_scores = PC_columns.groupby(scores_df['bins'], observed=True).std()
+    return PC_columns.groupby(scores_df['bins'], observed=True).std()
 
-    return stdev_scores

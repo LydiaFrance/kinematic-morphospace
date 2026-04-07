@@ -8,7 +8,6 @@ suitable for PCA analysis.
 import numpy as np
 import pandas as pd
 
-
 # ------- Loading data -------
 
 def load_data(csv_path: str):
@@ -20,9 +19,8 @@ def load_data(csv_path: str):
     Returns:
         DataFrame containing the loaded data.
     """
-    data_csv = pd.read_csv(csv_path)
+    return pd.read_csv(csv_path)
 
-    return data_csv
 
 
 def remove_frames(data_csv, Y_limit=0.1, time_limit=0):
@@ -218,19 +216,18 @@ def check_data(markers, frame_info):
     Returns:
         True if every array has the same first-axis length, False otherwise.
     """
-    all_data = list(frame_info.values()) + [markers]
+    all_data = [*list(frame_info.values()), markers]
     array_lengths = [len(data) for data in all_data if isinstance(data, np.ndarray)]
 
     if len(set(array_lengths)) == 1:
         return True
-    else:
-        mismatch_info = {
-            key: len(value) for key, value in frame_info.items()
-            if isinstance(value, np.ndarray)
-        }
-        mismatch_info['markers'] = len(markers)
-        print("Mismatch in data lengths found:", mismatch_info)
-        return False
+    mismatch_info = {
+        key: len(value) for key, value in frame_info.items()
+        if isinstance(value, np.ndarray)
+    }
+    mismatch_info['markers'] = len(markers)
+    print("Mismatch in data lengths found:", mismatch_info)
+    return False
 
 
 def get_column_as_numpy(df, column_name):

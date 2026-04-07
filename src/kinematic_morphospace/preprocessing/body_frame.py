@@ -71,7 +71,7 @@ def estimate_body_pitch(
 
         # Covariance matrix and eigendecomposition
         cov_matrix = np.cov(deviations.T)
-        eigenvalues, eigenvectors = np.linalg.eigh(cov_matrix)
+        _eigenvalues, eigenvectors = np.linalg.eigh(cov_matrix)
 
         # Eigenvector with largest eigenvalue (last, since eigh sorts ascending)
         normal_vector = eigenvectors[:, -1]
