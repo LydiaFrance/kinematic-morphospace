@@ -930,7 +930,7 @@ def _layout_autocorrelation_schematic(axes, marker_colours=None):
     colours = list(mc.values())
     marker_names = list(mc.keys())
 
-    seq_defs = [
+    seq_defs: list[dict[str, int | str]] = [
         {"n_frames": 18, "colour": "#8FBBD9", "label": "Seq 1"},
         {"n_frames": 12, "colour": "#E8927C", "label": "Seq 2"},
         {"n_frames": 20, "colour": "#8EC89A", "label": "Seq 3"},
@@ -942,14 +942,17 @@ def _layout_autocorrelation_schematic(axes, marker_colours=None):
     row_spacing = 0.18
     marker_spacing = 0.30
     seq_spacing = 2.0
-    max_frames = max(sd["n_frames"] for sd in seq_defs)
+    n_frames_list = [int(sd["n_frames"]) for sd in seq_defs]
+    max_frames = max(n_frames_list)
     total_h = (max_frames - 1) * row_spacing
     n_seqs = len(seq_defs)
 
     def _draw_panel(ax, title, subtitle, thin_step=None):
         for ss, sd in enumerate(seq_defs):
             x_centre = ss * seq_spacing
-            greyed = ({ff for ff in range(sd["n_frames"])
+            n_frames_val = sd["n_frames"]
+            assert isinstance(n_frames_val, int)
+            greyed = ({ff for ff in range(n_frames_val)
                        if ff % thin_step != 0} if thin_step else None)
             _draw_sequence_dots(
                 ax, x_centre, sd["n_frames"], colours,

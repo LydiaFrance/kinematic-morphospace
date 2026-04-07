@@ -58,8 +58,8 @@ def plot_components_grid(principal_components, marker_names, fig=None, ax=None):
 
 
     if ax is None:
-        fig, ax = plt.subplots(figsize=(5, 5))
-        fig.set_constrained_layout(True)
+        fig, ax = plt.subplots(figsize=(5, 5), constrained_layout=True)
+    assert fig is not None
 
     # Loop through each PC and plot the grid
     for PC, colour in colour_dict.items():
@@ -73,7 +73,8 @@ def plot_components_grid(principal_components, marker_names, fig=None, ax=None):
 
         # Add a colour bar for the PC8
         if PC == 'PC8':
-            cbar_ax = fig.add_axes([1.05, 0.698, .05, .2], )
+            cbar_ax = fig.add_axes((1.05, 0.698, .05, .2))
+            assert cbar_ax is not None
 
             sns.heatmap(
                 data,
@@ -311,12 +312,12 @@ def compare_coeffs_grid(
 
 
     if ax is None:
-        fig, ax = plt.subplots(figsize=(5, 5))
-        fig.set_constrained_layout(True)
+        fig, ax = plt.subplots(figsize=(5, 5), constrained_layout=True)
 
         returnAx = False
     else:
         returnAx = True
+    assert fig is not None
 
     for PC, colour in colour_dict.items():
         data = components_df.copy()
@@ -328,7 +329,8 @@ def compare_coeffs_grid(
         )
 
         if PC == 'PC8':
-            cbar_ax = fig.add_axes([1.05, 0.698, .05, .2], )
+            cbar_ax = fig.add_axes((1.05, 0.698, .05, .2))
+            assert cbar_ax is not None
 
             sns.heatmap(
                 data,
@@ -367,10 +369,10 @@ def compare_coeffs_grid(
 
 
     ax.set_xticks(np.arange(0.5,12.5))  # Ensure there are 12 ticks
-    ax.set_xticklabels(range(1, 13), rotation=0, fontsize=10)
+    ax.set_xticklabels([str(i) for i in range(1, 13)], rotation=0, fontsize=10)
 
     ax.set_yticks(np.arange(0.5,12.5))  # Ensure there are 12 ticks
-    ax.set_yticklabels(range(1, 13), rotation=0, fontsize=10)
+    ax.set_yticklabels([str(i) for i in range(1, 13)], rotation=0, fontsize=10)
 
     # Flip the y axis
     # ax.invert_yaxis()
@@ -434,8 +436,8 @@ def plot_compare_components_grid(
     }
 
     if ax is None:
-        fig, ax = plt.subplots(figsize=(4, 4))
-        fig.set_constrained_layout(True)
+        fig, ax = plt.subplots(figsize=(4, 4), constrained_layout=True)
+    assert fig is not None
 
     for PC, colour in colour_dict.items():
         data = components_df.copy()
@@ -454,7 +456,8 @@ def plot_compare_components_grid(
             )
 
         if PC == 'PC12':
-            cbar_ax = fig.add_axes([1.05, 0.698, .05, .2], )
+            cbar_ax = fig.add_axes((1.05, 0.698, .05, .2))
+            assert cbar_ax is not None
 
             sns.heatmap(
                 data,

@@ -415,7 +415,7 @@ def plot_imputation_composite(cev, imputed_cev, cosines, n_comp=12,
     # Centre a square-ish result between cols 1 and 2
     mid_x = (pos1.x0 + pos1.width + pos2.x0) / 2
     w = result_height * (fig.get_figheight() / fig.get_figwidth())  # square
-    result_ax = fig.add_axes([mid_x - w / 2, result_bottom, w, result_height])
+    result_ax = fig.add_axes((mid_x - w / 2, result_bottom, w, result_height))
     _layout_imputation_results(result_ax, cev, imputed_cev, cosines, n_comp)
 
     return fig

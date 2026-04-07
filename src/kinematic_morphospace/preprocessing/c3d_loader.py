@@ -49,7 +49,7 @@ def load_c3d(path: str | Path) -> tuple[pd.DataFrame, dict]:
         raise FileNotFoundError(msg)
 
     try:
-        import ezc3d  # noqa: PLC0415
+        import ezc3d  # type: ignore  # noqa: PLC0415
     except ImportError as exc:
         msg = (
             "ezc3d is required for C3D loading. "

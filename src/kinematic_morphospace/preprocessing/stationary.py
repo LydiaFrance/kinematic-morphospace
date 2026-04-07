@@ -10,6 +10,7 @@ Reproduces the stationary-detection logic from ``run_mocap_processing.m``.
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -119,10 +120,10 @@ def detect_stationary_markers(
         )
 
     # Identify stationary cluster (lowest mean range)
-    cluster_means = {}
+    cluster_means: dict[int, Any] = {}
     for c in set(best_labels):
         cluster_means[c] = ranges[best_labels == c].mean()
-    stationary_cluster = min(cluster_means, key=cluster_means.get)
+    stationary_cluster = min(cluster_means, key=lambda c: cluster_means[c])
 
     is_stationary = best_labels == stationary_cluster
 

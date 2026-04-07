@@ -1,6 +1,7 @@
 """Condition-comparison score plots (obstacle, weight, naive vs experienced)."""
 
 import matplotlib as mpl
+import matplotlib.collections
 import numpy as np
 from matplotlib import pyplot as plt
 

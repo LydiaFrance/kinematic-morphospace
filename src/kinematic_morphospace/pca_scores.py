@@ -217,7 +217,7 @@ def create_scores_info_df(scores, frame_info_df):
     num_components = scores.shape[1]
     PC_names = [f'PC{i:02}' for i in np.arange(1, num_components + 1)]
 
-    score_df = pd.DataFrame(scores, columns=PC_names)
+    score_df = pd.DataFrame(scores, columns=pd.Index(PC_names))
 
     return pd.concat([frame_info_df, score_df], axis=1)
 
