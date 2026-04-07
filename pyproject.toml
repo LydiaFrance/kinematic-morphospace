@@ -158,3 +158,9 @@ flake8-unused-arguments.ignore-variadic-names = true  # allow unused *args/**kwa
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
+[dependency-groups]
+dev = [
+    "ruff>=0.15.8",
+    "ty>=0.0.26",
+]
+
