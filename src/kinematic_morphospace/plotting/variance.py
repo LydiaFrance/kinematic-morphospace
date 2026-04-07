@@ -119,8 +119,7 @@ def plot_explained(
 def table_cumulative_variance_ratios(
     unilateral_data, unilateral_frame_info_df, principal_components, pca_mean=None
 ):
-    """Print cumulative explained variance ratios for each hawk, year, and
-    obstacle condition.
+    """Print cumulative explained variance ratios per hawk/year/condition.
 
     Projects each subset of frames onto the first nine principal components and
     prints the cumulative explained variance ratio. Used to verify that the
@@ -199,8 +198,7 @@ def table_cumulative_variance_ratios(
 def calculate_cumulative_variance_ratios(
     data, frame_info_df, principal_components, n_components=9
 ):
-    """Calculate cumulative explained variance ratios per hawk/year/obstacle
-    condition.
+    """Calculate cumulative explained variance ratios per condition.
 
     Projects each condition's frames onto the principal components and returns
     the cumulative variance ratio for every condition that has data. The result
@@ -250,8 +248,7 @@ def calculate_cumulative_variance_ratios(
     return cumulative_explained_variance_ratios
 
 def plot_cumulative_variance_ratios(cumulative_explained_variance_ratios):
-    """Plot cumulative explained variance ratios for all hawk/year/condition
-    combinations.
+    """Plot cumulative explained variance ratios for all combinations.
 
     Draws one line per condition, colour-coded by hawk and styled by year and
     obstacle presence. This allows rapid visual comparison of how much variance

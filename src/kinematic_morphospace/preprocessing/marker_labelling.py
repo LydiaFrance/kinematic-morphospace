@@ -212,7 +212,7 @@ def fix_mislabelled_tailpack(
 
     Tailpack markers with a positive relative Y coordinate (i.e. in front
     of the backpack) are anatomically impossible and indicate mislabelling;
-    they are reassigned to ``"headpack"``. Reproduces MATLAB lines 253–256
+    they are reassigned to ``"headpack"``. Reproduces MATLAB lines 253-256
     of ``run_whole_body_analysis.m``.
 
     Args:
@@ -257,7 +257,7 @@ def filter_by_distance(
     XYZ columns) is less than ``min_dist`` or greater than ``max_dist`` are
     relabelled as ``""`` (unlabelled). This removes markers that were assigned
     by polygon labelling but are implausibly close to or far from the body.
-    Reproduces MATLAB lines 665–707 of ``run_whole_body_analysis.m``.
+    Reproduces MATLAB lines 665-707 of ``run_whole_body_analysis.m``.
 
     Args:
         df: Marker table with relative position columns and a label column.

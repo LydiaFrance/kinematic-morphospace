@@ -225,8 +225,7 @@ def print_symmetry_summary(left_right_scores, label=''):
 def plot_left_right(
     left_right_scores, score_5, score_95, alpha=0.05, bkgrd_color='white'
 ):
-    """Plot 4x3 grid comparing left vs right PC scores for all 12 morphing
-    modes.
+    """Plot 4x3 grid comparing left vs right PC scores for all modes.
 
     Each of the 12 panels shows a scatter of left-wing scores against
     right-wing scores for one PC, with the major-axis regression line and the
@@ -296,8 +295,7 @@ def plot_left_right_just_two(left_right_scores, score_5, score_95, alpha=0.05):
 def plot_left_right_empty(
     score_5, score_95, PC=0, bkgrd_color='white', figsize=(2, 2)
 ):
-    """Create empty symmetry panel with reference lines for use as legend or
-    schematic.
+    """Create empty symmetry panel with reference lines for legend/schematic.
 
     Draws the line of perfect symmetry (y = x, solid grey) and an offset
     guide line (dotted) without any data. Useful as an explanatory panel

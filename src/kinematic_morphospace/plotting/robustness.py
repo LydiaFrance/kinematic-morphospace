@@ -423,8 +423,7 @@ def plot_imputation_composite(cev, imputed_cev, cosines, n_comp=12,
 
 def plot_hull_coverage(pts_labelled, pts_unlabelled, pca_embed,
                        coverage_rev=None, figsize=(7, 6)):
-    """Scatter plot with marginal histograms showing labelled vs unlabelled
-    frame overlap.
+    """Scatter plot with marginal histograms showing labelled/unlabelled overlap.
 
     The central panel shows both groups as translucent scatter points in the
     PCA-embedded pairwise-distance space. Top and right margins show normalised
@@ -613,8 +612,7 @@ def plot_hull_outlier_markers(marker_counts, outside_mask, figsize=(5, 3.5)):
 def plot_occlusion_bias(
     complete_scores, partial_scores, labels, n_bins=30, figsize=(10, 3.5)
 ):
-    """Overlaid density histograms of PC scores for complete versus
-    partially-occluded frames.
+    """Overlaid density histograms of PC scores for complete/occluded frames.
 
     Two-panel figure, one per morphing axis. Each panel shows normalised
     density histograms for complete-marker frames (8 visible markers) and

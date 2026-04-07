@@ -60,7 +60,7 @@ def compute_yaw_angle(vectors: np.ndarray) -> np.ndarray:
             vector after pitch correction.
 
     Returns:
-        (N,) array of yaw angles in degrees (unsigned, range 0–180).
+        (N,) array of yaw angles in degrees (unsigned, range 0-180).
     """
     vectors = np.asarray(vectors, dtype=float)
     if vectors.ndim == 1:
@@ -81,7 +81,7 @@ def build_rotation_matrices(
     angles_deg: np.ndarray,
     axis: str = "x",
 ) -> np.ndarray:
-    """Build a batch of 3×3 rotation matrices from an array of angles.
+    """Build a batch of 3x3 rotation matrices from an array of angles.
 
     Constructs one rotation matrix per angle, all about the same axis.
     The Z-axis convention negates the angle to match MATLAB's ``rotz``.
@@ -159,7 +159,7 @@ def build_body_frame(
     """Construct an orthonormal body-fixed coordinate frame from tail vectors.
 
     Derives three mutually perpendicular unit vectors from the backpack-to-
-    tailpack direction, reproducing MATLAB lines 2253–2274 of
+    tailpack direction, reproducing MATLAB lines 2253-2274 of
     ``run_whole_body_analysis.m``:
 
     1. ``body_axis`` = normalised tail vector (backpack → tailpack).
@@ -239,7 +239,7 @@ def extract_body_angles(
     """Extract Euler pitch, yaw, and roll angles from body-frame axes.
 
     Reproduces the angle extraction logic in MATLAB ``rotate_byRow.m``,
-    including wrap-around corrections (lines 2294–2303):
+    including wrap-around corrections (lines 2294-2303):
 
     - Pitch: derived from ``body_axis`` using the ``find_pitchangle`` formula.
     - Yaw: from ``body_axis`` projected onto the XY plane.

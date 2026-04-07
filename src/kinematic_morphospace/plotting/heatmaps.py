@@ -79,8 +79,7 @@ def prepare_heatmap_comparison(scores_df, reference_filters, condition1, conditi
 def plot_difference_PC_scores_heatmap(df_control,
                                       df_exp,
                                       PC_cols, score_5, score_95):
-    """Plot stacked heatmap comparing mean PC scores between obstacle and
-    control flights.
+    """Plot heatmap comparing mean PC scores between obstacle and control flights.
 
     Creates one subplot per PC component. Each subplot is a two-row colour
     image: the top row shows the experimental condition and the bottom row
@@ -228,8 +227,7 @@ def plot_difference_PC_scores_heatmap(df_control,
 def plot_PC_score_heatmaps(
     scores_df, PC_cols, score_5, score_95, _score_mid, title
 ):
-    """Plot single heatmap of mean PC scores binned by horizontal distance to
-    the perch.
+    """Plot heatmap of mean PC scores binned by horizontal distance to perch.
 
     Creates one image where rows are PC components and columns are distance
     bins.

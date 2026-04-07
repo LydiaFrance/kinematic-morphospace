@@ -189,8 +189,7 @@ def _layout_shuffle_schematic(axes, marker_colours=None, n_frames=5, seed=42,
 
 
 def plot_shuffle_schematic(marker_colours=None, n_frames=5, seed=42):
-    """Plot five-panel shuffle schematic showing each shuffle mode applied to
-    toy data.
+    """Plot five-panel shuffle schematic showing each shuffle mode.
 
     Panels show the original data alongside temporal, column, label, and
     complete shuffle variants. Used to visually explain the four
@@ -528,8 +527,7 @@ def plot_imputation_schematic(marker_colours=None, n_frames_complete=10,
                                n_frames_missing=20,
                                missing_rates=(0.25, 0.33, 0.25, 0.21),
                                seed=42):
-    """Plot three-panel schematic showing complete data, missing data, and
-    imputed data.
+    """Plot three-panel schematic of complete, missing, and imputed data.
 
     Each panel is a grid of colour-coded cells representing marker
     coordinates. Missing cells are shown as outlines; imputed cells are

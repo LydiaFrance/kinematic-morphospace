@@ -15,6 +15,9 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from matplotlib.path import Path as MplPath
+
+from .mat_loader import load_mat
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +44,6 @@ def load_polygon_boundaries(
     Raises:
         KeyError: If the ``areaDefs`` variable is not found in the .mat file.
     """
-    from .mat_loader import load_mat
-
     data = load_mat(mat_path)
 
     if "areaDefs" not in data:
@@ -87,7 +88,9 @@ def _get_flight_phase(marker_data: Any) -> Any:
             return fp[0]
         return fp
     # Handle scipy structured arrays
-    if hasattr(marker_data, "dtype") and "flightPhase" in (marker_data.dtype.names or []):
+    if hasattr(marker_data, "dtype") and "flightPhase" in (
+        marker_data.dtype.names or []
+    ):
         fp = marker_data["flightPhase"]
         if hasattr(fp, "flat"):
             fp = fp.flat[0]
@@ -148,8 +151,6 @@ def label_by_polygons(
     Returns:
         Updated copy of ``df`` with newly labelled markers.
     """
-    from matplotlib.path import Path as MplPath
-
     df = df.copy()
     x_col, y_col, z_col = xyz_cols
 

@@ -62,7 +62,10 @@ def detect_flight_direction(
         logger.warning("  Ambiguous flight direction (mean Y ≈ 0), defaulting to -1")
         direction = -1
 
-    label = "rightward (toward right perch)" if direction == -1 else "leftward (toward left perch)"
+    if direction == -1:
+        label = "rightward (toward right perch)"
+    else:
+        label = "leftward (toward left perch)"
     logger.info("  Flight direction: %s (sign=%d)", label, direction)
     return direction
 
@@ -208,7 +211,7 @@ def compute_relative_positions(
     Merges the smooth backpack coordinates onto the marker table by
     ``join_col``, then subtracts the smooth backpack XYZ from each marker's
     absolute XYZ. The resulting relative positions are body-centred and
-    suitable for downstream rotation. Reproduces MATLAB lines 250, 266–268
+    suitable for downstream rotation. Reproduces MATLAB lines 250, 266-268
     of ``run_whole_body_analysis.m``.
 
     Args:
@@ -228,13 +231,13 @@ def compute_relative_positions(
         columns added.
     """
     # Select only needed columns from smooth_df to avoid conflicts
-    smooth_subset = smooth_df[[join_col] + list(smooth_cols)].drop_duplicates(
+    smooth_subset = smooth_df[[join_col, *list(smooth_cols)]].drop_duplicates(
         subset=[join_col]
     )
 
     merged = df.merge(smooth_subset, on=join_col, how="inner")
 
-    for out_col, xyz_c, sm_c in zip(output_cols, xyz_cols, smooth_cols):
+    for out_col, xyz_c, sm_c in zip(output_cols, xyz_cols, smooth_cols, strict=False):
         merged[out_col] = merged[xyz_c] - merged[sm_c]
 
     logger.info("  Relative positions: %d rows (from %d input)", len(merged), len(df))

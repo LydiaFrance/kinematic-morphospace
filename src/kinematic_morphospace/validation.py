@@ -252,8 +252,7 @@ def bootstrapping_pca(
     confidence_level=0.95,
     seed=None,
 ):
-    """Estimate bootstrap confidence intervals for PCA components and
-    explained variance.
+    """Estimate bootstrap confidence intervals for PCA components/variance.
 
     Repeatedly resamples the data with replacement, fits PCA, and collects
     components and explained variance ratios to build empirical confidence

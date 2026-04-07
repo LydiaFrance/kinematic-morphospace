@@ -1,7 +1,7 @@
 """Plots for individual-vs-shared subspace comparisons (Notebook 08)."""
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.ticker import MaxNLocator, ScalarFormatter
 
 # Standard hawk colour palette used project-wide

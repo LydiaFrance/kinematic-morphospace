@@ -13,7 +13,7 @@ def filter_by(frame_info, **filters):
 
     Supported keyword filters:
 
-    * **birdID** -- bird ID integer (1–5).
+    * **birdID** -- bird ID integer (1-5).
     * **hawkname** -- hawk name string (e.g. ``'Drogon'``).
     * **perchDist** -- perch distance as ``str``, ``int``, or ``list``.
     * **obstacle** -- obstacle presence (0 or 1).
@@ -52,7 +52,8 @@ def filter_by(frame_info, **filters):
         filter_value = filters.get(key)
         if filter_value is not None:
             if key == 'left' and frame_info.get("Left") is None:
-                raise ValueError("Left filter is only available for unilateral datasets.")
+                msg = "Left filter is only available for unilateral datasets."
+                raise ValueError(msg)
             filter_mask &= func(frame_info[data_key], filter_value)
 
     # Check for unrecognised filters
@@ -90,7 +91,7 @@ def get_hawkID(hawk_name):
             (e.g. ``'1'``).
 
     Returns:
-        Integer hawk ID (1–5), or ``None`` if no match is found.
+        Integer hawk ID (1-5), or ``None`` if no match is found.
     """
     if hawk_name.isdigit():
         return int(hawk_name)
@@ -157,11 +158,14 @@ def filter_by_perchDist(perchDist_df, perchDist):
         elif isinstance(dist, (int, float)):
             normalized_distances.append(int(dist))
         else:
-            raise ValueError("Each perch distance must be either an integer or a string containing digits.")
+            msg = (
+                "Each perch distance must be either an integer or "
+                "a string containing digits."
+            )
+            raise ValueError(msg)
 
-    is_selected = perchDist_df.isin(normalized_distances)
+    return perchDist_df.isin(normalized_distances)
 
-    return is_selected
 
 
 def filter_by_turn(turn_df, turn):
@@ -179,9 +183,8 @@ def filter_by_turn(turn_df, turn):
     if turn is None:
         return np.ones(len(turn_df), dtype=bool)
 
-    is_selected = turn_df.str.contains(turn, case=False)
+    return turn_df.str.contains(turn, case=False)
 
-    return is_selected
 
 
 def filter_by_horzdist(horzdist_df, horzdist_limit):
@@ -220,7 +223,8 @@ def filter_by_horzdist(horzdist_df, horzdist_limit):
             'in-flight':   -0.7
         }
         if horzdist_limit.lower() not in keywords:
-            raise ValueError(f"Unknown keyword. Valid options are: {list(keywords.keys())}")
+            msg = f"Unknown keyword. Valid options are: {list(keywords.keys())}"
+            raise ValueError(msg)
         horzdist_limit = keywords[horzdist_limit.lower()]
 
     # Handle single value (make sure it's negative)
@@ -229,16 +233,18 @@ def filter_by_horzdist(horzdist_df, horzdist_limit):
         return horzdist_df < limit
 
     # Handle range tuple (make sure values are negative and in right order)
-    elif isinstance(horzdist_limit, tuple) and len(horzdist_limit) == 2:
+    if isinstance(horzdist_limit, tuple) and len(horzdist_limit) == 2:
         start, end = horzdist_limit
         start, end = -abs(start), -abs(end)
         start, end = min(start, end), max(start, end)
         return (horzdist_df >= start) & (horzdist_df < end)
 
-    else:
-        raise ValueError(
-            "horzdist_limit must be:\n"
-            "- a number (e.g., 4.5 for x < -4.5)\n"
-            "- a tuple of (start, end)\n"
-            "- or one of: 'first_half', 'second_half', 'landing', 'takeoff', 'midflight'"
-        )
+    msg = (
+        "horzdist_limit must be:\n"
+        "- a number (e.g., 4.5 for x < -4.5)\n"
+        "- a tuple of (start, end)\n"
+        "- or one of: 'first_half', 'second_half', 'landing', 'takeoff', 'midflight'"
+    )
+    raise ValueError(
+        msg
+    )

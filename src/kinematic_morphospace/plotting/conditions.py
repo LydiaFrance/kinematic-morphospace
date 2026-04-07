@@ -103,8 +103,7 @@ def plot_score_weight_control(
     hawkname_list=("Drogon", "Toothless", "Charmander", "Ruby"),
     **filters,
 ):
-    """Plot binned PC score traces comparing weight-loaded and control flights
-    for each hawk.
+    """Plot binned PC score traces comparing weight-loaded and control flights.
 
     Creates a 1xN row of subplots (one per hawk). Control flights are shown as
     dotted lines; weight-loaded flights as solid lines. This reveals how the

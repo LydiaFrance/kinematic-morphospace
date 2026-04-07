@@ -357,8 +357,7 @@ def compute_derived_markers(df):
 
 
 def fix_leftright_sign(df):
-    """Ensure left markers have negative x-values and right markers have
-    positive x-values.
+    """Ensure left markers have negative x and right markers have positive x.
 
     Corrects sign errors that can arise when the Harvey et al. data is
     processed, where some birds may have left/right conventions inverted

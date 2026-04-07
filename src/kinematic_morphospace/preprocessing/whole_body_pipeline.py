@@ -26,6 +26,7 @@ from .body_rotation import (
 )
 from .coord_transform import compute_relative_positions
 from .marker_labelling import filter_by_distance, fix_mislabelled_tailpack
+from .polygon_labelling import label_by_polygons, load_polygon_boundaries
 from .smoothing import smooth_trajectory_with_gaps
 
 logger = logging.getLogger(__name__)
@@ -142,7 +143,6 @@ def smooth_backpack_per_sequence(
             horz_dist=horz_dist,
         )
 
-        n = len(result["frames"])
         seq_df = pd.DataFrame({
             "frame": result["frames"],
             "time": result["time"],
@@ -187,15 +187,15 @@ def run_whole_body_analysis(
 
     1. Smooth backpack per sequence (gap-aware spline).
     3. Correct mislabelled tailpack markers → headpack.
-    4. Compute relative positions (marker − smooth backpack).
-    5–6. Label unlabelled markers via polygon boundaries (optional).
+    4. Compute relative positions (marker - smooth backpack).
+    5-6. Label unlabelled markers via polygon boundaries (optional).
     7. Distance-based marker filtering.
     8. Re-smooth backpack, tailpack, headpack.
     9. Compute body pitch from the tailpack vector.
     10. Join body pitch to all tables.
     11. Rotate markers by pitch.
     12. Compute yaw from the head-to-tail vector.
-    13–15. Build body frame via cross products and extract Euler angles.
+    13-15. Build body frame via cross products and extract Euler angles.
     16. Attach metadata flags (Obstacle, IMU) if ``info_df`` is provided.
 
     Args:
@@ -223,7 +223,9 @@ def run_whole_body_analysis(
     # Step 1: Smooth backpack
     # ------------------------------------------------------------------
     logger.info("Step 1: Smoothing backpack")
-    smooth_bp = smooth_backpack_per_sequence(labelled_df, config, marker_label="backpack")
+    smooth_bp = smooth_backpack_per_sequence(
+        labelled_df, config, marker_label="backpack"
+    )
 
     # ------------------------------------------------------------------
     # Step 3: Fix mislabelled tailpack
@@ -249,8 +251,6 @@ def run_whole_body_analysis(
     # ------------------------------------------------------------------
     if config.polygon_path is not None:
         logger.info("Steps 5-6: Polygon labelling")
-        from .polygon_labelling import label_by_polygons, load_polygon_boundaries
-
         boundaries = load_polygon_boundaries(config.polygon_path)
 
         # Remove markers too far from backpack
@@ -359,8 +359,16 @@ def run_whole_body_analysis(
             suffixes=("_head", "_tail"),
         )
         if len(hp_tp) > 0:
-            head_rot = hp_tp[["rot_xyz_1_head", "rot_xyz_2_head", "rot_xyz_3_head"]].values
-            tail_rot = hp_tp[["rot_xyz_1_tail", "rot_xyz_2_tail", "rot_xyz_3_tail"]].values
+            head_rot = (
+                hp_tp[
+                    ["rot_xyz_1_head", "rot_xyz_2_head", "rot_xyz_3_head"]
+                ].values
+            )
+            tail_rot = (
+                hp_tp[
+                    ["rot_xyz_1_tail", "rot_xyz_2_tail", "rot_xyz_3_tail"]
+                ].values
+            )
 
             # Head-to-tail vector in rotated frame
             ht_vector = head_rot - tail_rot

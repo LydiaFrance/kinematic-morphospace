@@ -1,4 +1,4 @@
-"""Full preprocessing pipeline that orchestrates MAT loading, harmonisation, calibration, and shape-table construction.
+"""Full preprocessing pipeline orchestrating loading, harmonisation, and calibration.
 
 Reproduces the MATLAB script ``fix_data_2024_03_23.m`` as a single
 ``run_preprocessing()`` call.
@@ -9,9 +9,8 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import pandas as pd
-
 import numpy as np
+import pandas as pd
 
 from .calibration import apply_time_offsets, calibrate_position, calibrate_time
 from .harmonise import harmonise_labelled, harmonise_trajectory
@@ -295,7 +294,11 @@ def run_from_csvs(
     # with NaN time values from incomplete marker observations)
     n_before = len(labelled)
     labelled = labelled.dropna()
-    logger.info("  Dropped %d rows with NaN (%d remain)", n_before - len(labelled), len(labelled))
+    logger.info(
+        "  Dropped %d rows with NaN (%d remain)",
+        n_before - len(labelled),
+        len(labelled),
+    )
 
     # Add VertDistance from smooth backpack Z if not already present
     if "VertDistance" not in labelled.columns:

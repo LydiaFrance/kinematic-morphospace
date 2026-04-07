@@ -108,10 +108,12 @@ def reconstruct(score_frames, principal_components, mu, components_list=None):
         components_list = range(principal_components.shape[1])
 
     if not isinstance(score_frames, np.ndarray):
-        raise TypeError("score_frames must be a numpy array.")
+        msg = "score_frames must be a numpy array."
+        raise TypeError(msg)
 
     if len(score_frames.shape) != 2:
-        raise ValueError("score_frames must be 2d.")
+        msg = "score_frames must be 2d."
+        raise ValueError(msg)
 
     assert score_frames.shape[1] == principal_components.shape[0], \
         "score_frames must have the same number of columns as principal components."

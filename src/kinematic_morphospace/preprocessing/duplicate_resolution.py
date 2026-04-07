@@ -61,7 +61,8 @@ def detect_duplicates(
     labelled = df[labelled_mask]
 
     if labelled.empty:
-        return df.copy(), pd.DataFrame(columns=df.columns), pd.DataFrame(columns=df.columns)
+        empty_df = pd.DataFrame(columns=df.columns)
+        return df.copy(), empty_df, empty_df
 
     # Count occurrences of each (frame, label) pair
     composite = labelled[frame_col].astype(str) + "_" + labelled[label_col].astype(str)

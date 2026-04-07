@@ -17,8 +17,7 @@ logger = logging.getLogger(__name__)
 def compute_transformation_matrix(
     source_marker: np.ndarray, target_marker: np.ndarray
 ) -> np.ndarray:
-    """Compute a 3x3 matrix that rotates and scales a source marker onto
-    a target marker.
+    """Compute a 3x3 rotation and scale matrix for source to target marker.
 
     Combines a rotation (aligning the source vector direction with the target)
     and a uniform scale (matching their magnitudes) into a single 3x3 matrix.
@@ -75,8 +74,7 @@ def transform_hawk_to_species(
     species_df: pd.DataFrame,
     tail_z_override: float = -0.05,
 ) -> tuple[Animal3D, Animal3D, np.ndarray]:
-    """Transform a hawk shape to match a target species using
-    marker-by-marker transformation.
+    """Transform hawk shape to target species via marker-by-marker transformation.
 
     Args:
         hawk_3d: Animal3D object containing the hawk reference shape.
@@ -138,8 +136,7 @@ def transform_principal_components(
     principal_components: np.ndarray,
     transformation_matrix: np.ndarray,
 ) -> np.ndarray:
-    """Transform principal components using the block-diagonal species
-    transformation matrix.
+    """Transform principal components using block-diagonal transformation matrix.
 
     Applies the same marker-by-marker transformation used for the mean shape
     to each principal component vector, mapping the hawk morphospace axes

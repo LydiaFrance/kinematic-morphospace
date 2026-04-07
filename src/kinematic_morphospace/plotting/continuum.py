@@ -6,7 +6,8 @@ while the drawing code is factored out here.
 """
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -25,7 +26,7 @@ def compute_flight_phase_traces(
     include_mask: np.ndarray,
     bin_edges: np.ndarray,
     min_count: int = 50,
-) -> dict[str, "pd.DataFrame | None"]:
+) -> dict[str, pd.DataFrame | None]:
     """Bin PC1/PC2 scores by a continuous variable within each flight phase.
 
     Divides bin_value into the supplied bins, then for each flight phase
@@ -52,7 +53,7 @@ def compute_flight_phase_traces(
     bin_idx = np.digitize(bin_value, bin_edges) - 1
     valid_bin = (bin_idx >= 0) & (bin_idx < len(bin_mid))
 
-    traces: dict[str, "pd.DataFrame | None"] = {}
+    traces: dict[str, pd.DataFrame | None] = {}
     for name, code in flight_phase_map.items():
         m = (phase == code) & include_mask & valid_bin
         if not m.any():
@@ -164,7 +165,7 @@ def plot_transition_overlay(
     xlabel: str = "PC1 score  (wings down / up)",
     ylabel: str = "PC2 score  (folded / spread)",
 ) -> Figure:
-    """PC1-PC2 scatter showing transition frames over a fainter flapping/gliding backdrop.
+    """PC1-PC2 scatter showing transition frames over a flapping/gliding backdrop.
 
     Plots flapping and gliding frames at low opacity as context, then overlays
     transition frames at higher opacity. This reveals where in the morphospace
@@ -208,7 +209,7 @@ def plot_flight_phase_time_traces(
     traces: Mapping[str, Any],
     flight_phase_colours: Mapping[str, str],
 ) -> Figure:
-    """Three-panel figure of binned PC1/PC2 mean traces and PC1 spread versus distance to perch.
+    """Three-panel figure of PC1/PC2 mean traces and PC1 spread vs. distance to perch.
 
     Panel (a) shows PC1 mean ± 1 SD per flight phase; panel (b) shows PC2 mean
     ± 1 SD; panel (c) shows within-bin PC1 standard deviation as a proxy for

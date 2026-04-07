@@ -1,5 +1,4 @@
-"""kinematic-morphospace: PCA-based morphospace analysis of bird wings and
-tails in flight."""
+"""PCA-based morphospace analysis of bird wings and tails in flight."""
 from __future__ import annotations
 
 from .clustering import (
