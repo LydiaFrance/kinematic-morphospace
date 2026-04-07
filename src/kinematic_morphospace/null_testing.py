@@ -7,11 +7,16 @@ throughout statistical procedures.
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Dict, Iterable, List, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
+import yaml
+from scipy.optimize import linear_sum_assignment
+from scipy.spatial.distance import cdist
+
+from .pca_reconstruct import to_unilateral
 
 
 def flatten_frames(frames: np.ndarray) -> np.ndarray:
@@ -33,7 +38,8 @@ def flatten_frames(frames: np.ndarray) -> np.ndarray:
         return array.reshape(n_frames, n_markers * n_dims)
     if array.ndim == 2:
         return array.copy()
-    raise ValueError(f"Unexpected frame array shape {array.shape}")
+    msg = f"Unexpected frame array shape {array.shape}"
+    raise ValueError(msg)
 
 
 def ensure_rng(seed: int | None = None) -> np.random.Generator:
@@ -69,12 +75,18 @@ def validate_frame_alignment(
         ValueError: If the lengths mismatch or required columns are missing.
     """
     if frames.shape[0] != len(frame_info):
-        raise ValueError(
+        msg = (
             "Frame count mismatch: "
             f"{frames.shape[0]} frames versus {len(frame_info)} metadata rows."
         )
+        raise ValueError(
+            msg
+        )
 
-    missing = [column for column in expected_columns if column not in frame_info.columns]
+    missing = [
+        column for column in expected_columns
+        if column not in frame_info.columns
+    ]
     if missing:
         raise ValueError(
             "Frame metadata missing required columns: "
@@ -89,7 +101,7 @@ def prepare_sequence_groups(
     side_column: str = "Left",
     individual_column: str = "BirdID",
     condition_column: str = "Obstacle",
-) -> Dict[str, np.ndarray]:
+) -> dict[str, np.ndarray]:
     """Derive grouping vectors used to keep mirrored frames paired during resampling.
 
     Args:
@@ -124,7 +136,7 @@ def prepare_sequence_groups(
     }
 
 
-def sequence_lookup(seq_index: np.ndarray) -> List[np.ndarray]:
+def sequence_lookup(seq_index: np.ndarray) -> list[np.ndarray]:
     """Build a list-of-indices lookup for quick sequence masking.
 
     Args:
@@ -135,7 +147,7 @@ def sequence_lookup(seq_index: np.ndarray) -> List[np.ndarray]:
         List of arrays, one per unique sequence, each containing the
         frame indices belonging to that sequence.
     """
-    buckets: Dict[int, List[int]] = defaultdict(list)
+    buckets: dict[int, list[int]] = defaultdict(list)
     for frame_idx, seq_idx in enumerate(seq_index):
         buckets[int(seq_idx)].append(frame_idx)
     return [np.asarray(indices, dtype=int) for indices in buckets.values()]
@@ -199,7 +211,8 @@ def grouped_permutation_labels(
     for idx, seq_id in enumerate(unique_seq):
         frame_positions = np.flatnonzero(seq_index == seq_id)
         if frame_positions.size == 0:
-            raise ValueError(f"Sequence id {seq_id} has no associated frames.")
+            msg = f"Sequence id {seq_id} has no associated frames."
+            raise ValueError(msg)
         seq_labels[idx] = labels[frame_positions[0]]
     permuted = generator.permutation(seq_labels)
     return permuted[seq_index]
@@ -224,7 +237,7 @@ def summarise_distribution(
         formatted as ``p{value}`` (e.g. ``p2.5``).
     """
     array = np.asarray(values)
-    summary: Dict[str, float] = {
+    summary: dict[str, float] = {
         "mean": float(np.mean(array)),
         "std": float(np.std(array, ddof=1)) if array.size > 1 else float("nan"),
     }
@@ -297,12 +310,14 @@ def pairwise_distance_features(
     """
     array = np.asarray(frames, dtype=np.float64)
     if array.ndim != 3:
-        raise ValueError("Expected frames with shape (n_frames, n_markers, 3)")
-    n_frames, n_markers, _ = array.shape
+        msg = "Expected frames with shape (n_frames, n_markers, 3)"
+        raise ValueError(msg)
+    _n_frames, n_markers, _ = array.shape
 
     if max_markers is not None:
         if max_markers < 2:
-            raise ValueError("max_markers must be >= 2")
+            msg = "max_markers must be >= 2"
+            raise ValueError(msg)
         array = array[:, :max_markers, :]
         n_markers = max_markers
 
@@ -324,7 +339,7 @@ def pairwise_distance_features(
 
 def load_missing_marker_dataset(
     npz_path: Path,
-) -> Tuple[np.ndarray, pd.DataFrame, Sequence[str]]:
+) -> tuple[np.ndarray, pd.DataFrame, Sequence[str]]:
     """Load the labelled dataset with missing markers from an npz file.
 
     Args:
@@ -347,7 +362,7 @@ def prepare_missing_marker_dataset(
     wingspan_path: Path | str,
     *,
     straight_only: bool = True,
-) -> Tuple[np.ndarray, np.ndarray, pd.DataFrame]:
+) -> tuple[np.ndarray, np.ndarray, pd.DataFrame]:
     """Load the missing-marker dataset, scale by wingspan, and convert to unilateral.
 
     Args:
@@ -362,9 +377,6 @@ def prepare_missing_marker_dataset(
         scaled bilateral array), and missing_info is a per-frame metadata
         DataFrame.
     """
-    import yaml
-    from .pca_reconstruct import to_unilateral
-
     bilateral, info, _cols = load_missing_marker_dataset(Path(npz_path))
 
     with open(wingspan_path) as f:
@@ -395,7 +407,7 @@ def prepare_missing_marker_dataset(
 
 def load_unlabelled_csv(
     csv_path: Path | str,
-) -> Tuple[Dict[int, np.ndarray], List[int], List[int]]:
+) -> tuple[dict[int, np.ndarray], list[int], list[int]]:
     """Load the unlabelled marker CSV and group by frame.
 
     Args:
@@ -413,7 +425,7 @@ def load_unlabelled_csv(
     unlabelled_ids = frame_counts[frame_counts != 8].index.tolist()
 
     xyz_cols = [c for c in df.columns if c.startswith("rot_xyz")]
-    frame_groups: Dict[int, np.ndarray] = {
+    frame_groups: dict[int, np.ndarray] = {
         fid: group[xyz_cols].to_numpy().reshape(-1, 3)
         for fid, group in df.groupby("frameID")
     }
@@ -426,7 +438,7 @@ def principal_cosines(
     *,
     modes: int,
     return_angles: bool = False
-) -> np.ndarray | Tuple[np.ndarray, np.ndarray]:
+) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
     """Compute principal cosines between the leading modes of two bases.
 
     Principal cosines (the singular values of ``Qa.T @ Qb``) measure the
@@ -455,10 +467,12 @@ def principal_cosines(
             number of feature rows.
     """
     if basis_a.ndim != 2 or basis_b.ndim != 2:
-        raise ValueError("basis_a and basis_b must be 2-D arrays")
+        msg = "basis_a and basis_b must be 2-D arrays"
+        raise ValueError(msg)
 
     if basis_a.shape[0] != basis_b.shape[0]:
-        raise ValueError("Bases must have the same number of feature rows (same ambient dimension)")
+        msg = "Bases must have the same number of feature rows (same ambient dimension)"
+        raise ValueError(msg)
 
     A = np.asarray(basis_a, dtype=np.float64)
     B = np.asarray(basis_b, dtype=np.float64)
@@ -538,10 +552,7 @@ def relabel_with_predictor(
     Returns:
         Relabelled marker array of the same shape as ``frames``.
     """
-    from scipy.optimize import linear_sum_assignment
-    from scipy.spatial.distance import cdist
-
-    n_frames, n_markers, _ = frames.shape
+    n_frames, _n_markers, _ = frames.shape
     relabelled = np.zeros_like(frames)
     relabelled[0] = frames[0].copy()
     previous = relabelled[0].copy()
@@ -554,7 +565,7 @@ def relabel_with_predictor(
         costs[costs > max_displacement] = 1e9
         rows, cols = linear_sum_assignment(costs)
         assigned = np.zeros_like(current)
-        for row, col in zip(rows, cols):
+        for row, col in zip(rows, cols, strict=False):
             assigned[row] = current[col]
         relabelled[frame_idx] = assigned
         new_velocity = relabelled[frame_idx] - previous

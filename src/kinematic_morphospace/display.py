@@ -6,10 +6,10 @@ outside the notebook so cells show only the computation.
 """
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
-
+import pandas as pd
 
 # ── §8.2 CEV comparison across representations ────────────────────────
 
@@ -17,7 +17,7 @@ def print_cev_comparison(
     rows: Sequence[tuple[str, np.ndarray]],
     n_modes: int = 4,
 ) -> None:
-    """Print a method × cumulative-explained-variance table.
+    """Print a method x cumulative-explained-variance table.
 
     Args:
         rows: Sequence of (method_name, cev_array) tuples. Each
@@ -48,12 +48,15 @@ def print_occlusion_pca(
             Set ``cosines=None`` when ``n_occluded`` is too small to
             compute a meaningful cosine.
     """
-    n_cos = max((len(r["cosines"]) for r in rows if r["cosines"] is not None), default=4)
+    n_cos = max(
+        (len(r["cosines"]) for r in rows if r["cosines"] is not None),
+        default=4,
+    )
     cos_hdr = "  ".join(f"{i + 1:>5d}" for i in range(n_cos))
 
     print(
         f"{'Dropped':<12s} {'Occluded':>10s}   {'── CEV₄ ──':^19s}   "
-        f"{'Cosines (modes 1–' + str(n_cos) + ')':^{6 * n_cos}s}"
+        f"{'Cosines (modes 1-' + str(n_cos) + ')':^{6 * n_cos}s}"
     )
     print(
         f"{'marker':<12s} {'frames':>10s}   {'Complete':>9s} {'Occluded':>9s}   "
@@ -125,14 +128,18 @@ def print_thinned_pca(
         n_components: Number of modes to show per row. Defaults to 4.
     """
     pc_hdr = "".join(f" {'PC' + str(i + 1):>7s}" for i in range(n_components))
+    cosines_label = f"Cosines (1-{n_components})"
+    cosines_width = 5 * n_components + n_components - 1
     print(
         f"{'Step':>5s} {'Frames':>10s} {'CEV₄':>8s}"
-        f"{pc_hdr}   {'Cosines (1–' + str(n_components) + ')':>{5 * n_components + n_components - 1}s}"
+        f"{pc_hdr}   {cosines_label:>{cosines_width}s}"
     )
     print("─" * (25 + 8 * n_components + 5 * n_components + n_components))
 
     for r in rows:
-        var_str = "".join(f" {r['variance_per_mode'][i]:>7.4f}" for i in range(n_components))
+        var_str = "".join(
+            f" {r['variance_per_mode'][i]:>7.4f}" for i in range(n_components)
+        )
         cos_str = " ".join(f"{c:.3f}" for c in r["cosines"])
         print(
             f"{r['step']:>5d} {r['n_frames']:>10,} {r['cev']:>8.4f}"
@@ -151,7 +158,7 @@ def print_bootstrap_stability(
     Args:
         rows: Sequence of dicts with keys ``label``, ``n_bootstraps``,
             ``cev4`` (array of bootstrap CEV₄ values), and ``cosines``
-            (n_bootstraps × k array of principal cosines).
+            (n_bootstraps x k array of principal cosines).
         observed_cev4: If provided, the observed (non-bootstrap) CEV₄
             value is printed before the table. Defaults to None.
     """
@@ -213,7 +220,10 @@ def print_residual_eigenvalues(
 def print_quintile_rmse(
     all_scores: np.ndarray,
     frame_rmse: np.ndarray,
-    pc_pairs: Sequence[tuple[int, str]] = ((0, "PC1 (wing lifting)"), (1, "PC2 (wing spreading)")),
+    pc_pairs: Sequence[tuple[int, str]] = (
+        (0, "PC1 (wing lifting)"),
+        (1, "PC2 (wing spreading)"),
+    ),
 ) -> None:
     """Print reconstruction RMSE broken down by PC-score quintile.
 
@@ -223,8 +233,6 @@ def print_quintile_rmse(
         pc_pairs: Sequence of (component_index, display_name) tuples
             specifying which PCs to break down. Defaults to PC1 and PC2.
     """
-    import pandas as pd
-
     print("Reconstruction RMSE by PC score quintile:")
     for pc_index, pc_name in pc_pairs:
         quintile_labels = pd.qcut(all_scores[:, pc_index], 5, labels=False)
@@ -233,7 +241,10 @@ def print_quintile_rmse(
             in_quintile = quintile_labels == quintile
             mean_score = all_scores[in_quintile, pc_index].mean()
             mean_rmse = frame_rmse[in_quintile].mean()
-            print(f"    Q{quintile + 1} (score={mean_score:>7.3f}): RMSE = {mean_rmse:.4f}")
+            print(
+                f"    Q{quintile + 1} (score={mean_score:>7.3f}): RMSE = "
+                f"{mean_rmse:.4f}"
+            )
 
 
 # ── §8.6a Local PCA stability ────────────────────────────────────────
@@ -270,7 +281,7 @@ def print_intrinsic_dimensionality(
         rows: Sequence of dicts with keys ``n_neighbours``, ``median_id``,
             and ``mean_id``.
     """
-    print("Intrinsic dimensionality (Levina–Bickel, 5 000-point sample):")
+    print("Intrinsic dimensionality (Levina-Bickel, 5 000-point sample):")
     print(f"{'Neighbours':>12s} {'Median ID':>10s} {'Mean ID':>10s}")
     print("─" * 35)
     for r in rows:
@@ -280,7 +291,8 @@ def print_intrinsic_dimensionality(
 # ── §13 Flight-behaviour continuum (NB12) ─────────────────────────────
 
 def print_flight_phase_trace_summary(traces) -> None:
-    """Print per-flight-phase PC1/PC2 within-bin standard deviation at representative distances.
+    """Print per-flight-phase PC1/PC2 within-bin standard deviation at
+    representative distances.
 
     Args:
         traces: Dict mapping phase name to a DataFrame (or None). Each
@@ -335,10 +347,16 @@ def print_overlap_metrics(
     print(f"  n (flapping): {n_flap:,}")
     print(f"  n (gliding):  {n_glide:,}")
     print()
-    print(f"Silhouette (a priori labels):        {silhouette:+.3f}   (> 0.5 = distinct, ~0 = continuum)")
+    print(
+        f"Silhouette (a priori labels):        {silhouette:+.3f}   "
+        f"(> 0.5 = distinct, ~0 = continuum)"
+    )
     print(f"Centroid Euclidean distance:         {centroid_dist:.3f}")
     print(f"Within-class spread (sqrt mean var): {within_spread:.3f}")
-    print(f"Mahalanobis centroid separation:     {mahalanobis:.2f}   (>> 1 = separated)")
+    print(
+        f"Mahalanobis centroid separation:     {mahalanobis:.2f}   "
+        f"(>> 1 = separated)"
+    )
     print()
     print(f"LDA 5-fold CV accuracy:              {lda_mean:.3f} ± {lda_std:.3f}")
     print(f"Class prior (always-guess):          {class_prior:.3f}")
@@ -379,14 +397,17 @@ def print_bic_summary(bic_curve, best_k: int) -> None:
     """
     print(f"BIC at k=2:   {bic_curve[1]:,.0f}")
     print(f"BIC at k={best_k}:  {bic_curve[best_k - 1]:,.0f}")
-    print(f"BIC decrease from k=2 to k={best_k}: {bic_curve[1] - bic_curve[best_k - 1]:,.0f}")
+    print(
+        f"BIC decrease from k=2 to k={best_k}: "
+        f"{bic_curve[1] - bic_curve[best_k - 1]:,.0f}"
+    )
 
 
 # ── NB07 Missingness and Sampling Bias ───────────────────────────────────
 
 def print_complete_markers_summary(
     n_complete: int,
-    complete_markers: "np.ndarray",
+    complete_markers: np.ndarray,
 ) -> None:
     """Print shape summary for the complete-marker dataset.
 
@@ -403,9 +424,9 @@ def print_complete_markers_summary(
 
 
 def print_partial_markers_summary(
-    partial_bilateral: "np.ndarray",
-    partial_unilateral: "np.ndarray",
-    complete_unilateral: "np.ndarray",
+    partial_bilateral: np.ndarray,
+    partial_unilateral: np.ndarray,
+    complete_unilateral: np.ndarray,
 ) -> None:
     """Print frame-count summary for the partial-marker dataset.
 
@@ -422,9 +443,9 @@ def print_partial_markers_summary(
 
 
 def print_dataset_split(
-    complete_data: "np.ndarray",
-    partial_data: "np.ndarray",
-    partial_unilateral: "np.ndarray",
+    complete_data: np.ndarray,
+    partial_data: np.ndarray,
+    partial_unilateral: np.ndarray,
 ) -> None:
     """Print complete-vs-partial frame counts and the partial fraction.
 
@@ -437,13 +458,14 @@ def print_dataset_split(
     print("Within the broader dataset:")
     print(f"  Complete frames (all 4 markers): {complete_data.shape[0]:,}")
     print(f"  Partial frames (≥1 marker missing): {partial_data.shape[0]:,}")
-    print(f"  Partial fraction: {partial_data.shape[0] / partial_unilateral.shape[0]:.1%}")
+    partial_fraction = partial_data.shape[0] / partial_unilateral.shape[0]
+    print(f"  Partial fraction: {partial_fraction:.1%}")
 
 
 def print_density_shift_table(
-    marker_names: "Sequence[str]",
-    complete_data: "np.ndarray",
-    partial_data: "np.ndarray",
+    marker_names: Sequence[str],
+    complete_data: np.ndarray,
+    partial_data: np.ndarray,
     bins: int = 60,
 ) -> None:
     """Print per-marker density-shift between complete and partial frames.
@@ -461,7 +483,10 @@ def print_density_shift_table(
             ``(N_partial, n_markers, 3)``.
         bins: Number of histogram bins per axis. Defaults to 60.
     """
-    print(f'{"Marker":<12} {"Complete in densest 25%":>24} {"Partial in densest 25%":>24} {"Shift":>8}')
+    print(
+        f'{"Marker":<12} {"Complete in densest 25%":>24} '
+        f'{"Partial in densest 25%":>24} {"Shift":>8}'
+    )
     print('-' * 72)
 
     for m, name in enumerate(marker_names):
@@ -475,14 +500,19 @@ def print_density_shift_table(
         x_range = (min(xc.min(), xp.min()), max(xc.max(), xp.max()))
         z_range = (min(zc.min(), zp.min()), max(zc.max(), zp.max()))
 
-        H_c, xedges, zedges = np.histogram2d(xc, zc, bins=bins, range=[x_range, z_range])
+        H_c, xedges, zedges = np.histogram2d(
+            xc, zc, bins=bins, range=[x_range, z_range]
+        )
         occupied = H_c[H_c > 0]
         threshold = np.percentile(occupied, 75)
         dense = H_c >= threshold
 
-        def _bin_fraction(x: "np.ndarray", z: "np.ndarray", mask_2d: "np.ndarray") -> float:
-            xi = np.clip(np.searchsorted(xedges, x) - 1, 0, bins - 1)
-            zi = np.clip(np.searchsorted(zedges, z) - 1, 0, bins - 1)
+        def _bin_fraction(
+            x: np.ndarray, z: np.ndarray, mask_2d: np.ndarray,
+            _xe: np.ndarray = xedges, _ze: np.ndarray = zedges,
+        ) -> float:
+            xi = np.clip(np.searchsorted(_xe, x) - 1, 0, bins - 1)
+            zi = np.clip(np.searchsorted(_ze, z) - 1, 0, bins - 1)
             return mask_2d[xi, zi].mean()
 
         frac_c = _bin_fraction(xc, zc, dense)
@@ -496,8 +526,8 @@ def print_density_shift_table(
 
 
 def print_marker_dropout_rates(
-    marker_names: "Sequence[str]",
-    partial_data: "np.ndarray",
+    marker_names: Sequence[str],
+    partial_data: np.ndarray,
 ) -> None:
     """Print per-marker dropout rates within partial frames.
 
@@ -513,13 +543,17 @@ def print_marker_dropout_rates(
     for m, name in enumerate(marker_names):
         missing_count = np.isnan(partial_data[:, m, 0]).sum()
         present_count = n_partial - missing_count
-        print(f'{name:<12} {missing_count:>10,} {present_count:>10,} {missing_count/n_partial:>10.1%}')
+        dropout_rate = missing_count / n_partial
+        print(
+            f'{name:<12} {missing_count:>10,} {present_count:>10,} '
+            f'{dropout_rate:>10.1%}'
+        )
 
 
 def print_anatomical_violations(
-    all_data: "np.ndarray",
-    pairs: "Sequence[tuple[str, str, int, int]]",
-) -> "dict[str, np.ndarray]":
+    all_data: np.ndarray,
+    pairs: Sequence[tuple[str, str, int, int]],
+) -> dict[str, np.ndarray]:
     """Print anatomical ordering violations and return per-pair boolean masks.
 
     Tests whether the expected lateral x-ordering holds for each marker pair
@@ -551,7 +585,11 @@ def print_anatomical_violations(
         pair_name = f'{name_inner} >= {name_outer}'
         n_testable = testable.sum()
         n_violated = violated.sum()
-        print(f'{pair_name:<25} {n_testable:>10,} {n_violated:>12,} {n_violated/n_testable:>8.2%}')
+        violation_rate = n_violated / n_testable
+        print(
+            f'{pair_name:<25} {n_testable:>10,} {n_violated:>12,} '
+            f'{violation_rate:>8.2%}'
+        )
 
         full_mask = np.zeros(all_data.shape[0], dtype=bool)
         full_mask[testable] = violated
@@ -561,8 +599,8 @@ def print_anatomical_violations(
 
 
 def print_violation_breakdown(
-    violation_masks: "dict[str, np.ndarray]",
-    any_nan: "np.ndarray",
+    violation_masks: dict[str, np.ndarray],
+    any_nan: np.ndarray,
 ) -> None:
     """Print violation counts split by complete vs partial frames.
 
@@ -579,5 +617,9 @@ def print_violation_breakdown(
         n_partial_viol = mask[any_nan].sum()
         n_complete_total = (~any_nan).sum()
         n_partial_total = any_nan.sum()
-        print(f'{key:<25} {n_complete_viol:>6,} ({n_complete_viol/n_complete_total:.2%}) '
-              f'{n_partial_viol:>6,} ({n_partial_viol/n_partial_total:.2%})')
+        complete_rate = n_complete_viol / n_complete_total
+        partial_rate = n_partial_viol / n_partial_total
+        print(
+            f'{key:<25} {n_complete_viol:>6,} ({complete_rate:.2%}) '
+            f'{n_partial_viol:>6,} ({partial_rate:.2%})'
+        )

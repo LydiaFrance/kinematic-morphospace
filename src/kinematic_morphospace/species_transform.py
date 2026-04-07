@@ -1,7 +1,7 @@
 """Piecewise marker-by-marker transformation for cross-species comparison."""
 
 import logging
-from typing import Any, Dict, Tuple
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -14,11 +14,14 @@ from .cross_species import integrate_dataframe_to_bird3D
 logger = logging.getLogger(__name__)
 
 
-def compute_transformation_matrix(source_marker: np.ndarray, target_marker: np.ndarray) -> np.ndarray:
-    """Compute a 3×3 matrix that rotates and scales a source marker onto a target marker.
+def compute_transformation_matrix(
+    source_marker: np.ndarray, target_marker: np.ndarray
+) -> np.ndarray:
+    """Compute a 3x3 matrix that rotates and scales a source marker onto
+    a target marker.
 
     Combines a rotation (aligning the source vector direction with the target)
-    and a uniform scale (matching their magnitudes) into a single 3×3 matrix.
+    and a uniform scale (matching their magnitudes) into a single 3x3 matrix.
     This is used as the per-marker building block of the block-diagonal
     species transformation.
 
@@ -27,7 +30,7 @@ def compute_transformation_matrix(source_marker: np.ndarray, target_marker: np.n
         target_marker: Target marker position as a 3-D vector.
 
     Returns:
-        3×3 transformation matrix combining rotation and scaling.
+        3x3 transformation matrix combining rotation and scaling.
 
     Raises:
         ValueError: If either marker has zero length.
@@ -35,9 +38,11 @@ def compute_transformation_matrix(source_marker: np.ndarray, target_marker: np.n
     norm_source = np.linalg.norm(source_marker)
     norm_target = np.linalg.norm(target_marker)
     if norm_source == 0:
-        raise ValueError("Source marker has zero length.")
+        msg = "Source marker has zero length."
+        raise ValueError(msg)
     if norm_target == 0:
-        raise ValueError("Target marker has zero length.")
+        msg = "Target marker has zero length."
+        raise ValueError(msg)
 
     scale = norm_target / norm_source
 
@@ -61,15 +66,17 @@ def compute_transformation_matrix(source_marker: np.ndarray, target_marker: np.n
     rotation = R.from_rotvec(angle * axis)
     rotation_matrix = rotation.as_matrix()
 
-    T = scale * rotation_matrix
-    return T
+    return scale * rotation_matrix
 
 
-def transform_hawk_to_species(hawk_3d: Any,
-                               species_idx: int,
-                               species_df: pd.DataFrame,
-                               tail_z_override: float = -0.05) -> Tuple[Animal3D, Animal3D, np.ndarray]:
-    """Transform a hawk shape to match a target species using marker-by-marker transformation.
+def transform_hawk_to_species(
+    hawk_3d: Any,
+    species_idx: int,
+    species_df: pd.DataFrame,
+    tail_z_override: float = -0.05,
+) -> tuple[Animal3D, Animal3D, np.ndarray]:
+    """Transform a hawk shape to match a target species using
+    marker-by-marker transformation.
 
     Args:
         hawk_3d: Animal3D object containing the hawk reference shape.
@@ -107,7 +114,8 @@ def transform_hawk_to_species(hawk_3d: Any,
     if tail_z_override is not None:
         transformed_markers[-1, 2] = tail_z_override
 
-    transformed_markers = transformed_markers.reshape(1, np.shape(transformed_markers)[0], 3)
+    n_markers = np.shape(transformed_markers)[0]
+    transformed_markers = transformed_markers.reshape(1, n_markers, 3)
     bilateral_markers = hawk_3d.mirror_keypoints(transformed_markers)
 
     transformed_marker_dict = create_marker_dict(
@@ -126,9 +134,12 @@ def transform_hawk_to_species(hawk_3d: Any,
     return transformed_bird_3d, target_bird_3d, T
 
 
-def transform_principal_components(principal_components: np.ndarray,
-                                    transformation_matrix: np.ndarray) -> np.ndarray:
-    """Transform principal components using the block-diagonal species transformation matrix.
+def transform_principal_components(
+    principal_components: np.ndarray,
+    transformation_matrix: np.ndarray,
+) -> np.ndarray:
+    """Transform principal components using the block-diagonal species
+    transformation matrix.
 
     Applies the same marker-by-marker transformation used for the mean shape
     to each principal component vector, mapping the hawk morphospace axes
@@ -147,11 +158,12 @@ def transform_principal_components(principal_components: np.ndarray,
     pc_shape = principal_components.shape
     pc_reshaped = principal_components.reshape(pc_shape[0], -1)
     pc_transformed = transformation_matrix @ pc_reshaped.T
-    pc_transformed = pc_transformed.T.reshape(pc_shape)
-    return pc_transformed
+    return pc_transformed.T.reshape(pc_shape)
 
 
-def create_marker_dict(bilateral_markers: np.ndarray, marker_names: list) -> Dict[str, list]:
+def create_marker_dict(
+    bilateral_markers: np.ndarray, marker_names: list
+) -> dict[str, list]:
     """Build a marker name → coordinate dictionary from an array of 3-D positions.
 
     Args:
