@@ -2,11 +2,10 @@
 
 from itertools import combinations
 
-import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from matplotlib.colors import to_rgba, to_rgb
-
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.colors import to_rgb, to_rgba
 
 # Default marker colour scheme
 # MARKER_COLOURS = {
@@ -182,7 +181,7 @@ def _layout_shuffle_schematic(axes, marker_colours=None, n_frames=5, seed=42,
     panel_w = n_markers * marker_w + (n_markers - 1) * marker_gap
 
     for ax_idx, (ax, (title, grid, show_names, show_xyz, show_frames)) in \
-            enumerate(zip(axes, panels)):
+            enumerate(zip(axes, panels, strict=False)):
         _draw_grid_panel(ax, grid, marker_names, n_frames, n_markers, n_axes,
                          title, subtitles[ax_idx], show_names, show_xyz,
                          show_frames, strip_w, strip_gap, marker_gap,
@@ -190,11 +189,12 @@ def _layout_shuffle_schematic(axes, marker_colours=None, n_frames=5, seed=42,
 
 
 def plot_shuffle_schematic(marker_colours=None, n_frames=5, seed=42):
-    """Plot the five-panel shuffle schematic showing each shuffle mode applied to toy data.
+    """Plot five-panel shuffle schematic showing each shuffle mode applied to
+    toy data.
 
-    Panels show the original data alongside temporal, column, label, and complete
-    shuffle variants. Used to visually explain the four null-model perturbations
-    applied in the robustness analysis.
+    Panels show the original data alongside temporal, column, label, and
+    complete shuffle variants. Used to visually explain the four
+    null-model perturbations applied in the robustness analysis.
 
     Args:
         marker_colours: Dict of {name: hex} for each marker. Defaults to
@@ -254,7 +254,7 @@ def _layout_subsampling_schematic(axes, marker_colours=None, n_frames=5,
     marker_w = n_axes * strip_w + (n_axes - 1) * strip_gap
     panel_w = n_markers * marker_w + (n_markers - 1) * marker_gap
 
-    for ax_idx, (ax, (title, held_out)) in enumerate(zip(axes, panels)):
+    for ax_idx, (ax, (_title, held_out)) in enumerate(zip(axes, panels, strict=False)):
         _draw_grid_panel(ax, original, marker_names, n_frames, n_markers,
                          n_axes, "", subtitles[ax_idx],
                          show_marker_names=True, show_xyz=True,
@@ -325,7 +325,7 @@ def _layout_relabelling_schematic(axes, marker_colours=None, n_frames=20,
     swapped_masks = {}
     for frac in fractions:
         grid = _make_grid(n_frames, n_markers, n_axes, colours, alphas)
-        n_swap = max(1, int(round(frac * n_frames)))
+        n_swap = max(1, round(frac * n_frames))
         swap_frames = set(rng.choice(n_frames, size=n_swap, replace=False))
         swapped_masks[frac] = swap_frames
 
@@ -344,11 +344,13 @@ def _layout_relabelling_schematic(axes, marker_colours=None, n_frames=20,
         for frac in fractions
     ]
     subtitles = ["All frames correctly labelled"] + [
-        f"{int(round(frac * n_frames))} of {n_frames} frames\nhave marker labels shuffled"
+        f"{round(frac * n_frames)} of {n_frames} frames\nhave marker labels shuffled"
         for frac in fractions
     ]
 
-    for ax_idx, (ax, (title, grid, swapped)) in enumerate(zip(axes, panels)):
+    for ax_idx, (ax, (title, grid, swapped)) in enumerate(
+        zip(axes, panels, strict=False)
+    ):
         _draw_grid_panel(ax, grid, marker_names, n_frames, n_markers, n_axes,
                          title, subtitles[ax_idx],
                          show_marker_names=(ax_idx == 0),
@@ -429,7 +431,7 @@ def _layout_imputation_schematic(axes, marker_colours=None,
     missing_mask = np.zeros((n_frames_missing, n_markers), dtype=bool)
     for m in range(n_markers):
         rate = missing_rates[m] if m < len(missing_rates) else 0.25
-        n_drop = int(round(rate * n_frames_missing))
+        n_drop = round(rate * n_frames_missing)
         drop_frames = rng.choice(n_frames_missing, size=n_drop, replace=False)
         missing_mask[drop_frames, m] = True
 
@@ -454,8 +456,8 @@ def _layout_imputation_schematic(axes, marker_colours=None,
         "Missing values estimated\nvia iterative imputation",
     ]
 
-    for ax_idx, (ax, (title, grid, n_f, mask, mode)) in enumerate(
-        zip(axes, panels)
+    for ax_idx, (ax, (_title, grid, n_f, mask, mode)) in enumerate(
+        zip(axes, panels, strict=False)
     ):
         ax.set_xlim(-0.6, panel_w + 0.1)
         ax.set_ylim(-1.1, n_f * cell_h + 1.0)
@@ -526,11 +528,12 @@ def plot_imputation_schematic(marker_colours=None, n_frames_complete=10,
                                n_frames_missing=20,
                                missing_rates=(0.25, 0.33, 0.25, 0.21),
                                seed=42):
-    """Plot a three-panel schematic showing complete data, missing data, and imputed data.
+    """Plot three-panel schematic showing complete data, missing data, and
+    imputed data.
 
-    Each panel is a grid of colour-coded cells representing marker coordinates.
-    Missing cells are shown as outlines; imputed cells are shown in a faded
-    version of the original colour with a dashed border.
+    Each panel is a grid of colour-coded cells representing marker
+    coordinates. Missing cells are shown as outlines; imputed cells are
+    shown in a faded version of the original colour with a dashed border.
 
     Args:
         marker_colours: Dict of {name: hex} for each marker. Defaults to
@@ -637,7 +640,7 @@ def _draw_distance_panel(ax, grid, col_labels, n_frames, n_cols,
         x_start = 0.0
         x_end = panel_w
         ax.annotate("", xy=(x_start, arrow_y), xytext=(x_end, arrow_y),
-                     arrowprops=dict(arrowstyle="->", color="0.4", lw=0.7))
+                     arrowprops={"arrowstyle": "->", "color": "0.4", "lw": 0.7})
         ax.text(x_start, arrow_y + 0.12, "greatest",
                 ha="left", va="bottom", fontsize=6.5, color="0.4")
         ax.text(x_end, arrow_y + 0.12, "smallest",
@@ -725,9 +728,30 @@ def _layout_pairwise_distance_schematic(fig, gridspec_region,
     panel_w_dist = n_pairs * (col_w + col_gap) - col_gap
 
     dist_panels = [
-        ("Labelled\npairwise distances",  pw_grid,       pair_labels, True,  True,  False),
-        ("Sorted\npairwise distances",    sorted_grid,   None,        False, True,  True),
-        ("Shuffled\npairwise distances",  shuffled_grid,  None,        False, True,  False),
+        (
+            "Labelled\npairwise distances",
+            pw_grid,
+            pair_labels,
+            True,
+            True,
+            False,
+        ),
+        (
+            "Sorted\npairwise distances",
+            sorted_grid,
+            None,
+            False,
+            True,
+            True,
+        ),
+        (
+            "Shuffled\npairwise distances",
+            shuffled_grid,
+            None,
+            False,
+            True,
+            False,
+        ),
     ]
     dist_subtitles = [
         "Ordered with labels",
@@ -799,9 +823,9 @@ def _layout_pairwise_distance_schematic(fig, gridspec_region,
             ax_exp.annotate(
                 "", xy=(cell_mid_x, cell_top_y),
                 xytext=(marker_centres[m_idx], triplet_y),
-                arrowprops=dict(arrowstyle="-", color=colour,
-                                lw=0.6, alpha=0.5,
-                                connectionstyle="arc3,rad=0.15"),
+                arrowprops={"arrowstyle": "-", "color": colour,
+                                "lw": 0.6, "alpha": 0.5,
+                                "connectionstyle": "arc3,rad=0.15"},
             )
 
     ax_exp.text(panel_w_xyz / 2, dist_cell_y - 0.15,
@@ -809,7 +833,7 @@ def _layout_pairwise_distance_schematic(fig, gridspec_region,
                 ha="center", va="top", fontsize=7.5, color="0.4")
 
     for i, (col, (title, grid, labels, show_labels, show_frames, arrow)) in \
-            enumerate(zip([1, 2, 3], dist_panels)):
+            enumerate(zip([1, 2, 3], dist_panels, strict=False)):
         ax = fig.add_subplot(gs[:, col])
         _draw_distance_panel(ax, grid, labels, n_frames, n_pairs,
                              title, dist_subtitles[i], show_labels,
@@ -950,7 +974,7 @@ def _layout_autocorrelation_schematic(axes, marker_colours=None):
     _draw_panel(axes[0], "Original", "All frames")
 
     # Marker legend at top
-    for mm, (name, col) in enumerate(zip(marker_names, colours)):
+    for mm, (name, col) in enumerate(zip(marker_names, colours, strict=False)):
         lx = mm * 1.8
         axes[0].plot(lx, total_h + 0.35, "o", color=col,
                      markersize=dot_size ** 0.5 * 0.8,

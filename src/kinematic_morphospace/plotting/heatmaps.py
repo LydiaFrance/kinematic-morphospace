@@ -4,12 +4,10 @@ Functions here produce heatmaps of PC scores binned by horizontal distance to th
 perch. Two-row colour images allow direct visual comparison of conditions such as
 obstacle vs control or naive vs experienced flight.
 """
-import numpy as np
-import matplotlib as mpl
-from matplotlib import pyplot as plt
 import matplotlib.gridspec as gridspec
+import numpy as np
+from matplotlib import pyplot as plt
 
-from ..pca_scores import get_binned_scores
 from ..data_filtering import filter_by
 
 PC_NAMES = {
@@ -81,14 +79,15 @@ def prepare_heatmap_comparison(scores_df, reference_filters, condition1, conditi
 def plot_difference_PC_scores_heatmap(df_control,
                                       df_exp,
                                       PC_cols, score_5, score_95):
-    """Plot a stacked heatmap comparing mean PC scores between obstacle and control flights.
+    """Plot stacked heatmap comparing mean PC scores between obstacle and
+    control flights.
 
-    Creates one subplot per PC component. Each subplot is a two-row colour image:
-    the top row shows the experimental condition and the bottom row the control,
-    both binned by horizontal distance to the perch and colour-scaled by
-    1st/99th percentile limits. A vertical line marks the obstacle position at
-    −4.5 m. The last five bins (nearest the perch) are removed to avoid
-    contamination from the perch-grab phase.
+    Creates one subplot per PC component. Each subplot is a two-row colour
+    image: the top row shows the experimental condition and the bottom row
+    the control, both binned by horizontal distance to the perch and
+    colour-scaled by 1st/99th percentile limits. A vertical line marks the
+    obstacle position at -4.5 m. The last five bins (nearest the perch) are
+    removed to avoid contamination from the perch-grab phase.
 
     Args:
         df_control: Control-condition scores DataFrame with a 'bins' column.
@@ -103,13 +102,23 @@ def plot_difference_PC_scores_heatmap(df_control,
     # Convert bins to float when finding common bins
     control_bins = df_control['bins'].astype(float).unique()
     exp_bins = df_exp['bins'].astype(float).unique()
-    common_bins = sorted(list(set(control_bins) & set(exp_bins)))
+    common_bins = sorted(set(control_bins) & set(exp_bins))
 
     # Calculate means using float bins
-    mean_scores_control = df_control[df_control['bins'].astype(float).isin(common_bins)].pivot_table(
-        index='bins', values=PC_cols, aggfunc='mean', observed=True).T
-    mean_scores_exp = df_exp[df_exp['bins'].astype(float).isin(common_bins)].pivot_table(
-        index='bins', values=PC_cols, aggfunc='mean', observed=True).T
+    control_filter = df_control['bins'].astype(float).isin(common_bins)
+    mean_scores_control = df_control[control_filter].pivot_table(
+        index='bins',
+        values=PC_cols,
+        aggfunc='mean',
+        observed=True,
+    ).T
+    exp_filter = df_exp['bins'].astype(float).isin(common_bins)
+    mean_scores_exp = df_exp[exp_filter].pivot_table(
+        index='bins',
+        values=PC_cols,
+        aggfunc='mean',
+        observed=True,
+    ).T
 
     num_pairs = len(PC_cols)
     fig = plt.figure(figsize=(8, 8))
@@ -183,8 +192,13 @@ def plot_difference_PC_scores_heatmap(df_control,
             ax.set_xticks([])
 
         elif ii == len(PC_cols) - 1:
-            tick_indices = [np.abs(actual_positions - tick).argmin() for tick in desired_ticks]
-            ax.set_xticklabels([f"{x:.0f}" for x in desired_ticks], rotation=45)
+            tick_indices = [
+                np.abs(actual_positions - tick).argmin()
+                for tick in desired_ticks
+            ]
+            ax.set_xticklabels(
+                [f"{x:.0f}" for x in desired_ticks], rotation=45
+            )
             ax.set_xlim(0, len(actual_positions) - 1)
 
             obstacle_idx = np.abs(actual_positions - (-4.5)).argmin()
@@ -211,10 +225,14 @@ def plot_difference_PC_scores_heatmap(df_control,
     return ax
 
 
-def plot_PC_score_heatmaps(scores_df, PC_cols, score_5, score_95, score_mid, title):
-    """Plot a single heatmap of mean PC scores binned by horizontal distance to the perch.
+def plot_PC_score_heatmaps(
+    scores_df, PC_cols, score_5, score_95, _score_mid, title
+):
+    """Plot single heatmap of mean PC scores binned by horizontal distance to
+    the perch.
 
-    Creates one image where rows are PC components and columns are distance bins.
+    Creates one image where rows are PC components and columns are distance
+    bins.
     Colour represents the mean score within each bin, scaled per component using
     the supplied percentile limits.
 
@@ -237,10 +255,10 @@ def plot_PC_score_heatmaps(scores_df, PC_cols, score_5, score_95, score_mid, tit
     fig, ax = plt.subplots(1, 1, figsize=(4, 6))
     fig.set_constrained_layout(True)
 
-    for ii, PC in enumerate(PC_cols):
+    for _ii, PC in enumerate(PC_cols):
         data = pc_scores.copy()
         data.loc[data.index != PC, :] = np.nan
-        im = ax.imshow(data, cmap='Spectral', aspect='auto',
+        ax.imshow(data, cmap='Spectral', aspect='auto',
                         vmin=score_5[PC], vmax=score_95[PC])
 
     ax.set_title(title)

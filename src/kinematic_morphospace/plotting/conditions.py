@@ -1,17 +1,20 @@
 """Condition-comparison score plots (obstacle, weight, naive vs experienced)."""
 
-import numpy as np
 import matplotlib as mpl
+import numpy as np
 from matplotlib import pyplot as plt
 
-from ..pca_scores import get_binned_scores
 from ..data_filtering import filter_by
+from ..pca_scores import get_binned_scores
 from .scores import plot_score
 
 
-def plot_score_obstacle_control(scores_df, PC_name,
-                                 hawkname_list=("Drogon", "Toothless", "Charmander", "Ruby"),
-                                 **filters):
+def plot_score_obstacle_control(
+    scores_df,
+    PC_name,
+    hawkname_list=("Drogon", "Toothless", "Charmander", "Ruby"),
+    **filters,
+):
     """Plot binned PC score traces comparing obstacle and control flights for each hawk.
 
     Creates a 1xN row of subplots (one per hawk). Within each subplot the control
@@ -34,7 +37,8 @@ def plot_score_obstacle_control(scores_df, PC_name,
         ValueError: If 'obstacle' is included in filters.
     """
     if 'obstacle' in filters:
-        raise ValueError("Obstacle should not be in filters")
+        msg = "Obstacle should not be in filters"
+        raise ValueError(msg)
 
     condition_labels = ['Control', 'Obstacle']
 
@@ -93,10 +97,14 @@ def plot_score_obstacle_control(scores_df, PC_name,
     return fig, axes
 
 
-def plot_score_weight_control(scores_df, PC_name,
-                               hawkname_list=("Drogon", "Toothless", "Charmander", "Ruby"),
-                               **filters):
-    """Plot binned PC score traces comparing weight-loaded and control flights for each hawk.
+def plot_score_weight_control(
+    scores_df,
+    PC_name,
+    hawkname_list=("Drogon", "Toothless", "Charmander", "Ruby"),
+    **filters,
+):
+    """Plot binned PC score traces comparing weight-loaded and control flights
+    for each hawk.
 
     Creates a 1xN row of subplots (one per hawk). Control flights are shown as
     dotted lines; weight-loaded flights as solid lines. This reveals how the
@@ -117,7 +125,8 @@ def plot_score_weight_control(scores_df, PC_name,
         ValueError: If 'IMU' is included in filters.
     """
     if 'IMU' in filters:
-        raise ValueError("IMU/Weight should not be in filters")
+        msg = "IMU/Weight should not be in filters"
+        raise ValueError(msg)
 
     condition_labels = ['Control', 'Weight']
 
@@ -174,9 +183,12 @@ def plot_score_weight_control(scores_df, PC_name,
     return fig, axes
 
 
-def plot_score_naive_control(scores_df, PC_name,
-                              hawkname_list=("Drogon", "Toothless", "Rhaegal"),
-                              **filters):
+def plot_score_naive_control(
+    scores_df,
+    PC_name,
+    hawkname_list=("Drogon", "Toothless", "Rhaegal"),
+    **filters,
+):
     """Plot binned PC score traces comparing naive (juvenile) and experienced flights.
 
     Creates a 1xN row of subplots (one per hawk). 2017 (naive/juvenile) flights
@@ -199,7 +211,8 @@ def plot_score_naive_control(scores_df, PC_name,
         ValueError: If 'obstacle' is included in filters.
     """
     if 'obstacle' in filters:
-        raise ValueError("Obstacle should not be in filters")
+        msg = "Obstacle should not be in filters"
+        raise ValueError(msg)
 
     condition_labels = ['Naive', 'Experienced']
 

@@ -4,16 +4,17 @@ Each function produces a single figure with the schematic stacked on top
 and the corresponding CEV results underneath, at a shared width.
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.gridspec import GridSpec
 
 from .schematics import (
-    _layout_shuffle_schematic, _layout_subsampling_schematic,
-    _layout_relabelling_schematic, _layout_imputation_schematic,
+    _layout_imputation_schematic,
     _layout_pairwise_distance_schematic,
+    _layout_relabelling_schematic,
+    _layout_shuffle_schematic,
+    _layout_subsampling_schematic,
 )
-
 
 # ── Shared styling ────────────────────────────────────────────────────
 
@@ -113,7 +114,7 @@ def _layout_shuffle_results(axes, cev, shuffle_results, n_comp):
                    "Label shuffle", "Complete shuffle"]
     k_vals = np.arange(1, n_comp + 1)
 
-    for ax, mode, label in zip(axes, mode_names, mode_labels):
+    for ax, mode, label in zip(axes, mode_names, mode_labels, strict=False):
         null_cev = shuffle_results[mode]
         null_mean = np.mean(null_cev, axis=0)
         null_lo = np.percentile(null_cev, 2.5, axis=0)
@@ -135,7 +136,7 @@ def _layout_subsampling_results(axes, cev, results_subsets):
     """Draw subsampling CEV results onto four axes."""
     k_full = np.arange(1, len(cev) + 1)
 
-    for ax, result in zip(axes, results_subsets):
+    for ax, result in zip(axes, results_subsets, strict=False):
         held_out = result["held_out"]
         subset_cev = result["cev"]
         k_sub = np.arange(1, len(subset_cev) + 1)
@@ -168,7 +169,7 @@ def _layout_pairwise_results(axes, cev, pw_cev, pw_sorted_cev,
         ("Shuffled distances\n(within-frame)", pw_shuffled_cev, 'grey', 'x--'),
     ]
 
-    for ax, (label, var_cev, colour, fmt) in zip(axes, variant_data):
+    for ax, (label, var_cev, colour, fmt) in zip(axes, variant_data, strict=False):
         ax.plot(k_vals, cev[:6], 'o-', color='#51B3D4',
                 label='Marker coords', markersize=_MARKER_SIZE)
         ax.plot(k_vals, var_cev[:6], fmt, color=colour, label=label,
@@ -184,7 +185,7 @@ def _layout_relabelling_results(axes, cev, relabel_results, fractions,
     """Draw relabelling CEV results onto axes (one per fraction)."""
     k_vals = np.arange(1, n_comp + 1)
 
-    for ax, frac in zip(axes, fractions):
+    for ax, frac in zip(axes, fractions, strict=False):
         cev_dist = relabel_results[frac]["cev"]
         cev_mean = np.mean(cev_dist, axis=0)
         cev_lo = np.percentile(cev_dist, 2.5, axis=0)
@@ -256,7 +257,7 @@ def plot_shuffle_composite(cev, shuffle_results, n_comp=12, fig_width=20):
     schem_axes = [fig.add_subplot(gs_top[0, i]) for i in range(5)]
     _layout_shuffle_schematic(schem_axes)
 
-    # Place results directly under schematic columns 1–4
+    # Place results directly under schematic columns 1-4
     result_axes = _place_results_under_schematics(
         fig, schem_axes, [1, 2, 3, 4],
         gap=0.04, result_frac=0.75, width_scale=0.8)
@@ -422,7 +423,8 @@ def plot_imputation_composite(cev, imputed_cev, cosines, n_comp=12,
 
 def plot_hull_coverage(pts_labelled, pts_unlabelled, pca_embed,
                        coverage_rev=None, figsize=(7, 6)):
-    """Scatter plot with marginal histograms showing labelled vs unlabelled frame overlap.
+    """Scatter plot with marginal histograms showing labelled vs unlabelled
+    frame overlap.
 
     The central panel shows both groups as translucent scatter points in the
     PCA-embedded pairwise-distance space. Top and right margins show normalised
@@ -444,8 +446,6 @@ def plot_hull_coverage(pts_labelled, pts_unlabelled, pca_embed,
     Returns:
         Figure containing the scatter and marginal histograms.
     """
-    from matplotlib.gridspec import GridSpec
-
     fig = plt.figure(figsize=figsize)
     gs = GridSpec(2, 2, figure=fig, width_ratios=[4, 1], height_ratios=[1, 4],
                   hspace=0.04, wspace=0.04)
@@ -455,8 +455,7 @@ def plot_hull_coverage(pts_labelled, pts_unlabelled, pca_embed,
     ax_right = fig.add_subplot(gs[1, 1], sharey=ax_main)
 
     # Colours
-    c_unlab = "mediumorchid" \
-    ""
+    c_unlab = "mediumorchid"
     c_lab = OBSERVED_COLOUR
 
     # --- Central scatter ---
@@ -500,8 +499,8 @@ def plot_hull_coverage(pts_labelled, pts_unlabelled, pca_embed,
             f"Unlabelled shapes inside labelled hull: {coverage_rev:.0%}",
             transform=ax_main.transAxes,
             va="top", ha="left", fontsize=_LABEL_SIZE, color=LABEL_COLOUR,
-            bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="0.8",
-                      alpha=0.85),
+            bbox={"boxstyle": "round,pad=0.3", "fc": "white", "ec": "0.8",
+                      "alpha": 0.85},
         )
 
     # --- Labels and styling ---
@@ -611,21 +610,25 @@ def plot_hull_outlier_markers(marker_counts, outside_mask, figsize=(5, 3.5)):
     return fig
 
 
-def plot_occlusion_bias(complete_scores, partial_scores, labels,
-                        n_bins=30, figsize=(10, 3.5)):
-    """Overlaid density histograms of PC scores for complete versus partially-occluded frames.
+def plot_occlusion_bias(
+    complete_scores, partial_scores, labels, n_bins=30, figsize=(10, 3.5)
+):
+    """Overlaid density histograms of PC scores for complete versus
+    partially-occluded frames.
 
-    Two-panel figure, one per morphing axis. Each panel shows normalised density
-    histograms for complete-marker frames (8 visible markers) and partial-marker
-    frames scored by least-squares projection. Differences in the distributions
-    reveal which wing shapes are underrepresented due to marker occlusion.
+    Two-panel figure, one per morphing axis. Each panel shows normalised
+    density histograms for complete-marker frames (8 visible markers) and
+    partial-marker frames scored by least-squares projection. Differences in
+    the distributions reveal which wing shapes are underrepresented due to
+    marker occlusion.
 
     Args:
-        complete_scores: Dict mapping axis label strings to 1-D score arrays for
-            complete-marker frames.
-        partial_scores: Dict with the same keys as complete_scores; values are 1-D
-            score arrays for partial-marker frames.
-        labels: Tuple of two legend labels, e.g. ('Complete (8 markers)', 'Partial (<8)').
+        complete_scores: Dict mapping axis label strings to 1-D score arrays
+            for complete-marker frames.
+        partial_scores: Dict with the same keys as complete_scores; values are
+            1-D score arrays for partial-marker frames.
+        labels: Tuple of two legend labels, e.g. ('Complete (8 markers)',
+            'Partial (<8)').
         n_bins: Number of equal-width histogram bins. Defaults to 30.
         figsize: Figure size (width, height) in inches. Defaults to (10, 3.5).
 
@@ -640,7 +643,7 @@ def plot_occlusion_bias(complete_scores, partial_scores, labels,
     c_complete = OBSERVED_COLOUR
     c_partial = "mediumorchid"
 
-    for ax, key in zip(axes, complete_scores):
+    for ax, key in zip(axes, complete_scores, strict=False):
         comp = complete_scores[key]
         part = partial_scores[key]
 
