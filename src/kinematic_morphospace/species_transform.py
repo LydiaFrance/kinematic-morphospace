@@ -72,7 +72,7 @@ def transform_hawk_to_species(
     hawk_3d: Any,
     species_idx: int,
     species_df: pd.DataFrame,
-    tail_z_override: float = -0.05,
+    tail_z_override: float | None = -0.05,
 ) -> tuple[Animal3D, Animal3D, np.ndarray]:
     """Transform hawk shape to target species via marker-by-marker transformation.
 

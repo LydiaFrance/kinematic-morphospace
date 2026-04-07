@@ -43,8 +43,8 @@ def plot_explained(
     fig = None
 
     if ax is None:
-        fig, ax = plt.subplots(figsize=(6.7, 3.5))
-        fig.set_constrained_layout(False)
+        fig, ax = plt.subplots(figsize=(6.7, 3.5), constrained_layout=False)
+    assert ax is not None
 
     # bar_colors = [
     #     '#CEEEA4', '#89E0B9', '#51B3D4', '#4579AA',
@@ -108,7 +108,7 @@ def plot_explained(
 
     ax.set_xlim(-0.5, len(explained_ratio)-0.5)
     ax.set_xticks(range(len(explained_ratio)))
-    ax.set_xticklabels(range(1,len(explained_ratio)+1), fontsize=6)
+    ax.set_xticklabels([str(i) for i in range(1, len(explained_ratio)+1)], fontsize=6)
     ax.grid(True, alpha=0.3)
 
     fig = fig if fig is not None else ax.get_figure()
@@ -336,8 +336,8 @@ def plot_explained_comparison(real_explained, shuffled_explained, ax=None,):
     fig = None
 
     if ax is None:
-        fig, ax = plt.subplots(figsize=(6.7, 3.5))
-        fig.set_constrained_layout(False)
+        fig, ax = plt.subplots(figsize=(6.7, 3.5), constrained_layout=False)
+    assert ax is not None
 
     # Plot cumulative explained variance for real data
     real_cum = np.cumsum(real_explained)
@@ -378,7 +378,7 @@ def plot_explained_comparison(real_explained, shuffled_explained, ax=None,):
     ax.set_yticks(np.arange(0, 1.05, 0.1))
     ax.set_xlim(-0.5, len(real_cum) - 0.5)
     ax.set_xticks(range(len(real_cum)))
-    ax.set_xticklabels(range(1, len(real_cum) + 1), fontsize=6)
+    ax.set_xticklabels([str(i) for i in range(1, len(real_cum) + 1)], fontsize=6)
     ax.grid(True, alpha=0.3)
 
     ax.spines['top'].set_visible(False)

@@ -203,7 +203,7 @@ def smooth_trajectory_with_gaps(
         velocity[:, coord] = spline.derivative(n=1)(time_signal)
         acceleration[:, coord] = spline.derivative(n=2)(time_signal)
 
-    return {
+    return {  # type: ignore
         "frames": frame_signal,
         "time": time_signal,
         "smooth": smooth,

@@ -89,7 +89,7 @@ def detect_velocity_peaks(
     if len(peaks) == 0:
         logger.warning("  No velocity peaks detected")
         return pd.DataFrame(
-            columns=["peak_frame", "peak_height", "width", "start_frame", "end_frame"]
+            columns=pd.Index(["peak_frame", "peak_height", "width", "start_frame", "end_frame"])
         )
 
     # Get peak widths for trial boundary calculation

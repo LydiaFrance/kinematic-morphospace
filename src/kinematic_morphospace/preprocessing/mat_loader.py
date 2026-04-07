@@ -60,7 +60,7 @@ def _load_mat_scipy(path: Path) -> dict[str, Any]:
 
 def _load_mat73(path: Path) -> dict[str, Any]:
     """Load a v7.3 (HDF5) .mat file using mat73."""
-    import mat73  # noqa: PLC0415
+    import mat73  # type: ignore  # noqa: PLC0415
 
     return mat73.loadmat(str(path))
 

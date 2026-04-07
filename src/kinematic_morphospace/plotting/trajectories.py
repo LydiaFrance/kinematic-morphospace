@@ -4,6 +4,7 @@ Functions here plot raw scatter clouds and per-hawk binned median lines for
 flight trajectories across the full set of experimental conditions (perch
 distances, years, obstacles, and weights).
 """
+import matplotlib.collections
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.ticker import FixedLocator, MultipleLocator
@@ -221,7 +222,7 @@ def plot_traj(
     # Add x-axis label
     axes[-2].set_xlabel('Horizontal distance to perch (m)')
 
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.tight_layout(rect=(0, 0, 1, 0.95))
 
     # Save the data as PDF and PNG -- the axes and other elements
     # are saved as vector elements, and the data is saved as raster elements.
@@ -280,8 +281,8 @@ def save_hybrid_figure(fig, axes, base_filename, dpi=600):
             if isinstance(
                 artist,
                 (
-                    plt.matplotlib.collections.PathCollection,  # scatter
-                    plt.matplotlib.collections.PolyCollection,  # fill_between
+                    matplotlib.collections.PathCollection,  # scatter
+                    matplotlib.collections.PolyCollection,  # fill_between
                 ),
             ):
                 scatter_artists.append((artist, artist.get_visible()))

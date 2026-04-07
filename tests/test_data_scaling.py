@@ -7,6 +7,8 @@ Exposes known issue #3 (hardcoded default path).
 """
 
 import logging
+from typing import Any, cast
+
 import pytest
 import numpy as np
 import pandas as pd
@@ -56,10 +58,10 @@ class TestScaleData:
         scaled_abs_mean = scaled[marker_cols].abs().mean().mean()
         assert scaled_abs_mean < orig_abs_mean
 
-    def test_wingspan_path_is_required(self, loaded_unilateral):
+    def test_wingspan_path_is_required(self, loaded_unilateral, sample_wingspan_path):
         """Fixed issue #3: wingspan_path no longer has a hardcoded default."""
         with pytest.raises(TypeError):
-            scale_data(loaded_unilateral.copy())
+            cast(Any, scale_data)(loaded_unilateral.copy())
 
 
 # -- unscale_data tests --

@@ -42,7 +42,7 @@ def flatten_frames(frames: np.ndarray) -> np.ndarray:
     raise ValueError(msg)
 
 
-def ensure_rng(seed: int | None = None) -> np.random.Generator:
+def ensure_rng(seed: int | np.random.Generator | None = None) -> np.random.Generator:
     """Return a NumPy Generator, passing through an existing one unchanged.
 
     Args:
@@ -425,10 +425,10 @@ def load_unlabelled_csv(
     unlabelled_ids = frame_counts[frame_counts != 8].index.tolist()
 
     xyz_cols = [c for c in df.columns if c.startswith("rot_xyz")]
-    frame_groups: dict[int, np.ndarray] = {
-        fid: group[xyz_cols].to_numpy().reshape(-1, 3)
-        for fid, group in df.groupby("frameID")
-    }
+    frame_groups: dict[int, np.ndarray] = {}
+    for fid, group in df.groupby("frameID"):
+        assert isinstance(fid, int)
+        frame_groups[fid] = group[xyz_cols].to_numpy().reshape(-1, 3)
     return frame_groups, labelled_ids, unlabelled_ids
 
 

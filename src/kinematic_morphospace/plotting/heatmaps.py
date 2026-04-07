@@ -155,7 +155,7 @@ def plot_difference_PC_scores_heatmap(df_control,
         combined_data = np.clip(combined_data, vmin, vmax)
 
         im = ax.imshow(combined_data.astype(float), cmap='Spectral_r', aspect='auto',
-                        vmin=vmin, vmax=vmax, extent=[0, len(actual_positions), 0, 2])
+                        vmin=vmin, vmax=vmax, extent=(0, len(actual_positions), 0, 2))
 
         # Apply x-tick positions for every subplot
         ax.set_xticks(tick_indices)
@@ -165,7 +165,8 @@ def plot_difference_PC_scores_heatmap(df_control,
         ax.axvline(x=obstacle_idx, color='black', linewidth=1.5, alpha=0.2)
 
         if ii == 0:
-            cbar_ax = fig.add_axes([0.134, 0.91, 0.1, 0.02])
+            cbar_ax = fig.add_axes((0.134, 0.91, 0.1, 0.02))
+            assert cbar_ax is not None
             cbar = plt.colorbar(im, cax=cbar_ax, orientation='horizontal')
             cbar.set_label('Score percentile', rotation=0, fontsize=9)
             cbar.ax.xaxis.set_label_position('top')
@@ -250,8 +251,7 @@ def plot_PC_score_heatmaps(
     pc_scores = scores_df.pivot_table(index='bins', values=PC_cols, aggfunc='mean',
                                        observed=False).T
 
-    fig, ax = plt.subplots(1, 1, figsize=(4, 6))
-    fig.set_constrained_layout(True)
+    fig, ax = plt.subplots(1, 1, figsize=(4, 6), constrained_layout=True)
 
     for _ii, PC in enumerate(PC_cols):
         data = pc_scores.copy()
@@ -320,7 +320,8 @@ def plot_difference_exp_scores_heatmap(df_control,
         ax.set_yticks([0, 1])
 
         if ii == 0:
-            cbar_ax = fig.add_axes([0.134, 0.91, 0.1, 0.02])
+            cbar_ax = fig.add_axes((0.134, 0.91, 0.1, 0.02))
+            assert cbar_ax is not None
             cbar = plt.colorbar(im, cax=cbar_ax, orientation='horizontal')
             cbar.set_label('Score percentile', rotation=0, fontsize=9)
             cbar.ax.xaxis.set_label_position('top')

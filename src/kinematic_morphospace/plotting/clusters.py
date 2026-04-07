@@ -65,6 +65,7 @@ def plot_clusters(
     standalone = ax is None
     if standalone:
         _fig, ax = plt.subplots(figsize=(4, 6))
+    assert ax is not None
 
     PC_1 = PC_pair[1]
     PC_2 = PC_pair[0]
@@ -128,6 +129,7 @@ def plot_cluster_counts(unique, counts, colour_list, title=None, fig=None, ax=No
     standalone = fig is None
     if standalone:
         fig, ax = plt.subplots(figsize=(6, 6))
+    assert ax is not None
 
     colour_array = np.array(list(colour_list.values()))
     ax.bar(unique, counts, color=colour_array)
