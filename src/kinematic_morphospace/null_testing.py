@@ -416,19 +416,18 @@ def load_unlabelled_csv(
     Returns:
         Tuple of (frame_groups, labelled_ids, unlabelled_ids) where
         frame_groups maps frameID → ``(n_markers, 3)`` coordinate array,
-        labelled_ids contains frame IDs with exactly 8 markers, and
-        unlabelled_ids contains frame IDs with fewer than 8 markers.
+        labelled_ids contains frame IDs (as ints) with exactly 8 markers, and
+        unlabelled_ids contains frame IDs (as ints) with fewer than 8 markers.
     """
     df = pd.read_csv(csv_path)
     frame_counts = df.groupby("frameID").size()
-    labelled_ids = pd.Series(frame_counts[frame_counts == 8]).index.tolist()
-    unlabelled_ids = pd.Series(frame_counts[frame_counts != 8]).index.tolist()
+    labelled_ids = [int(fid) for fid in frame_counts.index[frame_counts == 8]]
+    unlabelled_ids = [int(fid) for fid in frame_counts.index[frame_counts != 8]]
 
     xyz_cols = [c for c in df.columns if c.startswith("rot_xyz")]
     frame_groups: dict[int, np.ndarray] = {}
     for fid, group in df.groupby("frameID"):
-        assert isinstance(fid, int)
-        frame_groups[fid] = group[xyz_cols].to_numpy().reshape(-1, 3)
+        frame_groups[int(str(fid))] = group[xyz_cols].to_numpy().reshape(-1, 3)
     return frame_groups, labelled_ids, unlabelled_ids
 
 

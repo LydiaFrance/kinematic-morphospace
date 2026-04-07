@@ -643,4 +643,8 @@ def plot_hist_similar_shapes(
         ax_right_2d.set_ylim(-0.7, 0.3)
 
     plt.tight_layout()
+
+    # Show the figure if it was created inside this function
+    if fig is not None:
+        plt.show()
     return fig, axes
