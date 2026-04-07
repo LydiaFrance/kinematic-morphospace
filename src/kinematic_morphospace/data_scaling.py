@@ -183,7 +183,7 @@ def add_tailpack_data(markers_df, frame_info_df, tailpack_csv, wingspan_path=Non
     merged_df = merged_df[marker_cols]
     n_markers = len(marker_cols) // 3
 
-    combined_markers = merged_df.to_numpy().reshape(-1, n_markers, 3)
+    combined_markers = np.asarray(merged_df).reshape(-1, n_markers, 3)
 
     markers_df_new = markers_df.copy()
     markers_df_new = markers_df_new[row_index].reset_index(drop=True)

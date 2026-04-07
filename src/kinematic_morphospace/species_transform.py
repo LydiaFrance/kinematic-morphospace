@@ -129,7 +129,7 @@ def transform_hawk_to_species(
 
     transformed_bird_3d = Animal3D('hawk', data=transformed_marker_dict)
 
-    return transformed_bird_3d, target_bird_3d, T
+    return transformed_bird_3d, target_bird_3d, np.asarray(T)
 
 
 def transform_principal_components(

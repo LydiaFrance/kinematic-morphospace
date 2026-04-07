@@ -390,7 +390,7 @@ def prepare_missing_marker_dataset(
         for year in [2017, 2020]:
             if year not in wingspans.get(hawk_name, {}):
                 continue
-            mask = (bird_ids == hawk_id) & (years == year)
+            mask = np.asarray(bird_ids == hawk_id) & np.asarray(years == year)
             if mask.any():
                 bilateral[mask] /= wingspans[hawk_name][year]
 
@@ -421,8 +421,8 @@ def load_unlabelled_csv(
     """
     df = pd.read_csv(csv_path)
     frame_counts = df.groupby("frameID").size()
-    labelled_ids = frame_counts[frame_counts == 8].index.tolist()
-    unlabelled_ids = frame_counts[frame_counts != 8].index.tolist()
+    labelled_ids = pd.Series(frame_counts[frame_counts == 8]).index.tolist()
+    unlabelled_ids = pd.Series(frame_counts[frame_counts != 8]).index.tolist()
 
     xyz_cols = [c for c in df.columns if c.startswith("rot_xyz")]
     frame_groups: dict[int, np.ndarray] = {}

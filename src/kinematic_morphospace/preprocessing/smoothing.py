@@ -79,9 +79,9 @@ def smooth_spline(
     s = rms**2 * len(x)
     spline = UnivariateSpline(x, y, s=s, k=3)
 
-    y_smooth = spline(x)
-    velocity = spline.derivative(n=1)(x)
-    acceleration = spline.derivative(n=2)(x)
+    y_smooth = np.asarray(spline(x))
+    velocity = np.asarray(spline.derivative(n=1)(x))
+    acceleration = np.asarray(spline.derivative(n=2)(x))
 
     return y_smooth, velocity, acceleration
 
@@ -102,7 +102,7 @@ def smooth_trajectory_with_gaps(
     min_time: float = 0.0,
     min_horz_dist: float = 0.3,
     horz_dist: np.ndarray | None = None,
-) -> dict[str, np.ndarray]:
+) -> dict[str, np.ndarray | list]:
     """Smooth a 3D marker trajectory, excising large gap regions before fitting.
 
     Reproduces the per-sequence smoothing logic from MATLAB
@@ -203,7 +203,7 @@ def smooth_trajectory_with_gaps(
         velocity[:, coord] = spline.derivative(n=1)(time_signal)
         acceleration[:, coord] = spline.derivative(n=2)(time_signal)
 
-    return {  # type: ignore
+    return {
         "frames": frame_signal,
         "time": time_signal,
         "smooth": smooth,
@@ -250,9 +250,10 @@ def compute_body_statistics(
     """
     # Filter to body markers if labels provided
     if body_labels is not None:
-        body_ids = body_labels[
+        filtered_labels = body_labels[
             body_labels.isin(["backpack", "tailpack", "headpack"])
-        ].index
+        ]
+        body_ids = list(pd.Series(filtered_labels).index)
         body = df[df["marker_id"].isin(body_ids)].copy()
     else:
         body = df.copy()
@@ -261,35 +262,35 @@ def compute_body_statistics(
     frame_mean = body.groupby("frame")[["X", "Y", "Z"]].mean().sort_index()
     frame_mean.columns = ["mean_X", "mean_Y", "mean_Z"]
 
-    frames = frame_mean.index.values.astype(float)
+    frames = np.asarray(frame_mean.index.values, dtype=float)
 
     # Smooth XYZ with moving mean
-    smooth_x_vals = frame_mean["mean_X"].values
-    smooth_y_vals = frame_mean["mean_Y"].values
-    smooth_z_vals = frame_mean["mean_Z"].values
-    frame_mean["smooth_X"] = moving_mean_smooth(smooth_x_vals, smooth_window)
-    frame_mean["smooth_Y"] = moving_mean_smooth(smooth_y_vals, smooth_window)
-    frame_mean["smooth_Z"] = moving_mean_smooth(smooth_z_vals, smooth_window)
+    smooth_x_vals = np.asarray(frame_mean["mean_X"], dtype=float)
+    smooth_y_vals = np.asarray(frame_mean["mean_Y"], dtype=float)
+    smooth_z_vals = np.asarray(frame_mean["mean_Z"], dtype=float)
+    frame_mean.loc[:, "smooth_X"] = moving_mean_smooth(smooth_x_vals, smooth_window)
+    frame_mean.loc[:, "smooth_Y"] = moving_mean_smooth(smooth_y_vals, smooth_window)
+    frame_mean.loc[:, "smooth_Z"] = moving_mean_smooth(smooth_z_vals, smooth_window)
 
     # Velocity: gradient of smoothed position, scaled by frame rate
-    vel_x_vals = frame_mean["smooth_X"].values
-    vel_y_vals = frame_mean["smooth_Y"].values
-    vel_z_vals = frame_mean["smooth_Z"].values
-    frame_mean["vel_X"] = (
+    vel_x_vals = np.asarray(frame_mean["smooth_X"], dtype=float)
+    vel_y_vals = np.asarray(frame_mean["smooth_Y"], dtype=float)
+    vel_z_vals = np.asarray(frame_mean["smooth_Z"], dtype=float)
+    frame_mean.loc[:, "vel_X"] = (
         np.gradient(vel_x_vals, frames) * frame_rate
     )
-    frame_mean["vel_Y"] = (
+    frame_mean.loc[:, "vel_Y"] = (
         np.gradient(vel_y_vals, frames) * frame_rate
     )
-    frame_mean["vel_Z"] = (
+    frame_mean.loc[:, "vel_Z"] = (
         np.gradient(vel_z_vals, frames) * frame_rate
     )
 
     # Speed: norm of velocity, with additional smoothing
-    velocity = frame_mean[["vel_X", "vel_Y", "vel_Z"]].values
+    velocity = np.asarray(frame_mean[["vel_X", "vel_Y", "vel_Z"]], dtype=float)
     raw_speed = np.linalg.norm(velocity, axis=1)
     speed_window = max(1, int(frame_rate / 10))
-    frame_mean["speed"] = moving_mean_smooth(raw_speed, speed_window)
+    frame_mean.loc[:, "speed"] = moving_mean_smooth(raw_speed, speed_window)
 
     result = frame_mean.reset_index()
     logger.info(

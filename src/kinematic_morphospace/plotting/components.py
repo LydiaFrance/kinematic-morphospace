@@ -1,6 +1,7 @@
 """PCA component loading and principal-cosine visualisation."""
 
 import matplotlib as mpl
+import matplotlib.colors
 import matplotlib.gridspec as gridspec
 import numpy as np
 import pandas as pd
@@ -67,7 +68,7 @@ def plot_components_grid(principal_components, marker_names, fig=None, ax=None):
         # Make every column except the one we're plotting Nan
         data.loc[:, data.columns != PC] = np.nan
 
-        colour_map = mpl.colors.LinearSegmentedColormap.from_list(
+        colour_map = matplotlib.colors.LinearSegmentedColormap.from_list(
             "", ["white", colour]
         )
 
@@ -177,13 +178,13 @@ def compare_coeffs_hawks(
             fig=fig,
             ax=ax,
         )
-
+        assert ax is not None
 
         ax.set_yticks(np.arange(0.5,12.5))  # Ensure there are 12 ticks
-        ax.set_yticklabels(range(1, 13), rotation=0, fontsize=6)
+        ax.set_yticklabels([str(i) for i in range(1, 13)], rotation=0, fontsize=6)
 
         ax.set_xticks(np.arange(0.5,12.5))  # Ensure there are 12 ticks
-        ax.set_xticklabels(range(1, 13), rotation=0, fontsize=6)
+        ax.set_xticklabels([str(i) for i in range(1, 13)], rotation=0, fontsize=6)
 
         # Change x axis label fontsize
         ax.tick_params(axis='x', labelsize=6)
@@ -324,7 +325,7 @@ def compare_coeffs_grid(
         # Make every column except the one we're plotting Nan
         data.loc[:, data.columns != PC] = np.nan
 
-        colour_map = mpl.colors.LinearSegmentedColormap.from_list(
+        colour_map = matplotlib.colors.LinearSegmentedColormap.from_list(
             "", ["white", colour]
         )
 
@@ -447,11 +448,11 @@ def plot_compare_components_grid(
         # Find the number for the current PC
         PC_num = int(PC[2:])
         if PC_num <= colour_before:
-            colour_map = mpl.colors.LinearSegmentedColormap.from_list(
+            colour_map = matplotlib.colors.LinearSegmentedColormap.from_list(
                 "", ["white", colour]
             )
         else:
-            colour_map = mpl.colors.LinearSegmentedColormap.from_list(
+            colour_map = matplotlib.colors.LinearSegmentedColormap.from_list(
                 "", ["white", "#888888"]
             )
 

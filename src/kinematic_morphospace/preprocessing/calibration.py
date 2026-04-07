@@ -49,7 +49,7 @@ def calibrate_position(
     adjusted = []
     for col in z_columns:
         if col in df.columns:
-            df[col] = df[col] - perch_height
+            df[col] = df[col].to_numpy() - perch_height
             adjusted.append(col)
 
     if adjusted:
@@ -98,8 +98,8 @@ def find_jump_frame(
         Time in seconds at the jump frame, or ``NaN`` if no matching frame
         is found within any tolerance.
     """
-    distances = seq_df[distance_col].values
-    times = seq_df[time_col].values
+    distances = seq_df[distance_col].to_numpy()
+    times = seq_df[time_col].to_numpy()
 
     for i, tol in enumerate(tolerances):
         mask = np.abs(distances - jump_dist) <= tol

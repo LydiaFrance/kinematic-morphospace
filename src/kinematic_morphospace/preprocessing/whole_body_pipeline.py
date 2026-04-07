@@ -118,7 +118,7 @@ def smooth_backpack_per_sequence(
 
         # Get time for each frame
         time_map = (
-            seq_group.drop_duplicates("frame")
+            seq_group.drop_duplicates("frame")  # type: ignore[call-overload]
             .set_index("frame")["time"]
         )
         frame_mean["time"] = frame_mean["frame"].map(time_map)
@@ -127,9 +127,9 @@ def smooth_backpack_per_sequence(
         if len(frame_mean) < 4:
             continue
 
-        time_arr = frame_mean["time"].values
-        frames_arr = frame_mean["frame"].values.astype(int)
-        xyz_arr = frame_mean[["X", "Y", "Z"]].values
+        time_arr = frame_mean["time"].to_numpy()
+        frames_arr = frame_mean["frame"].to_numpy().astype(int)
+        xyz_arr = frame_mean[["X", "Y", "Z"]].to_numpy()
 
         horz_dist = np.sqrt(xyz_arr[:, 0] ** 2 + xyz_arr[:, 1] ** 2)
 
@@ -147,12 +147,12 @@ def smooth_backpack_per_sequence(
             "frame": result["frames"],
             "time": result["time"],
             "seqID": seq_id,
-            "smooth_X": result["smooth"][:, 0],
-            "smooth_Y": result["smooth"][:, 1],
-            "smooth_Z": result["smooth"][:, 2],
-            "vel_X": result["velocity"][:, 0],
-            "vel_Y": result["velocity"][:, 1],
-            "vel_Z": result["velocity"][:, 2],
+            "smooth_X": result["smooth"][:, 0],  # type: ignore[index]
+            "smooth_Y": result["smooth"][:, 1],  # type: ignore[index]
+            "smooth_Z": result["smooth"][:, 2],  # type: ignore[index]
+            "vel_X": result["velocity"][:, 0],  # type: ignore[index]
+            "vel_Y": result["velocity"][:, 1],  # type: ignore[index]
+            "vel_Z": result["velocity"][:, 2],  # type: ignore[index]
         })
         seq_df["frameID"] = seq_df["seqID"] + "_" + seq_df["frame"].apply(
             lambda f: f"{int(f):06d}"
@@ -245,6 +245,7 @@ def run_whole_body_analysis(
     # ------------------------------------------------------------------
     logger.info("Step 4: Computing relative positions")
     unlabelled_with_rel = _add_relative_positions(unlabelled_df, smooth_bp)
+    assert isinstance(unlabelled_with_rel, pd.DataFrame)
 
     # ------------------------------------------------------------------
     # Steps 5-6: Polygon labelling (optional)
@@ -255,11 +256,12 @@ def run_whole_body_analysis(
 
         # Remove markers too far from backpack
         dist = np.linalg.norm(
-            unlabelled_with_rel[["xyz_1", "xyz_2", "xyz_3"]].values, axis=1
+            unlabelled_with_rel[["xyz_1", "xyz_2", "xyz_3"]].to_numpy(), axis=1
         )
         unlabelled_with_rel = unlabelled_with_rel[
             dist <= config.max_unlabelled_dist
         ].copy()
+        assert isinstance(unlabelled_with_rel, pd.DataFrame)
 
         unlabelled_with_rel = label_by_polygons(
             unlabelled_with_rel,
@@ -271,13 +273,16 @@ def run_whole_body_analysis(
         newly_labelled = unlabelled_with_rel[
             unlabelled_with_rel["label"] != ""
         ]
+        assert isinstance(newly_labelled, pd.DataFrame)
         if len(newly_labelled) > 0:
             labelled_with_rel = pd.concat(
                 [labelled_with_rel, newly_labelled], ignore_index=True
             )
+            assert isinstance(labelled_with_rel, pd.DataFrame)
             unlabelled_with_rel = unlabelled_with_rel[
                 unlabelled_with_rel["label"] == ""
             ].copy()
+            assert isinstance(unlabelled_with_rel, pd.DataFrame)
             logger.info("  Moved %d markers to labelled table", len(newly_labelled))
 
     # ------------------------------------------------------------------
@@ -289,9 +294,11 @@ def run_whole_body_analysis(
         ("tailpack", config.tailpack_dist_range),
         ("headpack", config.headpack_dist_range),
     ]:
-        labelled_with_rel = filter_by_distance(
+        result = filter_by_distance(
             labelled_with_rel, label, d_min, d_max,
         )
+        labelled_with_rel = result
+        assert isinstance(labelled_with_rel, pd.DataFrame)
 
     # ------------------------------------------------------------------
     # Step 8: Re-smooth with new markers
@@ -300,12 +307,15 @@ def run_whole_body_analysis(
     smooth_bp = smooth_backpack_per_sequence(
         labelled_with_rel, config, marker_label="backpack"
     )
+    assert isinstance(smooth_bp, pd.DataFrame)
     smooth_tp = smooth_backpack_per_sequence(
         labelled_with_rel, config, marker_label="tailpack"
     )
+    assert isinstance(smooth_tp, pd.DataFrame)
     smooth_hp = smooth_backpack_per_sequence(
         labelled_with_rel, config, marker_label="headpack"
     )
+    assert isinstance(smooth_hp, pd.DataFrame)
 
     # Recompute relative positions with updated smooth backpack
     smooth_tp = _add_relative_to_smooth(smooth_tp, smooth_bp)
@@ -315,12 +325,12 @@ def run_whole_body_analysis(
     # Step 9: Compute body pitch from tailpack vector
     # ------------------------------------------------------------------
     logger.info("Step 9: Computing body pitch")
-    tail_xyz = smooth_tp[["xyz_1", "xyz_2", "xyz_3"]].values
+    tail_xyz = smooth_tp[["xyz_1", "xyz_2", "xyz_3"]].to_numpy()
     smooth_tp["body_pitch"] = compute_pitch_angle(tail_xyz)
 
     # Angle of attack from velocity
     if all(c in smooth_bp.columns for c in ["vel_X", "vel_Y", "vel_Z"]):
-        vel_xyz = smooth_bp[["vel_X", "vel_Y", "vel_Z"]].values
+        vel_xyz = smooth_bp[["vel_X", "vel_Y", "vel_Z"]].to_numpy()
         aoa = compute_pitch_angle(vel_xyz)
         aoa = np.where(aoa < 0, aoa + 180, aoa - 180)
         smooth_bp["angle_of_attack"] = aoa
@@ -329,7 +339,7 @@ def run_whole_body_analysis(
     # Step 10: Join body pitch to other tables
     # ------------------------------------------------------------------
     logger.info("Step 10: Joining body pitch")
-    pitch_lookup = smooth_tp[["frameID", "body_pitch"]].drop_duplicates("frameID")
+    pitch_lookup = smooth_tp[["frameID", "body_pitch"]].drop_duplicates("frameID")  # type: ignore[call-overload]
 
     smooth_bp = smooth_bp.merge(pitch_lookup, on="frameID", how="inner")
     smooth_hp = smooth_hp.merge(pitch_lookup, on="frameID", how="inner")
@@ -340,8 +350,8 @@ def run_whole_body_analysis(
     logger.info("Step 11: Rotating by pitch angle")
     for table in [smooth_tp, smooth_hp]:
         if "xyz_1" in table.columns and "body_pitch" in table.columns:
-            xyz = table[["xyz_1", "xyz_2", "xyz_3"]].values
-            R = build_rotation_matrices(table["body_pitch"].values, axis="x")
+            xyz = table[["xyz_1", "xyz_2", "xyz_3"]].to_numpy()
+            R = build_rotation_matrices(table["body_pitch"].to_numpy(), axis="x")
             rot = apply_rotation(xyz, R)
             table["rot_xyz_1"] = rot[:, 0]
             table["rot_xyz_2"] = rot[:, 1]
@@ -371,12 +381,12 @@ def run_whole_body_analysis(
             )
 
             # Head-to-tail vector in rotated frame
-            ht_vector = head_rot - tail_rot
+            ht_vector = head_rot.astype(float) - tail_rot.astype(float)
             yaw_angles = compute_yaw_angle(ht_vector)
 
             hp_tp["body_yaw"] = yaw_angles
             smooth_hp = smooth_hp.merge(
-                hp_tp[["frameID", "body_yaw"]].drop_duplicates("frameID"),
+                hp_tp[["frameID", "body_yaw"]].drop_duplicates("frameID"),  # type: ignore[call-overload]
                 on="frameID",
                 how="left",
             )
@@ -386,11 +396,12 @@ def run_whole_body_analysis(
     # ------------------------------------------------------------------
     logger.info("Steps 13-15: Body frame rotation")
     if "xyz_1" in smooth_tp.columns:
-        tail_vecs = smooth_tp[["xyz_1", "xyz_2", "xyz_3"]].values
+        tail_vecs = smooth_tp[["xyz_1", "xyz_2", "xyz_3"]].to_numpy()
         body_axis, sideways, upwards = build_body_frame(tail_vecs)
 
         # Join unlabelled markers to get body-frame coordinates
         unlabelled_with_bp = _add_relative_positions(unlabelled_with_rel, smooth_bp)
+        assert isinstance(unlabelled_with_bp, pd.DataFrame)
         body_frame_df = unlabelled_with_bp.merge(
             smooth_tp[["frameID"]].drop_duplicates(),
             on="frameID",
@@ -417,10 +428,10 @@ def run_whole_body_analysis(
             )
 
             if len(body_frame_df) > 0 and "xyz_1" in body_frame_df.columns:
-                marker_xyz = body_frame_df[["xyz_1", "xyz_2", "xyz_3"]].values
-                sw = body_frame_df[["sw_1", "sw_2", "sw_3"]].values
-                ba = body_frame_df[["body_ax_1", "body_ax_2", "body_ax_3"]].values
-                up = body_frame_df[["up_1", "up_2", "up_3"]].values
+                marker_xyz = body_frame_df[["xyz_1", "xyz_2", "xyz_3"]].to_numpy()
+                sw = body_frame_df[["sw_1", "sw_2", "sw_3"]].to_numpy()
+                ba = body_frame_df[["body_ax_1", "body_ax_2", "body_ax_3"]].to_numpy()
+                up = body_frame_df[["up_1", "up_2", "up_3"]].to_numpy()
 
                 rotated = rotate_to_body_frame(marker_xyz, sw, ba, up)
                 body_frame_df["rot_x"] = rotated[:, 0]
@@ -446,7 +457,7 @@ def run_whole_body_analysis(
                 for col in ["Obstacle", "IMU"]:
                     if col in info_df.columns:
                         lookup = info_df.set_index("seqID")[col].to_dict()
-                        table[col] = table["seqID"].map(lookup).fillna(0).astype(int)
+                        table[col] = table["seqID"].map(lookup).fillna(0).astype(int)  # type: ignore[arg-type]
 
     # Add flight phase to body_frame_df
     if not body_frame_df.empty and "horzDist" in body_frame_df.columns:
@@ -511,7 +522,7 @@ def _add_relative_to_smooth(
 
     bp_subset = smooth_bp[
         ["frameID", "smooth_X", "smooth_Y", "smooth_Z"]
-    ].drop_duplicates("frameID").rename(columns={
+    ].drop_duplicates("frameID").rename(columns={  # type: ignore[call-overload]
         "smooth_X": "origin_X",
         "smooth_Y": "origin_Y",
         "smooth_Z": "origin_Z",

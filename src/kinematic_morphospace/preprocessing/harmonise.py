@@ -43,7 +43,7 @@ def _reorder_columns(
     """Move *leading* columns to the front, keeping the rest in order."""
     present = [c for c in leading if c in df.columns]
     rest = [c for c in df.columns if c not in present]
-    return df[present + rest]
+    return pd.DataFrame(df[present + rest])  # type: ignore[return-value]
 
 
 # ---------------------------------------------------------------------------
@@ -117,7 +117,7 @@ def add_metadata(
 
     # BirdID — extract from frameID if not already present
     if "BirdID" not in df.columns:
-        df["BirdID"] = extract_bird_id(df["frameID"])
+        df["BirdID"] = extract_bird_id(df["frameID"])  # type: ignore[assignment]
 
     # Year
     df["Year"] = year
@@ -299,7 +299,7 @@ def harmonise_labelled(
 
     # --- seqID for 2017 (derived from frameID) ---
     if year == 2017 and "seqID" not in df.columns:
-        df["seqID"] = extract_seq_id(df["frameID"])
+        df["seqID"] = extract_seq_id(df["frameID"])  # type: ignore[assignment]
 
     # --- Metadata ---
     df = add_metadata(df, year, info_df)
@@ -353,15 +353,15 @@ def join_body_pitch(
         return df
 
     pitch = tail_df[["frameID", "body_pitch"]].copy()
-    pitch = pitch.drop_duplicates(subset="frameID")
+    pitch = pitch.drop_duplicates(subset="frameID")  # type: ignore[call-overload]
 
     merged = df.merge(pitch, on="frameID", how="left", suffixes=("", "_tail"))
 
     # If body_pitch already existed, prefer the tail version
     if "body_pitch_tail" in merged.columns:
-        merged["body_pitch"] = merged["body_pitch_tail"].combine_first(
-            merged["body_pitch"]
-        )
+        pitch_tail = merged["body_pitch_tail"]
+        pitch_orig = merged["body_pitch"]
+        merged["body_pitch"] = pitch_tail.fillna(pitch_orig)  # type: ignore[assignment]
         merged = merged.drop(columns=["body_pitch_tail"])
 
     logger.info("  Joined body_pitch: %d matched", merged["body_pitch"].notna().sum())
@@ -392,7 +392,7 @@ def join_smooth_xyz(
         return df
 
     smooth_subset = smooth_df[["frameID", *xyz_cols]].copy()
-    smooth_subset = smooth_subset.drop_duplicates(subset="frameID")
+    smooth_subset = smooth_subset.drop_duplicates(subset="frameID")  # type: ignore[call-overload]
 
     # Rename XYZ_* -> smooth_XYZ_* to avoid collision
     rename_map = {c: f"smooth_{c}" for c in xyz_cols}

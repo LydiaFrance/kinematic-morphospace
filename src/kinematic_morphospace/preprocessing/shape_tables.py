@@ -285,11 +285,11 @@ def create_unilateral_table(
     available_info = [c for c in info_columns if c in df.columns]
     coord_cols = _get_coord_columns(df, coord_prefix)
     marker_data = df[["frameID", "MarkerName", *coord_cols]].copy()
-    info_data = df[available_info].drop_duplicates(subset="frameID")
+    info_data = df[available_info].drop_duplicates(subset=["frameID"])  # type: ignore[call-overload]
 
     # Step 6: Pivot wide
     wide, marker_name_cols = pivot_markers_wide(
-        info_data, marker_data, markers,
+        info_data, marker_data, markers,  # type: ignore[arg-type]
         coord_prefix=coord_prefix,
         use_contains=True,
     )
@@ -308,7 +308,7 @@ def create_unilateral_table(
 
     # Step 9: Deduplicate
     n_before = len(wide)
-    wide = wide.drop_duplicates()
+    wide = wide.drop_duplicates()  # type: ignore[call-overload]
     if n_before > len(wide):
         logger.info("  Removed %d duplicate rows", n_before - len(wide))
 
@@ -388,7 +388,7 @@ def create_bilateral_table(
 
     # Step 7: Deduplicate
     n_before = len(wide)
-    wide = wide.drop_duplicates()
+    wide = wide.drop_duplicates()  # type: ignore[call-overload]
     if n_before > len(wide):
         logger.info("  Removed %d duplicate rows", n_before - len(wide))
 

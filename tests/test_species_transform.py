@@ -1,5 +1,6 @@
 """Tests for kinematic_morphospace.species_transform — piecewise marker transformation."""
 
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -362,21 +363,21 @@ class TestTransformationPipelineIntegration:
     def test_block_diagonal_transform_moves_markers_to_target(self, hawk_and_target_markers):
         """T @ hawk_flat should produce the target markers."""
         hawk, target = hawk_and_target_markers
-        T = self._build_block_diagonal(hawk, target)
+        T = cast(np.ndarray, self._build_block_diagonal(hawk, target))
         result = (T @ hawk.reshape(-1)).reshape(-1, 3)
         np.testing.assert_allclose(result, target, atol=1e-10)
 
     def test_block_diagonal_is_correct_size(self, hawk_and_target_markers):
         """Block diagonal for n markers should be (3n, 3n)."""
         hawk, target = hawk_and_target_markers
-        T = self._build_block_diagonal(hawk, target)
+        T = cast(np.ndarray, self._build_block_diagonal(hawk, target))
         n = len(hawk)
         assert T.shape == (3 * n, 3 * n)
 
     def test_transform_principal_components_roundtrip(self, hawk_and_target_markers):
         """transform then inverse-transform should recover original PCs."""
         hawk, target = hawk_and_target_markers
-        T = self._build_block_diagonal(hawk, target)
+        T = cast(np.ndarray, self._build_block_diagonal(hawk, target))
         T_inv = np.linalg.inv(T)
 
         # Synthetic PCs: (3 components, 4 markers, 3 coords)
@@ -395,7 +396,7 @@ class TestTransformationPipelineIntegration:
         from kinematic_morphospace.pca_reconstruct import reconstruct
 
         hawk, target = hawk_and_target_markers
-        T = self._build_block_diagonal(hawk, target)
+        T = cast(np.ndarray, self._build_block_diagonal(hawk, target))
         n_markers = len(hawk)
         n_features = n_markers * 3  # 12
 
@@ -431,7 +432,7 @@ class TestTransformationPipelineIntegration:
         remain linearly independent and no variance component should
         collapse to zero."""
         hawk, target = hawk_and_target_markers
-        T = self._build_block_diagonal(hawk, target)
+        T = cast(np.ndarray, self._build_block_diagonal(hawk, target))
 
         rng = np.random.default_rng(12)
         n_pcs = 5
@@ -455,7 +456,7 @@ class TestTransformationPipelineIntegration:
         """Verify the tail override would affect the last marker's z
         when applied after the block-diagonal transform."""
         hawk, target = hawk_and_target_markers
-        T = self._build_block_diagonal(hawk, target)
+        T = cast(np.ndarray, self._build_block_diagonal(hawk, target))
 
         # Apply transformation
         transformed = (T @ hawk.reshape(-1)).reshape(-1, 3)

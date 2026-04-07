@@ -40,8 +40,13 @@ def compute_marker_movement(df: pd.DataFrame) -> pd.DataFrame:
         ``range_X``, ``range_Y``, ``range_Z``, and ``total_range``.
     """
     grouped = df.groupby("marker_id")[["X", "Y", "Z"]]
-    ranges = grouped.max() - grouped.min()
-    ranges.columns = ["range_X", "range_Y", "range_Z"]
+    max_vals = grouped.max().to_numpy()
+    min_vals = grouped.min().to_numpy()
+    ranges = pd.DataFrame(
+        max_vals - min_vals,
+        index=grouped.max().index,
+        columns=pd.Index(["range_X", "range_Y", "range_Z"]),
+    )
     ranges["total_range"] = ranges[["range_X", "range_Y", "range_Z"]].sum(axis=1)
     return ranges.reset_index()
 
@@ -83,7 +88,7 @@ def detect_stationary_markers(
         Boolean Series indexed by ``marker_id``; True means stationary.
     """
     movement = compute_marker_movement(df)
-    ranges = movement["total_range"].values.reshape(-1, 1)
+    ranges = movement["total_range"].to_numpy().reshape(-1, 1)
     marker_ids = movement["marker_id"].values
 
     if len(marker_ids) < 5:
@@ -92,7 +97,7 @@ def detect_stationary_markers(
             len(marker_ids),
         )
         return pd.Series(
-            movement["total_range"].values < threshold,
+            movement["total_range"].to_numpy() < threshold,
             index=marker_ids,
             name="stationary",
         )
@@ -102,7 +107,7 @@ def detect_stationary_markers(
     best_labels = None
 
     for k in range(2, min(6, len(marker_ids))):
-        km = KMeans(n_clusters=k, n_init=10, random_state=42)
+        km = KMeans(n_clusters=k, n_init=10, random_state=42)  # type: ignore[arg-type]
         labels = km.fit_predict(ranges)
         if len(set(labels)) < 2:
             continue
@@ -114,7 +119,7 @@ def detect_stationary_markers(
     if best_labels is None:
         logger.warning("  Clustering failed, using threshold fallback")
         return pd.Series(
-            movement["total_range"].values < threshold,
+            movement["total_range"].to_numpy() < threshold,
             index=marker_ids,
             name="stationary",
         )
@@ -195,17 +200,17 @@ def label_fixed_objects(
     labels = pd.Series("moving", index=is_stationary.index, name="object_label")
 
     for marker_id in is_stationary.index:
-        if not is_stationary[marker_id]:
+        if not is_stationary.loc[marker_id]:
             continue
 
         y = median_y.get(marker_id, np.nan)
-        if np.isnan(y):
+        if y is not None and np.isnan(y):  # type: ignore[arg-type]
             labels[marker_id] = "stationary_unknown"
             continue
 
         assigned = False
         for label, (y_min, y_max) in y_ranges.items():
-            if y_min <= y <= y_max:
+            if y is not None and y_min <= y <= y_max:
                 labels[marker_id] = label
                 assigned = True
                 break

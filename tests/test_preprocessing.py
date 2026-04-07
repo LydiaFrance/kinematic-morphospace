@@ -322,7 +322,7 @@ class TestHarmoniseTrajectory:
             assert col in result.columns, f"Missing column: {col}"
         # Mass should be NaN for 2020
         assert "mass" in result.columns
-        assert result["mass"].isna().all()
+        assert bool(result["mass"].isna().all())
         # Label should be set
         assert (result["label"] == "mean_backpack").all()
 
@@ -361,12 +361,12 @@ class TestCalibratePosition:
     def test_subtracts_perch_height(self, sample_trajectory_2020):
         result = calibrate_position(sample_trajectory_2020, perch_height=1.25)
         np.testing.assert_allclose(
-            result["XYZ_3"].values,
-            sample_trajectory_2020["XYZ_3"].values - 1.25,
+            result["XYZ_3"].to_numpy(),
+            sample_trajectory_2020["XYZ_3"].to_numpy() - 1.25,
         )
         np.testing.assert_allclose(
-            result["smooth_XYZ_3"].values,
-            sample_trajectory_2020["smooth_XYZ_3"].values - 1.25,
+            result["smooth_XYZ_3"].to_numpy(),
+            sample_trajectory_2020["smooth_XYZ_3"].to_numpy() - 1.25,
         )
 
     def test_does_not_modify_original(self, sample_trajectory_2020):
@@ -571,7 +571,9 @@ class TestCreateUnilateralTable:
         # Left-side rows should have positive X (mirrored from -0.5 to 0.5)
         left_rows = result[result["Left"] == 1]
         if len(left_rows) > 0:
-            assert left_rows["wingtip_rot_xyz_1"].iloc[0] > 0
+            col = left_rows["wingtip_rot_xyz_1"]
+            assert isinstance(col, pd.Series)
+            assert col.iloc[0] > 0
 
     def test_has_vert_distance(self, sample_labelled_long):
         result = create_unilateral_table(sample_labelled_long)
