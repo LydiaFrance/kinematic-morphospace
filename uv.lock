@@ -15,7 +15,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-03-31T02:20:38.997199Z"
+exclude-newer = "2026-03-31T13:44:56.769142Z"
 exclude-newer-span = "P7D"
 
 [[package]]
@@ -1683,6 +1683,7 @@ test = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "coloredlogs" },
     { name = "ruff" },
     { name = "ty" },
 ]
@@ -1728,6 +1729,7 @@ provides-extras = ["plot", "notebook", "test", "preprocessing", "docs", "dev"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "coloredlogs", specifier = ">=15.0.1" },
     { name = "ruff", specifier = ">=0.15.8" },
     { name = "ty", specifier = ">=0.0.26" },
 ]

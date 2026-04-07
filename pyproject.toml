@@ -160,6 +160,7 @@ convention = "google"
 
 [dependency-groups]
 dev = [
+    "coloredlogs>=15.0.1",
     "ruff>=0.15.8",
     "ty>=0.0.26",
 ]
