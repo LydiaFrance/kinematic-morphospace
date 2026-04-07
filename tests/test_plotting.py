@@ -70,7 +70,7 @@ def _make_scores_df(n_frames=200, n_flights=10, seed=0):
 def _make_binned_scores_df(scores_df):
     """Add a 'bins' column mimicking bin_by_horz_distance output."""
     df = scores_df.copy()
-    df["bins"] = pd.cut(df["HorzDistance"], bins=20, labels=False).astype(float)
+    df["bins"] = pd.cut(df["HorzDistance"], bins=20, labels=False).astype(float)  # type: ignore[union-attr]
     return df
 
 
@@ -230,7 +230,7 @@ class TestHeatmapPlotting:
 
         # Build a binned scores DataFrame
         n = 200
-        data = {"bins": pd.cut(np.linspace(-8, -0.5, n), bins=20, labels=False).astype(float)}
+        data = {"bins": pd.cut(np.linspace(-8, -0.5, n), bins=20, labels=False).astype(float)}  # type: ignore[union-attr]
         for pc in PC_COLS:
             data[pc] = rng.normal(0, 0.1, n)
         df = pd.DataFrame(data)
@@ -244,7 +244,7 @@ class TestHeatmapPlotting:
         rng = np.random.default_rng(0)
 
         n = 200
-        bins = pd.cut(np.linspace(-8, -0.5, n), bins=20, labels=False).astype(float)
+        bins = pd.cut(np.linspace(-8, -0.5, n), bins=20, labels=False).astype(float)  # type: ignore[union-attr]
         data_ctrl = {"bins": bins}
         data_exp = {"bins": bins}
         for pc in PC_COLS:
@@ -263,7 +263,7 @@ class TestHeatmapPlotting:
         rng = np.random.default_rng(0)
 
         n = 200
-        bins = pd.cut(np.linspace(-8, -0.5, n), bins=20, labels=False).astype(float)
+        bins = pd.cut(np.linspace(-8, -0.5, n), bins=20, labels=False).astype(float)  # type: ignore[union-attr]
         data_ctrl = {"bins": bins}
         data_exp = {"bins": bins}
         for pc in PC_COLS:

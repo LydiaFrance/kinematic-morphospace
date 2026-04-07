@@ -107,8 +107,9 @@ def _find_markers_in_bins(
     for d_min, d_max in bins:
         mask = (distances["distance"] >= d_min) & (distances["distance"] <= d_max)
         hits = distances[mask]
-        matched.update(hits["marker_i"].values)
-        matched.update(hits["marker_j"].values)
+        assert isinstance(hits, pd.DataFrame)
+        matched.update(hits["marker_i"].to_numpy())
+        matched.update(hits["marker_j"].to_numpy())
     return matched
 
 
@@ -154,20 +155,28 @@ def label_body_markers(
 
     # Filter to moving markers only
     if is_stationary is not None:
-        moving_ids = is_stationary[~is_stationary].index
-        moving = df[df["marker_id"].isin(moving_ids)].copy()
+        filtered_series = is_stationary[~is_stationary]
+        assert isinstance(filtered_series, pd.Series)
+        moving_ids = filtered_series.index
+        moving_df = df[df["marker_id"].isin(list(moving_ids))].copy()
+        assert isinstance(moving_df, pd.DataFrame)
+        moving = moving_df
     else:
         moving = df.copy()
+    assert isinstance(moving, pd.DataFrame)
 
     # Optionally subsample frames
     if sample_n_frames is not None:
         unique_frames = moving["frame"].unique()
         if len(unique_frames) > sample_n_frames:
             rng = np.random.default_rng(42)
-            sampled = rng.choice(unique_frames, size=sample_n_frames, replace=False)
-            moving = moving[moving["frame"].isin(sampled)]
+            sampled = rng.choice(np.arange(len(unique_frames)), size=sample_n_frames, replace=False)
+            selected_frames = list(unique_frames[sampled])
+            moving = moving[moving["frame"].isin(selected_frames)]
+            assert isinstance(moving, pd.DataFrame)
 
     # Compute pairwise distances
+    assert isinstance(moving, pd.DataFrame)
     distances = compute_pairwise_distances(moving)
 
     if distances.empty:

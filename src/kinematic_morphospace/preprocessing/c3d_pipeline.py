@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -170,13 +171,13 @@ def run_single_c3d(
         df, threshold=config.stationary_threshold,
         n_outlier_passes=config.n_outlier_passes,
     )
-    df["label_stationary"] = df["marker_id"].map(is_stationary).fillna(False)
+    df["label_stationary"] = df["marker_id"].map(is_stationary).fillna(False)  # type: ignore[arg-type]
 
     # Step 2b: Label fixed objects
     object_labels = label_fixed_objects(
         df, is_stationary, y_ranges=config.object_y_ranges,
     )
-    df["object_label"] = df["marker_id"].map(object_labels).fillna("unknown")
+    df["object_label"] = df["marker_id"].map(object_labels).fillna("unknown")  # type: ignore[arg-type]
 
     # Step 3: Trial splitting
     logger.info("  Step 3: Splitting trials")
@@ -188,7 +189,7 @@ def run_single_c3d(
         smooth_fraction=config.smooth_fraction,
     )
     if not peaks.empty:
-        annotations = peaks[["start_frame", "end_frame"]].to_dict("records")
+        annotations = cast(list[dict], peaks[["start_frame", "end_frame"]].to_dict("records"))  # type: ignore[call-overload]
         df = split_by_trial(df, annotations)
     else:
         df["trial"] = 0
@@ -201,7 +202,7 @@ def run_single_c3d(
         backpack_bins=config.backpack_bins,
         tailpack_bins=config.tailpack_bins,
     )
-    df["body_label"] = df["marker_id"].map(body_labels).fillna("unlabelled")
+    df["body_label"] = df["marker_id"].map(body_labels).fillna("unlabelled")  # type: ignore[arg-type]
 
     # Step 5: Body statistics (smoothing)
     logger.info("  Step 5: Computing body statistics")
@@ -318,7 +319,7 @@ def run_from_c3d(
 
     for _, row in filtered.iterrows():
         try:
-            result = run_single_c3d(row["path"], config)
+            result = run_single_c3d(str(row["path"]), config)
             # Tag with recording info
             for key in ["markers", "body_stats", "body_pitch"]:
                 result[key]["source_file"] = row["filename"]

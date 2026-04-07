@@ -255,7 +255,7 @@ def kmeans_clustering(data, n_clusters, random_state=42):
     )
     kmeans.fit(flattened_data)
 
-    cluster_centers = kmeans.cluster_centers_.reshape(n_clusters, markers, dimensions)
+    cluster_centers = np.asarray(kmeans.cluster_centers_).reshape(n_clusters, markers, dimensions)
 
     return cluster_centers, kmeans.labels_
 

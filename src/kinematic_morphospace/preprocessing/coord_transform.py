@@ -187,7 +187,7 @@ def compute_horizontal_distance(
         Series of horizontal distances in metres, named ``"HorzDistance"``.
     """
     horz = np.sqrt(
-        body_stats[x_column].values ** 2 + body_stats[y_column].values ** 2
+        body_stats[x_column].to_numpy() ** 2 + body_stats[y_column].to_numpy() ** 2
     )
     return pd.Series(horz, index=body_stats.index, name="HorzDistance")
 
@@ -231,7 +231,7 @@ def compute_relative_positions(
         columns added.
     """
     # Select only needed columns from smooth_df to avoid conflicts
-    smooth_subset = smooth_df[[join_col, *list(smooth_cols)]].drop_duplicates(
+    smooth_subset = smooth_df[[join_col, *list(smooth_cols)]].drop_duplicates(  # type: ignore[call-overload]
         subset=[join_col]
     )
 

@@ -45,6 +45,7 @@ def plot_score_obstacle_control(
 
     fig, axes = plt.subplots(1, len(hawkname_list), figsize=(12, 2.5), sharex=True)
 
+    ax = axes.flatten()[0]
     for ii, hawk in enumerate(hawkname_list):
         for obs in [0, 1]:
             ax = axes.flatten()[ii]
@@ -59,7 +60,7 @@ def plot_score_obstacle_control(
             if obs == 0:
                 ax.lines[-1].set_linestyle(':')
                 for collection in ax.collections:
-                    if isinstance(collection, mpl.collections.PolyCollection):
+                    if isinstance(collection, matplotlib.collections.PolyCollection):
                         collection.set_alpha(0.2)
 
             ax.spines['top'].set_visible(False)
@@ -132,6 +133,7 @@ def plot_score_weight_control(
 
     fig, axes = plt.subplots(1, len(hawkname_list), figsize=(12, 2.5), sharex=True)
 
+    ax = axes.flatten()[0]
     for ii, hawk in enumerate(hawkname_list):
         for exp in [0, 1]:
             ax = axes.flatten()[ii]
@@ -146,7 +148,7 @@ def plot_score_weight_control(
             if exp == 0:
                 ax.lines[-1].set_linestyle(':')
                 for collection in ax.collections:
-                    if isinstance(collection, mpl.collections.PolyCollection):
+                    if isinstance(collection, matplotlib.collections.PolyCollection):
                         collection.set_alpha(0.2)
 
             ax.spines['top'].set_visible(False)
@@ -218,6 +220,7 @@ def plot_score_naive_control(
 
     fig, axes = plt.subplots(1, len(hawkname_list), figsize=(8, 4), sharex=True)
 
+    ax = axes.flatten()[0]
     for ii, hawk in enumerate(hawkname_list):
         has_data = True
         for exp in [0, 1]:
@@ -251,7 +254,7 @@ def plot_score_naive_control(
             if exp == 0:
                 ax.lines[-1].set_linestyle(':')
                 for collection in ax.collections:
-                    if isinstance(collection, mpl.collections.PolyCollection):
+                    if isinstance(collection, matplotlib.collections.PolyCollection):
                         collection.set_alpha(0.2)
 
             ax.spines['top'].set_visible(False)

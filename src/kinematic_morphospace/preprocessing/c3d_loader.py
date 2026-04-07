@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -199,7 +200,7 @@ def filter_file_list(file_list: pd.DataFrame) -> pd.DataFrame:
         Filtered copy retaining only rows where ``nobackpack`` is False.
     """
     mask = ~file_list["nobackpack"]
-    filtered = file_list[mask].copy()
+    filtered = cast(pd.DataFrame, file_list[mask].copy())
     logger.info(
         "  Filtered: %d → %d recordings (backpack only)",
         len(file_list), len(filtered),

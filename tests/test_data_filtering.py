@@ -96,7 +96,7 @@ class TestFilterByHawkname:
         mask = filter_by_hawkname(birdID, "Drogon")
         # BirdID 1 (Drogon) at indices 0, 1, 6
         assert mask.sum() == 3
-        assert list(mask[mask].index) == [0, 1, 6]
+        assert list(sample_frame_info.index[mask]) == [0, 1, 6]
 
     def test_none_returns_all(self, sample_frame_info):
         birdID = sample_frame_info['BirdID']
@@ -117,13 +117,13 @@ class TestFilterByPerchDist:
         mask = filter_by_perchDist(perchDist, 9)
         expected_indices = [0, 1, 5, 7, 8]
         assert mask.sum() == 5
-        assert list(mask[mask].index) == expected_indices
+        assert list(sample_frame_info.index[mask]) == expected_indices
 
     def test_string_value(self, sample_frame_info):
         perchDist = sample_frame_info['PerchDistance']
         mask = filter_by_perchDist(perchDist, '12m')
         assert mask.sum() == 2
-        assert list(mask[mask].index) == [2, 6]
+        assert list(sample_frame_info.index[mask]) == [2, 6]
 
     def test_list_of_distances(self, sample_frame_info):
         perchDist = sample_frame_info['PerchDistance']

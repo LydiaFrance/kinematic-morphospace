@@ -132,6 +132,7 @@ def plot_difference_PC_scores_heatmap(df_control,
     # Find the nearest actual bin index for each desired tick position
     tick_indices = [np.abs(actual_positions - tick).argmin() for tick in desired_ticks]
 
+    ax = fig.add_subplot(gs[0])
     for ii, PC in enumerate(PC_cols):
         # Get data for this PC
         control_data = mean_scores_control.loc[PC].values
@@ -302,6 +303,7 @@ def plot_difference_exp_scores_heatmap(df_control,
     fig = plt.figure(figsize=(8, 8))
     gs = gridspec.GridSpec(num_pairs, 1, height_ratios=[1] * num_pairs, hspace=0.15)
 
+    ax = fig.add_subplot(gs[0])
     for ii, PC in enumerate(PC_cols):
         min_len = min(mean_scores_control.shape[1], mean_scores_exp.shape[1])
         control_data = mean_scores_control.loc[PC].values[:min_len]

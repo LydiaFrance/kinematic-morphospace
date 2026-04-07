@@ -65,14 +65,15 @@ def detect_duplicates(
         return df.copy(), empty_df, empty_df
 
     # Count occurrences of each (frame, label) pair
-    composite = labelled[frame_col].astype(str) + "_" + labelled[label_col].astype(str)
+    composite_arr = labelled[frame_col].astype(str) + "_" + labelled[label_col].astype(str)
+    composite = pd.Series(composite_arr, index=labelled.index)
     counts = composite.map(composite.value_counts())
 
     unique_labelled = labelled[counts == 1]
     dup_pairs = labelled[counts == 2]
     excess = labelled[counts >= 3]
 
-    unique = pd.concat([unlabelled, unique_labelled], ignore_index=False)
+    unique = pd.concat([unlabelled, unique_labelled], ignore_index=False)  # type: ignore[arg-type]
 
     n_dup = len(dup_pairs) // 2 if len(dup_pairs) > 0 else 0
     n_excess = len(excess)
@@ -80,7 +81,7 @@ def detect_duplicates(
         "  Duplicate detection: %d unique, %d duplicate pairs, %d excess rows",
         len(unique), n_dup, n_excess,
     )
-    return unique, dup_pairs, excess
+    return unique, dup_pairs, excess  # type: ignore[return-value]
 
 
 def resolve_duplicates(
@@ -134,7 +135,7 @@ def resolve_duplicates(
         if len(group) != 2:
             continue
 
-        idx_a, idx_b = group.index[0], group.index[1]
+        idx_a, idx_b = int(group.index[0]), int(group.index[1])  # type: ignore[arg-type]
         current_label = result.loc[idx_a, label_col]
         base = _strip_side_prefix(current_label)
 
@@ -189,14 +190,14 @@ def split_labelled_table(
     labels = df[label_col].astype(str)
     base_labels = labels.apply(_strip_side_prefix)
 
-    feather_mask = base_labels.isin(_FEATHER_LABELS)
-    body_mask = base_labels.isin(_BODY_LABELS)
+    feather_mask = base_labels.isin(list(_FEATHER_LABELS))
+    body_mask = base_labels.isin(list(_BODY_LABELS))
     unlabelled_mask = ~feather_mask & ~body_mask
 
     return {
-        "feather": df[feather_mask].copy(),
-        "body": df[body_mask].copy(),
-        "unlabelled": df[unlabelled_mask].copy(),
+        "feather": df[feather_mask].copy(),  # type: ignore[dict-item]
+        "body": df[body_mask].copy(),  # type: ignore[dict-item]
+        "unlabelled": df[unlabelled_mask].copy(),  # type: ignore[dict-item]
     }
 
 
@@ -246,16 +247,16 @@ def _resolve_wingtip_pair(
     wingtip_y_threshold: float,
 ) -> None:
     """Wingtip dups: closer → primary (or secondary if y < threshold)."""
-    dist_a = np.sqrt(
-        df.loc[idx_a, x_col] ** 2
-        + df.loc[idx_a, y_col] ** 2
-        + df.loc[idx_a, z_col] ** 2
-    )
-    dist_b = np.sqrt(
-        df.loc[idx_b, x_col] ** 2
-        + df.loc[idx_b, y_col] ** 2
-        + df.loc[idx_b, z_col] ** 2
-    )
+    dist_a = float(np.sqrt(  # type: ignore[operator]
+        float(df.loc[idx_a, x_col]) ** 2  # type: ignore[operator]
+        + float(df.loc[idx_a, y_col]) ** 2
+        + float(df.loc[idx_a, z_col]) ** 2
+    ))
+    dist_b = float(np.sqrt(  # type: ignore[operator]
+        float(df.loc[idx_b, x_col]) ** 2  # type: ignore[operator]
+        + float(df.loc[idx_b, y_col]) ** 2
+        + float(df.loc[idx_b, z_col]) ** 2
+    ))
 
     closer, _further = (idx_a, idx_b) if dist_a <= dist_b else (idx_b, idx_a)
     current_label = df.loc[closer, label_col]

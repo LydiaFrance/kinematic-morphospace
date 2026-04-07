@@ -72,7 +72,10 @@ def detect_velocity_peaks(
     # Smooth with moving mean (window = smooth_fraction * n_frames)
     n_frames = len(y_values)
     window = max(3, int(np.floor(n_frames * smooth_fraction)))
-    smoothed = _moving_mean(y_values, window)
+    # Ensure y_values is numpy array (may be ExtensionArray from Series.values)
+    if hasattr(y_values, '__array__'):
+        y_values = np.asarray(y_values)
+    smoothed = _moving_mean(y_values, window)  # type: ignore[arg-type]
 
     # Compute absolute velocity gradient
     velocity = np.gradient(smoothed, frames)

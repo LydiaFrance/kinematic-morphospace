@@ -45,7 +45,12 @@ def estimate_body_pitch(
     """
     # Filter to backpack markers
     if body_labels is not None:
-        bp_ids = body_labels[body_labels == "backpack"].index
+        assert isinstance(body_labels, pd.Series)
+        backpack_mask = body_labels == "backpack"
+        assert isinstance(backpack_mask, pd.Series)
+        backpack_series = body_labels[backpack_mask]
+        assert isinstance(backpack_series, pd.Series)
+        bp_ids = list(backpack_series.index)
         bp = df[df["marker_id"].isin(bp_ids)].copy()
     else:
         bp = df.copy()
@@ -53,7 +58,10 @@ def estimate_body_pitch(
     results = []
 
     for frame, group in bp.groupby("frame"):
-        xyz = group[["X", "Y", "Z"]].dropna().values
+        assert isinstance(group, pd.DataFrame)
+        xyz_df = group[["X", "Y", "Z"]].dropna()
+        assert isinstance(xyz_df, pd.DataFrame)
+        xyz = xyz_df.to_numpy()
 
         if len(xyz) < min_markers:
             results.append({
