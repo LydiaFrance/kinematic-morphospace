@@ -1,83 +1,107 @@
 """PCA component loading and principal-cosine visualisation."""
 
-import numpy as np
 import matplotlib as mpl
-from matplotlib import pyplot as plt
+import matplotlib.colors
 import matplotlib.gridspec as gridspec
+import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib import pyplot as plt
 
 
-def plot_components_grid(principal_components,
-                        marker_names,fig=None, ax=None):
-    """Plot PCA loadings as a colour-coded heatmap grid.
+def plot_components_grid(principal_components, marker_names, fig=None, ax=None):
+    """Plot PCA component loadings as a colour-coded heatmap grid.
 
-    Each column represents one principal component and each row a
-    marker coordinate. Absolute loadings are displayed with a
-    per-component colour map.
+    Each column represents one principal component and each row a marker
+    coordinate. Absolute loadings are shown, with each component drawn using a
+    distinct colour so that the dominant structure of each mode is immediately
+    visible. Cumulative explained-variance annotations are added above the grid.
 
-    Parameters
-    ----------
-    principal_components : numpy.ndarray
-        Component matrix, shape ``(n_components, n_markers)``.
-    marker_names : list of str
-        Names labelling each marker coordinate (row labels).
-    fig : matplotlib.figure.Figure, optional
-        Existing figure to draw into. Created if *None*.
-    ax : matplotlib.axes.Axes, optional
-        Existing axes to draw into. Created if *None*.
+    Args:
+        principal_components: Component matrix of shape (n_components, n_markers).
+        marker_names: Names labelling each marker coordinate, used as row labels.
+        fig: Existing Figure to draw into; if None, a new figure is created.
+        ax: Existing Axes to draw into; if None, a new axes is created.
 
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-        The figure.
-    ax : matplotlib.axes.Axes
-        The axes containing the heatmap.
+    Returns:
+        Tuple of (fig, ax).
     """
-
     # Set the number of principal components to plot
     maxPCs = 12
 
     # Generate the names for the axes labels
-    PC_names = [f'PC{i:02}' for i in range(1, maxPCs+1)]
+    PC_names = [f'PC{i:02}' for i in range(1, maxPCs + 1)]
 
     # Make a dataframe
-    components_df = pd.DataFrame.from_dict(dict(zip(PC_names, np.abs(principal_components))))
+    components_df = pd.DataFrame.from_dict(
+        dict(zip(PC_names, np.abs(principal_components), strict=False))
+    )
     components_df["markers"] = marker_names
     components_df = components_df.set_index("markers")
 
     # We're going to overlay many grids. All but one column and row
     # will be transparent, giving the rainbow effect overall where each PC
     # is a different colour.
-    colour_dict = {'PC01': '#B5E675',    'PC02': '#6ED8A9',   'PC03': '#51B3D4',
-                    'PC04': '#4579AA',   'PC05': '#F19EBA',   'PC06': '#BC96C9',
-                    'PC07': '#917AC2',   'PC08': '#BE607F',   'PC09': '#624E8B',
-                    'PC10': '#888888',  'PC11': '#888888',  'PC12': '#888888'}
+    colour_dict = {
+        'PC01': '#B5E675',
+        'PC02': '#6ED8A9',
+        'PC03': '#51B3D4',
+        'PC04': '#4579AA',
+        'PC05': '#F19EBA',
+        'PC06': '#BC96C9',
+        'PC07': '#917AC2',
+        'PC08': '#BE607F',
+        'PC09': '#624E8B',
+        'PC10': '#888888',
+        'PC11': '#888888',
+        'PC12': '#888888',
+    }
 
 
     if ax is None:
-        fig, ax = plt.subplots(figsize=(5, 5))
-        fig.set_constrained_layout(True)
+        fig, ax = plt.subplots(figsize=(5, 5), constrained_layout=True)
+    assert fig is not None
 
     # Loop through each PC and plot the grid
-    for PC in colour_dict.keys():
+    for PC, colour in colour_dict.items():
         data = components_df.copy()
         # Make every column except the one we're plotting Nan
         data.loc[:, data.columns != PC] = np.nan
 
-        colour_map = mpl.colors.LinearSegmentedColormap.from_list("", ["white",colour_dict[PC]])
+        colour_map = matplotlib.colors.LinearSegmentedColormap.from_list(
+            "", ["white", colour]
+        )
 
         # Add a colour bar for the PC8
         if PC == 'PC8':
-                cbar_ax = fig.add_axes([1.05, 0.698, .05, .2], )
+            cbar_ax = fig.add_axes((1.05, 0.698, .05, .2))
+            assert cbar_ax is not None
 
-                sns.heatmap(data, annot=False, fmt=".2f", linewidth=0.3,
-                    cmap = colour_map, vmin = 0, vmax = 1, cbar_ax = cbar_ax, ax = ax, cbar_kws={"label": "absolute loading"})
+            sns.heatmap(
+                data,
+                annot=False,
+                fmt=".2f",
+                linewidth=0.3,
+                cmap=colour_map,
+                vmin=0,
+                vmax=1,
+                cbar_ax=cbar_ax,
+                ax=ax,
+                cbar_kws={"label": "absolute loading"},
+            )
 
         else:
-            sns.heatmap(data, annot=False, fmt=".2f",
-                        cmap = colour_map, vmin = 0, vmax = 1, linewidth=0.3,
-                        cbar=False, ax = ax)
+            sns.heatmap(
+                data,
+                annot=False,
+                fmt=".2f",
+                cmap=colour_map,
+                vmin=0,
+                vmax=1,
+                linewidth=0.3,
+                cbar=False,
+                ax=ax,
+            )
 
 
     # Add horizontal and vertical lines to the grid
@@ -112,33 +136,31 @@ def plot_components_grid(principal_components,
 
     return fig, ax
 
-def compare_coeffs_hawks(principal_components,
-                         principal_components_dict, colour_before =12, y_label='scaled'):
-    """Compare principal cosines across individual birds.
+def compare_coeffs_hawks(
+    principal_components, principal_components_dict, colour_before=12, y_label='scaled'
+):
+    """Compare principal cosines between the pooled PCA and individual-hawk PCAs.
 
-    Creates a 1xN row of principal-cosine heatmaps (one per bird),
-    showing how closely each bird's individual PCA aligns with the
-    pooled component matrix.
+    Creates a 1xN row of principal-cosine heatmaps (one per bird). Each heatmap
+    shows the absolute dot product between the individual bird's components and
+    the pooled reference, so a strong diagonal indicates that both solutions span
+    the same morphospace.
 
-    Parameters
-    ----------
-    principal_components : numpy.ndarray
-        Reference (pooled) component matrix.
-    principal_components_dict : dict
-        Mapping of bird name to that bird's component matrix.
-    colour_before : int, optional
-        Number of leading components to colour individually.
-    y_label : str, optional
-        Label for the y-axis of the first panel.
+    Args:
+        principal_components: Reference (pooled) component matrix of shape
+            (n_components, n_markers).
+        principal_components_dict: Dict mapping bird name to that bird's component
+            matrix, each of shape (n_components, n_markers).
+        colour_before: Number of leading components to colour individually;
+            remaining components are shown in grey. Defaults to 12.
+        y_label: Label for the y-axis of the first panel. Defaults to 'scaled'.
 
-    Returns
-    -------
-    matplotlib.figure.Figure
-        The figure containing the row of heatmaps.
+    Returns:
+        Figure containing the row of heatmaps.
     """
-
     fig = plt.figure(figsize=(8, 2))
-    gs = gridspec.GridSpec(1, 5, figure=fig, hspace=0, wspace=0.3)  # Adjust these values as needed
+    # Adjust these values as needed
+    gs = gridspec.GridSpec(1, 5, figure=fig, hspace=0, wspace=0.3)
 
     # Get the list of birds
     hawklist = list(principal_components_dict.keys())
@@ -147,14 +169,22 @@ def compare_coeffs_hawks(principal_components,
     # Loop through each bird PC result and plot the coefficients
     for ii, bird in enumerate(hawklist):
         ax = fig.add_subplot(gs[ii])
-        ax = compare_coeffs_grid(principal_components_dict[bird], f"{bird}", principal_components, scaled_word_list[ii], colour_before =colour_before, fig=fig, ax=ax)
-
+        ax = compare_coeffs_grid(
+            principal_components_dict[bird],
+            f"{bird}",
+            principal_components,
+            scaled_word_list[ii],
+            colour_before=colour_before,
+            fig=fig,
+            ax=ax,
+        )
+        assert ax is not None
 
         ax.set_yticks(np.arange(0.5,12.5))  # Ensure there are 12 ticks
-        ax.set_yticklabels(range(1, 13), rotation=0, fontsize=6)
+        ax.set_yticklabels([str(i) for i in range(1, 13)], rotation=0, fontsize=6)
 
         ax.set_xticks(np.arange(0.5,12.5))  # Ensure there are 12 ticks
-        ax.set_xticklabels(range(1, 13), rotation=0, fontsize=6)
+        ax.set_xticklabels([str(i) for i in range(1, 13)], rotation=0, fontsize=6)
 
         # Change x axis label fontsize
         ax.tick_params(axis='x', labelsize=6)
@@ -165,41 +195,38 @@ def compare_coeffs_hawks(principal_components,
 
     return fig
 
-def compare_coeffs_grid(principal_components,
-                        name,
-                        second_principal_components,
-                        second_name,
-                        colour_before =12, fig=None,ax=None):
-    """Plot a principal-cosine heatmap between two component matrices.
+def compare_coeffs_grid(
+    principal_components,
+    name,
+    second_principal_components,
+    second_name,
+    colour_before=12,
+    fig=None,
+    ax=None,
+):
+    """Plot a principal-cosine heatmap comparing two PCA component matrices.
 
-    Computes the absolute dot product of every pair of components and
-    displays the result as a colour-coded grid. A strong diagonal
-    indicates that the two PCA solutions share the same subspaces.
+    Computes the absolute dot product of every pair of components from the two
+    matrices and displays the result as a colour-coded 12x12 grid. A strong
+    diagonal indicates that the two PCA solutions span the same subspaces.
+    Off-diagonal brightness reveals cross-mode aliasing.
 
-    Parameters
-    ----------
-    principal_components : numpy.ndarray
-        First component matrix.
-    name : str
-        Label for the x-axis (identifies the first matrix).
-    second_principal_components : numpy.ndarray
-        Second component matrix for comparison.
-    second_name : str
-        Label for the y-axis (identifies the second matrix).
-    colour_before : int, optional
-        Number of leading components to colour individually.
-    fig : matplotlib.figure.Figure, optional
-        Existing figure to draw into.
-    ax : matplotlib.axes.Axes, optional
-        Existing axes to draw into.
+    Args:
+        principal_components: First component matrix of shape
+            (n_components, n_markers); must be orthonormal.
+        name: Axis label identifying the first matrix (displayed on the x-axis).
+        second_principal_components: Second component matrix for comparison;
+            must be orthonormal and have the same shape.
+        second_name: Axis label identifying the second matrix (displayed on the
+            y-axis).
+        colour_before: Number of leading components to colour individually.
+            Defaults to 12.
+        fig: Existing Figure to draw into; if None, a new figure is created.
+        ax: Existing Axes to draw into; if None, a new axes is created.
 
-    Returns
-    -------
-    matplotlib.axes.Axes
-        The axes containing the heatmap.
+    Returns:
+        Axes object containing the heatmap.
     """
-
-
     def check_data_consistency(data1, data2):
         if np.array_equal(data1, data2):
             print(f"{name} data is consistent.")
@@ -208,16 +235,26 @@ def compare_coeffs_grid(principal_components,
 
 
     # Print shapes before slicing
-    assert principal_components.shape[0] == second_principal_components.shape[1], "Principal components should be square matrix for this test."
-    # print(f"{name} principal_components shape (before slicing): {second_principal_components.shape}")
+    assert (
+        principal_components.shape[0]
+        == second_principal_components.shape[1]
+    ), "Principal components should be square matrix for this test."
+    # print(f"{name} principal_components shape (before slicing): "
+    #       f"{second_principal_components.shape}")
 
 
     # Assert orthonormal
     identity_check_1 = np.dot(principal_components, principal_components.T)
-    assert np.allclose(np.eye(principal_components.shape[0]), identity_check_1, atol=1e-6), "Principal components are not orthonormal."
+    assert np.allclose(
+        np.eye(principal_components.shape[0]), identity_check_1, atol=1e-6
+    ), "Principal components are not orthonormal."
 
-    identity_check_2 = np.dot(second_principal_components, second_principal_components.T)
-    assert np.allclose(np.eye(second_principal_components.shape[0]), identity_check_2, atol=1e-6), "Comparison Principal components are not orthonormal."
+    identity_check_2 = np.dot(
+        second_principal_components, second_principal_components.T
+    )
+    assert np.allclose(
+        np.eye(second_principal_components.shape[0]), identity_check_2, atol=1e-6
+    ), "Comparison Principal components are not orthonormal."
 
 
     # Perform dot product calculation
@@ -242,45 +279,85 @@ def compare_coeffs_grid(principal_components,
 
 
     # marker_names = markers_df.columns.to_list()
-    PC_names = [f'PC{i:02}' for i in range(1, maxPCs+1)]
-    components_df = pd.DataFrame.from_dict(dict(zip(PC_names, dot_product_matrix)))
+    PC_names = [f'PC{i:02}' for i in range(1, maxPCs + 1)]
+    components_df = pd.DataFrame.from_dict(
+        dict(zip(PC_names, dot_product_matrix, strict=False))
+    )
     components_df["asym"] = PC_names
     components_df = components_df.set_index("asym")
 
-    base_colour_dict = {'PC01': '#B5E675',    'PC02': '#6ED8A9',   'PC03': '#51B3D4',
-                    'PC04': '#4579AA',   'PC05': '#F19EBA',   'PC06': '#BC96C9',
-                    'PC07': '#917AC2',   'PC08': '#BE607F',   'PC09': '#624E8B',
-                    'PC10': '#888888',  'PC11': '#888888',  'PC12': '#888888'}
+    base_colour_dict = {
+        'PC01': '#B5E675',
+        'PC02': '#6ED8A9',
+        'PC03': '#51B3D4',
+        'PC04': '#4579AA',
+        'PC05': '#F19EBA',
+        'PC06': '#BC96C9',
+        'PC07': '#917AC2',
+        'PC08': '#BE607F',
+        'PC09': '#624E8B',
+        'PC10': '#888888',
+        'PC11': '#888888',
+        'PC12': '#888888',
+    }
 
     # Create a new colour_dict based on the colour_before value
-    colour_dict = {f'PC{i:02}': base_colour_dict.get(f'PC{i:02}', '#888888') if i <= colour_before else '#888888' for i in range(1, maxPCs + 1)}
+    colour_dict = {
+        f'PC{i:02}': (
+            base_colour_dict.get(f'PC{i:02}', '#888888')
+            if i <= colour_before
+            else '#888888'
+        )
+        for i in range(1, maxPCs + 1)
+    }
 
 
     if ax is None:
-        fig, ax = plt.subplots(figsize=(5, 5))
-        fig.set_constrained_layout(True)
+        fig, ax = plt.subplots(figsize=(5, 5), constrained_layout=True)
 
         returnAx = False
     else:
         returnAx = True
+    assert fig is not None
 
-    for PC in colour_dict.keys():
+    for PC, colour in colour_dict.items():
         data = components_df.copy()
         # Make every column except the one we're plotting Nan
         data.loc[:, data.columns != PC] = np.nan
 
-        colour_map = mpl.colors.LinearSegmentedColormap.from_list("", ["white",colour_dict[PC]])
+        colour_map = matplotlib.colors.LinearSegmentedColormap.from_list(
+            "", ["white", colour]
+        )
 
         if PC == 'PC8':
-                cbar_ax = fig.add_axes([1.05, 0.698, .05, .2], )
+            cbar_ax = fig.add_axes((1.05, 0.698, .05, .2))
+            assert cbar_ax is not None
 
-                sns.heatmap(data, annot=False, fmt=".2f", linewidth=0.3,
-                    cmap = colour_map, vmin = 0, vmax = 1, cbar_ax = cbar_ax, ax = ax, cbar_kws={"label": "absolute loading"})
+            sns.heatmap(
+                data,
+                annot=False,
+                fmt=".2f",
+                linewidth=0.3,
+                cmap=colour_map,
+                vmin=0,
+                vmax=1,
+                cbar_ax=cbar_ax,
+                ax=ax,
+                cbar_kws={"label": "absolute loading"},
+            )
 
         else:
-            sns.heatmap(data, annot=False, fmt=".2f",
-                        cmap = colour_map, vmin = 0, vmax = 1, linewidth=0.3,
-                        cbar=False, ax = ax)
+            sns.heatmap(
+                data,
+                annot=False,
+                fmt=".2f",
+                cmap=colour_map,
+                vmin=0,
+                vmax=1,
+                linewidth=0.3,
+                cbar=False,
+                ax=ax,
+            )
 
 
     ax.axhline(y=0, color='#333333',linewidth=1)
@@ -293,10 +370,10 @@ def compare_coeffs_grid(principal_components,
 
 
     ax.set_xticks(np.arange(0.5,12.5))  # Ensure there are 12 ticks
-    ax.set_xticklabels(range(1, 13), rotation=0, fontsize=10)
+    ax.set_xticklabels([str(i) for i in range(1, 13)], rotation=0, fontsize=10)
 
     ax.set_yticks(np.arange(0.5,12.5))  # Ensure there are 12 ticks
-    ax.set_yticklabels(range(1, 13), rotation=0, fontsize=10)
+    ax.set_yticklabels([str(i) for i in range(1, 13)], rotation=0, fontsize=10)
 
     # Flip the y axis
     # ax.invert_yaxis()
@@ -309,57 +386,61 @@ def compare_coeffs_grid(principal_components,
         # plt.show()
 
         return ax
+    return None
 
 
 
-def plot_compare_components_grid(principal_components,
-                                 colour_before=2,fig=None, ax=None):
-    """Plot a self-comparison principal-cosine grid.
+def plot_compare_components_grid(
+    principal_components, colour_before=2, fig=None, ax=None
+):
+    """Plot a self-comparison principal-cosine grid to verify orthogonality.
 
-    Displays the absolute dot-product matrix of the component matrix
-    with itself. Off-diagonal values near zero confirm orthogonality;
-    leading components are colour-coded up to ``colour_before``.
+    Displays the absolute dot-product matrix of the component matrix with
+    itself. Off-diagonal values near zero confirm that components are
+    orthogonal; the strong diagonal confirms unit norm. Leading components
+    are colour-coded up to colour_before; the remainder are shown in grey.
 
-    Parameters
-    ----------
-    principal_components : numpy.ndarray
-        Component matrix, shape ``(n_components, n_markers)``.
-    colour_before : int, optional
-        Number of leading components to highlight with individual
-        colours (default 2).
-    fig : matplotlib.figure.Figure, optional
-        Existing figure to draw into. Created if *None*.
-    ax : matplotlib.axes.Axes, optional
-        Existing axes to draw into. Created if *None*.
+    Args:
+        principal_components: Component matrix of shape (n_components, n_markers).
+        colour_before: Number of leading components to highlight with individual
+            colours. Defaults to 2.
+        fig: Existing Figure to draw into; if None, a new figure is created.
+        ax: Existing Axes to draw into; if None, a new axes is created.
 
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-        The figure.
-    ax : matplotlib.axes.Axes
-        The axes containing the heatmap.
+    Returns:
+        Tuple of (fig, ax).
     """
     maxPCs = 12
-    PC_names = [f'PC{i:02}' for i in range(1, maxPCs+1)]
+    PC_names = [f'PC{i:02}' for i in range(1, maxPCs + 1)]
 
 
     # make a dataframe
-    components_df = pd.DataFrame.from_dict(dict(zip(PC_names, np.abs(principal_components))))
+    components_df = pd.DataFrame.from_dict(
+        dict(zip(PC_names, np.abs(principal_components), strict=False))
+    )
     components_df["names"] = PC_names
     components_df = components_df.set_index("names")
 
-    colour_dict = {'PC01': '#B5E675',    'PC02': '#6ED8A9',   'PC03': '#51B3D4',
-                    'PC04': '#4579AA',   'PC05': '#F19EBA',   'PC06': '#BC96C9',
-                    'PC07': '#917AC2',   'PC08': '#BE607F',   'PC09': '#624E8B',
-                    'PC10': '#888888',  'PC11': '#888888',  'PC12': '#888888'}
-
-
+    colour_dict = {
+        'PC01': '#B5E675',
+        'PC02': '#6ED8A9',
+        'PC03': '#51B3D4',
+        'PC04': '#4579AA',
+        'PC05': '#F19EBA',
+        'PC06': '#BC96C9',
+        'PC07': '#917AC2',
+        'PC08': '#BE607F',
+        'PC09': '#624E8B',
+        'PC10': '#888888',
+        'PC11': '#888888',
+        'PC12': '#888888',
+    }
 
     if ax is None:
-        fig, ax = plt.subplots(figsize=(4, 4))
-        fig.set_constrained_layout(True)
+        fig, ax = plt.subplots(figsize=(4, 4), constrained_layout=True)
+    assert fig is not None
 
-    for PC in colour_dict.keys():
+    for PC, colour in colour_dict.items():
         data = components_df.copy()
         # Make every column except the one we're plotting Nan
         data.loc[:, data.columns != PC] = np.nan
@@ -367,20 +448,43 @@ def plot_compare_components_grid(principal_components,
         # Find the number for the current PC
         PC_num = int(PC[2:])
         if PC_num <= colour_before:
-            colour_map = mpl.colors.LinearSegmentedColormap.from_list("", ["white",colour_dict[PC]])
+            colour_map = matplotlib.colors.LinearSegmentedColormap.from_list(
+                "", ["white", colour]
+            )
         else:
-            colour_map = mpl.colors.LinearSegmentedColormap.from_list("", ["white", "#888888"])
+            colour_map = matplotlib.colors.LinearSegmentedColormap.from_list(
+                "", ["white", "#888888"]
+            )
 
         if PC == 'PC12':
-                cbar_ax = fig.add_axes([1.05, 0.698, .05, .2], )
+            cbar_ax = fig.add_axes((1.05, 0.698, .05, .2))
+            assert cbar_ax is not None
 
-                sns.heatmap(data, annot=False, fmt=".2f", linewidth=0.3,
-                    cmap = colour_map, vmin = 0, vmax = 1, cbar_ax = cbar_ax, ax = ax, cbar_kws={"label": "absolute loading"})
+            sns.heatmap(
+                data,
+                annot=False,
+                fmt=".2f",
+                linewidth=0.3,
+                cmap=colour_map,
+                vmin=0,
+                vmax=1,
+                cbar_ax=cbar_ax,
+                ax=ax,
+                cbar_kws={"label": "absolute loading"},
+            )
 
         else:
-            sns.heatmap(data, annot=False, fmt=".2f",
-                        cmap = colour_map, vmin = 0, vmax = 1, linewidth=0.3,
-                        cbar=False, ax = ax)
+            sns.heatmap(
+                data,
+                annot=False,
+                fmt=".2f",
+                cmap=colour_map,
+                vmin=0,
+                vmax=1,
+                linewidth=0.3,
+                cbar=False,
+                ax=ax,
+            )
 
 
     ax.axhline(y=0, color='#333333',linewidth=1)

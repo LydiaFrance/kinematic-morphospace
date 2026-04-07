@@ -126,7 +126,7 @@ def test_process_data(request, data_fixture):
     assert isinstance(frame_info, dict), "frame_info should be a dictionary"
     assert isinstance(markers_df, pd.DataFrame), "markers_df should be a DataFrame"
     assert isinstance(frame_info_df, pd.DataFrame), "frame_info_df should be a DataFrame"
-    assert markers.shape[0] == frame_info['time'].shape[0], "Markers and frame info should have the same number of frames"
+    assert markers.shape[0] == len(frame_info['time']), "Markers and frame info should have the same number of frames"  # type: ignore[arg-type]
     assert markers_df.shape[0] == frame_info_df.shape[0], "DataFrames should have the same number of rows"
     logger.info("process_data function passed")
 
@@ -151,7 +151,7 @@ def test_scale_data(request, data_fixture, sample_wingspan_path):
     # Verify the output types and integrity
     assert isinstance(scaled_data, pd.DataFrame), "scale_data should return a DataFrame"
     marker_cols = [col for col in scaled_data.columns if '_x' in col or '_y' in col or '_z' in col]
-    assert not scaled_data[marker_cols].isnull().values.any(), "Scaled marker data should not contain NaNs"
+    assert not scaled_data[marker_cols].isnull().to_numpy().any(), "Scaled marker data should not contain NaNs"
     logger.info("scale_data function passed")
 
 

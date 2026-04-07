@@ -1,4 +1,4 @@
-"""kinematic_morphospace.plotting — visualisation subpackage for kinematic-morphospace figures."""
+"""kinematic_morphospace.plotting — visualisation subpackage."""
 
 import os
 from pathlib import Path
@@ -6,27 +6,149 @@ from pathlib import Path
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
+# Trajectories and whole-body kinematics
+from .angles import bin_and_plot as bin_and_plot
+from .angles import plot_angles_by_distance as plot_angles_by_distance
+from .angles import plot_whole_body_angles as plot_whole_body_angles
+
+# Clustering visualisation
+from .clusters import get_cluster_colours as get_cluster_colours
+from .clusters import get_cluster_counts as get_cluster_counts
+from .clusters import plot_cluster_counts as plot_cluster_counts
+from .clusters import plot_cluster_diffs as plot_cluster_diffs
+from .clusters import plot_cluster_experience_diffs as plot_cluster_experience_diffs
+from .clusters import plot_cluster_size_distribution as plot_cluster_size_distribution
+from .clusters import plot_clusters as plot_clusters
+from .clusters import (
+    plot_marker_errors_with_thresholds as plot_marker_errors_with_thresholds,
+)
+from .clusters import plot_reconstruction_errors as plot_reconstruction_errors
+
+# PCA component loadings
+from .components import compare_coeffs_grid as compare_coeffs_grid
+from .components import compare_coeffs_hawks as compare_coeffs_hawks
+from .components import plot_compare_components_grid as plot_compare_components_grid
+from .components import plot_components_grid as plot_components_grid
+
+# Condition comparisons (obstacle, weight, experience)
+from .conditions import plot_score_naive_control as plot_score_naive_control
+from .conditions import plot_score_obstacle_control as plot_score_obstacle_control
+from .conditions import plot_score_weight_control as plot_score_weight_control
+
+# Flight-behaviour continuum (NB12)
+from .continuum import compute_flight_phase_traces as compute_flight_phase_traces
+from .continuum import plot_bic_sweep as plot_bic_sweep
+from .continuum import plot_continuum_summary as plot_continuum_summary
+from .continuum import plot_flight_phase_overlay as plot_flight_phase_overlay
+from .continuum import plot_flight_phase_time_traces as plot_flight_phase_time_traces
+from .continuum import plot_transition_overlay as plot_transition_overlay
+
+# Score heatmaps
+from .heatmaps import (
+    plot_difference_exp_scores_heatmap as plot_difference_exp_scores_heatmap,
+)
+from .heatmaps import (
+    plot_difference_PC_scores_heatmap as plot_difference_PC_scores_heatmap,
+)
+from .heatmaps import plot_PC_score_heatmaps as plot_PC_score_heatmaps
+from .heatmaps import prepare_heatmap_comparison as prepare_heatmap_comparison
+
+# Raw marker scatter plots
+from .markers import plot_3d_scatter as plot_3d_scatter
+from .markers import plot_3d_scatter_with_animation as plot_3d_scatter_with_animation
+from .markers import plot_bird_marker_comparisons as plot_bird_marker_comparisons
+from .markers import plot_raw_markers as plot_raw_markers
+from .markers import plot_uncorrected_markers as plot_uncorrected_markers
+
+# Robustness composite figures (schematic + results)
+from .robustness import plot_hull_coverage as plot_hull_coverage
+from .robustness import plot_hull_outlier_markers as plot_hull_outlier_markers
+from .robustness import plot_imputation_composite as plot_imputation_composite
+from .robustness import plot_occlusion_bias as plot_occlusion_bias
+from .robustness import plot_pairwise_composite as plot_pairwise_composite
+from .robustness import plot_relabelling_composite as plot_relabelling_composite
+from .robustness import plot_shuffle_composite as plot_shuffle_composite
+from .robustness import plot_subsampling_composite as plot_subsampling_composite
+
+# Robustness-validation schematics
+from .schematics import MARKER_COLOURS as MARKER_COLOURS
+from .schematics import _layout_imputation_schematic as _layout_imputation_schematic
+from .schematics import (
+    _layout_pairwise_distance_schematic as _layout_pairwise_distance_schematic,
+)
+from .schematics import _layout_relabelling_schematic as _layout_relabelling_schematic
+from .schematics import _layout_shuffle_schematic as _layout_shuffle_schematic
+from .schematics import _layout_subsampling_schematic as _layout_subsampling_schematic
+from .schematics import plot_autocorrelation_schematic as plot_autocorrelation_schematic
+from .schematics import plot_imputation_schematic as plot_imputation_schematic
+from .schematics import (
+    plot_pairwise_distance_schematic as plot_pairwise_distance_schematic,
+)
+from .schematics import plot_relabelling_schematic as plot_relabelling_schematic
+from .schematics import plot_shuffle_schematic as plot_shuffle_schematic
+from .schematics import plot_subsampling_schematic as plot_subsampling_schematic
+
+# PC score time traces
+from .scores import plot_pc_comparison_grid as plot_pc_comparison_grid
+from .scores import plot_score as plot_score
+from .scores import plot_score_multi_bird as plot_score_multi_bird
+from .scores import plot_score_multi_distance as plot_score_multi_distance
+from .scores import plot_score_multi_PCs as plot_score_multi_PCs
+
+# Cross-species marker visualisation
+from .species import plot_bird_markers as plot_bird_markers
+
+# Individual-vs-shared subspace comparisons
+from .subspaces import HAWK_COLOURS as HAWK_COLOURS
+from .subspaces import plot_bootstrap_cosines as plot_bootstrap_cosines
+from .subspaces import plot_cosine_profile as plot_cosine_profile
+from .subspaces import plot_method_comparison as plot_method_comparison
+
+# Left-right symmetry
+from .symmetry import plot_left_right as plot_left_right
+from .symmetry import plot_left_right_empty as plot_left_right_empty
+from .symmetry import plot_left_right_just_two as plot_left_right_just_two
+from .symmetry import plot_symmetry_scores as plot_symmetry_scores
+from .symmetry import prepare_left_right_comparison as prepare_left_right_comparison
+from .symmetry import print_symmetry_summary as print_symmetry_summary
+from .symmetry import summarise_symmetry as summarise_symmetry
+
+# Trajectory plots
+from .trajectories import plot_traj as plot_traj
+from .trajectories import plot_traj_scatter as plot_traj_scatter
+from .trajectories import plot_trajectory_data as plot_trajectory_data
+from .trajectories import save_hybrid_figure as save_hybrid_figure
+from .trajectories import setup_trajectory_axis as setup_trajectory_axis
+
+# Explained variance and scree plots
+from .variance import (
+    calculate_cumulative_variance_ratios as calculate_cumulative_variance_ratios,
+)
+from .variance import plot_cumulative_variance_ratios as plot_cumulative_variance_ratios
+from .variance import plot_explained as plot_explained
+from .variance import plot_explained_comparison as plot_explained_comparison
+from .variance import plot_hist_similar_shapes as plot_hist_similar_shapes
+from .variance import (
+    table_cumulative_variance_ratios as table_cumulative_variance_ratios,
+)
+
 
 def save_figure(fig, filepath, dpi=300, rasterize=False):
-    """Save a matplotlib figure to PDF/PNG.
+    """Save a matplotlib figure to PDF or PNG, accepting several figure types.
 
-    Accepts fig as a Figure, (fig, axes) tuple, or bare Axes
-    (calls get_figure()). Creates parent directories automatically.
-    Defaults to tight bounding box.
+    Accepts a bare Figure, a (Figure, Axes) tuple returned by most plotting
+    helpers, or a bare Axes (get_figure() is called automatically). Parent
+    directories are created on demand.
 
-    Parameters
-    ----------
-    fig : Figure, (Figure, Axes) tuple, or Axes
-        The figure to save.
-    filepath : str or Path
-        Destination path (extension determines format).
-    dpi : int
-        Resolution for raster output (default 300).
-    rasterize : bool
-        If True, rasterize all artists before saving as PDF. This
-        embeds a high-resolution bitmap inside the PDF, which keeps
-        file sizes small for scatter-heavy figures while preserving
-        vector text/axes.
+    Args:
+        fig: The figure to save. May be a Figure, a (Figure, Axes) tuple,
+            or a bare Axes object.
+        filepath: Destination path; the file extension determines the format.
+        dpi: Resolution for raster output. Defaults to 300.
+        rasterize: When True, all axes content is rasterised before saving
+            as PDF. This embeds a high-resolution bitmap inside the PDF,
+            keeping file sizes small for scatter-heavy figures while
+            preserving vector text and axes. Defaults to False.
     """
     # Unwrap common return types from plotting functions
     if isinstance(fig, tuple):
@@ -34,7 +156,8 @@ def save_figure(fig, filepath, dpi=300, rasterize=False):
     if isinstance(fig, Axes):
         fig = fig.get_figure()
     if not isinstance(fig, Figure):
-        raise TypeError(f"Expected Figure, got {type(fig)}")
+        msg = f"Expected Figure, got {type(fig)}"
+        raise TypeError(msg)
 
     filepath = Path(filepath)
     os.makedirs(filepath.parent, exist_ok=True)
@@ -51,77 +174,3 @@ def save_figure(fig, filepath, dpi=300, rasterize=False):
         fig.savefig(filepath, dpi=dpi, bbox_inches='tight')
 
     print(f"Saved: {filepath}")
-
-
-# Trajectories and whole-body kinematics
-from .trajectories import (
-    plot_trajectory_data, plot_traj, save_hybrid_figure,
-    setup_trajectory_axis, plot_traj_scatter)
-
-# Body angles (roll, yaw, pitch)
-from .angles import (
-    bin_and_plot, plot_whole_body_angles, plot_angles_by_distance)
-
-# Raw marker scatter plots
-from .markers import (
-    plot_raw_markers, plot_uncorrected_markers, plot_bird_marker_comparisons,
-    plot_3d_scatter, plot_3d_scatter_with_animation)
-
-# Explained variance and scree plots
-from .variance import (
-    plot_explained, table_cumulative_variance_ratios,
-    calculate_cumulative_variance_ratios, plot_cumulative_variance_ratios,
-    plot_explained_comparison, plot_hist_similar_shapes)
-
-# PCA component loadings
-from .components import (
-    plot_components_grid, compare_coeffs_hawks, compare_coeffs_grid,
-    plot_compare_components_grid)
-
-# PC score time traces
-from .scores import (
-    plot_score, plot_score_multi_PCs, plot_score_multi_distance,
-    plot_pc_comparison_grid, plot_score_multi_bird)
-
-# Left-right symmetry
-from .symmetry import (
-    prepare_left_right_comparison, plot_left_right,
-    plot_left_right_just_two, plot_left_right_empty,
-    plot_symmetry_scores)
-
-# Score heatmaps
-from .heatmaps import (
-    prepare_heatmap_comparison, plot_difference_PC_scores_heatmap,
-    plot_PC_score_heatmaps, plot_difference_exp_scores_heatmap)
-
-# Condition comparisons (obstacle, weight, experience)
-from .conditions import (
-    plot_score_obstacle_control, plot_score_weight_control,
-    plot_score_naive_control)
-
-# Clustering visualisation
-from .clusters import (
-    get_cluster_colours, plot_clusters, get_cluster_counts,
-    plot_cluster_counts, plot_cluster_diffs, plot_cluster_experience_diffs,
-    plot_reconstruction_errors, plot_marker_errors_with_thresholds,
-    plot_cluster_size_distribution)
-
-# Cross-species marker visualisation
-from .species import plot_bird_markers
-
-# Robustness-validation schematics
-from .schematics import (
-    plot_shuffle_schematic, plot_subsampling_schematic,
-    plot_pairwise_distance_schematic, plot_relabelling_schematic,
-    plot_imputation_schematic, MARKER_COLOURS,
-    _layout_shuffle_schematic, _layout_subsampling_schematic,
-    _layout_relabelling_schematic, _layout_imputation_schematic,
-    _layout_pairwise_distance_schematic,
-    plot_autocorrelation_schematic)
-
-# Robustness composite figures (schematic + results)
-from .robustness import (
-    plot_shuffle_composite, plot_subsampling_composite,
-    plot_pairwise_composite, plot_relabelling_composite,
-    plot_imputation_composite, plot_hull_coverage, plot_hull_outlier_markers,
-    plot_occlusion_bias)

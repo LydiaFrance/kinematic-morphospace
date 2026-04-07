@@ -1,5 +1,4 @@
-"""
-Duplicate marker detection and resolution for wing labelling.
+"""Duplicate marker detection and resolution for wing labelling.
 
 After polygon-based labelling, multiple markers in the same frame may receive
 the same label. This module detects such duplicates and resolves them using
@@ -37,27 +36,22 @@ def detect_duplicates(
     frame_col: str = "frameID",
     label_col: str = "label",
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Partition rows by duplicate status within each frame.
+    """Partition a labelled marker table into unique, duplicate, and excess rows.
 
-    A "duplicate" means two rows share the same ``frame_col`` and
-    ``label_col`` value. Unlabelled rows (empty string) are always placed
-    in *unique*.
+    A duplicate occurs when two rows in the same frame share the same label.
+    Unlabelled rows (empty string) are always placed in the unique partition.
+    This partitioning allows duplicate pairs to be resolved by
+    :func:`resolve_duplicates` before analysis.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Marker table with frame and label columns.
-    frame_col, label_col : str
-        Column names for frame identifier and marker label.
+    Args:
+        df: Marker table with a frame identifier column and a label column.
+        frame_col: Column name for the frame identifier.
+        label_col: Column name for the marker label.
 
-    Returns
-    -------
-    unique : pd.DataFrame
-        Rows whose label appears exactly once in their frame (plus unlabelled).
-    dup_pairs : pd.DataFrame
-        Rows whose label appears exactly twice in their frame.
-    excess : pd.DataFrame
-        Rows whose label appears 3+ times in their frame.
+    Returns:
+        Tuple of three DataFrames: ``unique`` (label appears once per frame,
+        plus all unlabelled rows), ``dup_pairs`` (label appears exactly twice
+        per frame), and ``excess`` (label appears 3 or more times per frame).
     """
     df = df.copy()
 
@@ -67,17 +61,19 @@ def detect_duplicates(
     labelled = df[labelled_mask]
 
     if labelled.empty:
-        return df.copy(), pd.DataFrame(columns=df.columns), pd.DataFrame(columns=df.columns)
+        empty_df = pd.DataFrame(columns=df.columns)
+        return df.copy(), empty_df, empty_df
 
     # Count occurrences of each (frame, label) pair
-    composite = labelled[frame_col].astype(str) + "_" + labelled[label_col].astype(str)
+    composite_arr = labelled[frame_col].astype(str) + "_" + labelled[label_col].astype(str)
+    composite = pd.Series(composite_arr, index=labelled.index)
     counts = composite.map(composite.value_counts())
 
     unique_labelled = labelled[counts == 1]
     dup_pairs = labelled[counts == 2]
     excess = labelled[counts >= 3]
 
-    unique = pd.concat([unlabelled, unique_labelled], ignore_index=False)
+    unique = pd.concat([unlabelled, unique_labelled], ignore_index=False)  # type: ignore[arg-type]
 
     n_dup = len(dup_pairs) // 2 if len(dup_pairs) > 0 else 0
     n_excess = len(excess)
@@ -85,7 +81,7 @@ def detect_duplicates(
         "  Duplicate detection: %d unique, %d duplicate pairs, %d excess rows",
         len(unique), n_dup, n_excess,
     )
-    return unique, dup_pairs, excess
+    return unique, dup_pairs, excess  # type: ignore[return-value]
 
 
 def resolve_duplicates(
@@ -96,34 +92,34 @@ def resolve_duplicates(
     xyz_cols: tuple[str, str, str] = ("xyz_1", "xyz_2", "xyz_3"),
     wingtip_y_threshold: float = -0.1,
 ) -> pd.DataFrame:
-    """Resolve duplicate pairs by relabelling one marker in each pair.
+    """Resolve duplicate marker pairs by relabelling one marker in each pair.
 
-    Rules (applied per pair, preserving left_/right_ prefix):
+    Applies label-specific distance heuristics to decide which marker in each
+    duplicate pair should be demoted to a neighbouring label. Left/right
+    side prefixes are preserved throughout. Rules applied per pair:
 
-    - **wingtip** dups: closer marker (by Euclidean distance to origin)
-      becomes *primary*; if its y < ``wingtip_y_threshold``, becomes
-      *secondary* instead.
-    - **primary** dups: closer marker (by y-coordinate) becomes *secondary*.
-    - **tailtip** dups: marker further from midline (larger ``|x|``) becomes
-      *secondary*.
-    - **secondary** dups: marker further from midline (larger ``|x|``) becomes
-      *wingtip*.
+    - **wingtip**: the closer marker (Euclidean distance to origin) becomes
+      ``primary``; if its Y is below ``wingtip_y_threshold``, it becomes
+      ``secondary`` instead.
+    - **primary**: the marker with smaller |Y| (closer to body midline)
+      becomes ``secondary``.
+    - **tailtip**: the marker further from the lateral midline (larger |X|)
+      becomes ``secondary``.
+    - **secondary**: the marker further from the lateral midline (larger |X|)
+      becomes ``wingtip``.
 
-    Parameters
-    ----------
-    dup_pairs : pd.DataFrame
-        Rows with exactly 2 occurrences of their (frame, label) combination.
-    frame_col, label_col : str
-        Column names.
-    xyz_cols : tuple of str
-        Column names for X, Y, Z coordinates.
-    wingtip_y_threshold : float
-        Y-coordinate threshold for wingtip→secondary demotion.
+    Args:
+        dup_pairs: DataFrame of rows where the (frame, label) combination
+            appears exactly twice, as returned by :func:`detect_duplicates`.
+        frame_col: Column name for the frame identifier.
+        label_col: Column name for the marker label.
+        xyz_cols: Column names for the relative X, Y, Z coordinates.
+        wingtip_y_threshold: Y-coordinate threshold below which a wingtip
+            duplicate is demoted to secondary rather than primary. Defaults
+            to -0.1.
 
-    Returns
-    -------
-    pd.DataFrame
-        Updated DataFrame with duplicates resolved.
+    Returns:
+        Updated copy of ``dup_pairs`` with one marker per pair relabelled.
     """
     if dup_pairs.empty:
         return dup_pairs.copy()
@@ -139,7 +135,7 @@ def resolve_duplicates(
         if len(group) != 2:
             continue
 
-        idx_a, idx_b = group.index[0], group.index[1]
+        idx_a, idx_b = int(group.index[0]), int(group.index[1])  # type: ignore[arg-type]
         current_label = result.loc[idx_a, label_col]
         base = _strip_side_prefix(current_label)
 
@@ -176,33 +172,32 @@ def split_labelled_table(
     *,
     label_col: str = "label",
 ) -> dict[str, pd.DataFrame]:
-    """Split a labelled DataFrame into feather, body, and unlabelled subsets.
+    """Split a labelled marker DataFrame into feather, body, and unlabelled subsets.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Marker table with a label column.
-    label_col : str
-        Column containing marker labels.
+    The three subsets are mutually exclusive and collectively exhaustive.
+    Feather markers are wingtip, primary, secondary, and tailtip; body
+    markers are headpack, backpack, and tailpack.
 
-    Returns
-    -------
-    dict
-        Keys ``"feather"``, ``"body"``, ``"unlabelled"``, each mapping to a
-        DataFrame subset. The three subsets are mutually exclusive and
-        collectively exhaustive.
+    Args:
+        df: Marker table with a label column containing anatomical labels
+            (optionally prefixed with ``left_`` or ``right_``).
+        label_col: Column name containing marker labels.
+
+    Returns:
+        Dict with keys ``"feather"``, ``"body"``, and ``"unlabelled"``,
+        each mapping to a DataFrame subset.
     """
     labels = df[label_col].astype(str)
     base_labels = labels.apply(_strip_side_prefix)
 
-    feather_mask = base_labels.isin(_FEATHER_LABELS)
-    body_mask = base_labels.isin(_BODY_LABELS)
+    feather_mask = base_labels.isin(list(_FEATHER_LABELS))
+    body_mask = base_labels.isin(list(_BODY_LABELS))
     unlabelled_mask = ~feather_mask & ~body_mask
 
     return {
-        "feather": df[feather_mask].copy(),
-        "body": df[body_mask].copy(),
-        "unlabelled": df[unlabelled_mask].copy(),
+        "feather": df[feather_mask].copy(),  # type: ignore[dict-item]
+        "body": df[body_mask].copy(),  # type: ignore[dict-item]
+        "unlabelled": df[unlabelled_mask].copy(),  # type: ignore[dict-item]
     }
 
 
@@ -252,16 +247,16 @@ def _resolve_wingtip_pair(
     wingtip_y_threshold: float,
 ) -> None:
     """Wingtip dups: closer → primary (or secondary if y < threshold)."""
-    dist_a = np.sqrt(
-        df.loc[idx_a, x_col] ** 2
-        + df.loc[idx_a, y_col] ** 2
-        + df.loc[idx_a, z_col] ** 2
-    )
-    dist_b = np.sqrt(
-        df.loc[idx_b, x_col] ** 2
-        + df.loc[idx_b, y_col] ** 2
-        + df.loc[idx_b, z_col] ** 2
-    )
+    dist_a = float(np.sqrt(  # type: ignore[operator]
+        float(df.loc[idx_a, x_col]) ** 2  # type: ignore[operator]
+        + float(df.loc[idx_a, y_col]) ** 2
+        + float(df.loc[idx_a, z_col]) ** 2
+    ))
+    dist_b = float(np.sqrt(  # type: ignore[operator]
+        float(df.loc[idx_b, x_col]) ** 2  # type: ignore[operator]
+        + float(df.loc[idx_b, y_col]) ** 2
+        + float(df.loc[idx_b, z_col]) ** 2
+    ))
 
     closer, _further = (idx_a, idx_b) if dist_a <= dist_b else (idx_b, idx_a)
     current_label = df.loc[closer, label_col]

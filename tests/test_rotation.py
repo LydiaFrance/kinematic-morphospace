@@ -257,7 +257,7 @@ class TestExtractEulerAngles:
         """Should return one set of angles per rotation matrix."""
         n = 10
         # Create random rotation matrices
-        scipy_rots = R.random(n, random_state=42)
+        scipy_rots = R.random(n, random_state=42)  # type: ignore[call-arg]
         matrices = scipy_rots.as_matrix()
         angles = extract_euler_angles_from_matrices(matrices, sequence='xyz')
         assert angles.shape == (n, 3)

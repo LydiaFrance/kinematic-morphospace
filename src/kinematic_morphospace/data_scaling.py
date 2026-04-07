@@ -1,3 +1,9 @@
+"""Functions for scaling marker data and adding supplementary information.
+
+Provides wingspan normalisation, its inverse, turn-direction annotation,
+and tailpack marker integration.
+"""
+
 import numpy as np
 import pandas as pd
 import yaml
@@ -5,27 +11,23 @@ import yaml
 from .data_filtering import filter_by
 from .data_loading import merge_frame_info
 
-"""
-Functions for scaling marker data and adding supplementary information.
-
-- scale_data: Scales the marker data by total wingspan.
-- unscale_data: Reverses wingspan normalisation.
-- add_turn_info: Adds turn direction to the frame info dataframe.
-- add_tailpack_data: Adds tailpack marker data to the markers DataFrame.
-- rename_tailpack_data: Renames tailpack columns to standard naming.
-"""
-
 
 def scale_data(data_csv, wingspan_path: str):
-    """
-    Scale the data by the total wingspan.
+    """Normalise marker coordinates by each hawk's maximum total wingspan.
 
-    Parameters:
-    - data_csv (pd.DataFrame): A DataFrame containing the data.
-    - wingspan_path (str): The path to the wingspan file.
+    Divides all x/y/z marker columns by the per-hawk, per-year maximum
+    wingspan loaded from a YAML file, so that shapes are expressed as
+    fractions of wingspan and are comparable across individuals and years.
+
+    Args:
+        data_csv: DataFrame containing marker coordinate columns (identified
+            by ``_x``, ``_y``, ``_z`` suffixes) and ``BirdID`` / ``Year``
+            metadata columns.
+        wingspan_path: Path to ``TotalWingspans.yml``, which maps hawk name
+            and year to the maximum recorded wingspan in metres.
 
     Returns:
-    - data_csv (pd.DataFrame): A DataFrame containing the scaled data.
+        Copy of ``data_csv`` with marker columns divided by wingspan.
     """
     marker_cols = data_csv.columns[data_csv.columns.str.contains('_x|_y|_z')]
 
@@ -54,15 +56,18 @@ def scale_data(data_csv, wingspan_path: str):
 
 
 def unscale_data(data_csv, wingspan_path: str):
-    """
-    Reverse the wingspan normalisation.
+    """Reverse the wingspan normalisation applied by ``scale_data``.
 
-    Parameters:
-    - data_csv (pd.DataFrame): A DataFrame containing the data.
-    - wingspan_path (str): The path to the wingspan file.
+    Multiplies all x/y/z marker columns by the per-hawk, per-year maximum
+    wingspan, restoring coordinates to metres.
+
+    Args:
+        data_csv: DataFrame containing normalised marker coordinate columns
+            and ``BirdID`` / ``Year`` metadata columns.
+        wingspan_path: Path to ``TotalWingspans.yml``.
 
     Returns:
-    - data_csv (pd.DataFrame): A DataFrame containing the unscaled data.
+        Copy of ``data_csv`` with marker columns multiplied by wingspan.
     """
     marker_cols = data_csv.columns[data_csv.columns.str.contains('_x|_y|_z')]
 
@@ -91,22 +96,26 @@ def unscale_data(data_csv, wingspan_path: str):
 
 
 def add_turn_info(frame_info_df, turn_csv_path: str):
-    """
-    Add turn information to the frame info dataframe.
-    Turn information is the direction the hawk flew around the obstacle.
+    """Add turn-direction annotation to the frame-info DataFrame.
 
-    Parameters:
-    - frame_info_df (pd.DataFrame): A DataFrame containing the frame info.
-    - turn_csv_path (str): The path to the turn CSV file.
+    Merges per-sequence turn direction (left, right, or straight around
+    an obstacle) from a CSV file into the frame metadata. Turn information
+    is required for obstacle-flight analyses that distinguish approach
+    trajectories.
+
+    Args:
+        frame_info_df: DataFrame containing per-frame metadata with a
+            ``seqID`` column for joining.
+        turn_csv_path: Path to the CSV file containing ``seqID`` and
+            ``Turn`` columns.
 
     Returns:
-    - frame_info_df (pd.DataFrame): A DataFrame with turn information added.
+        Copy of ``frame_info_df`` with a ``Turn`` column added.
     """
     frame_info_df = frame_info_df.copy()
 
     obstacle_df = pd.read_csv(turn_csv_path)
 
-    # Remove any existing turn columns
     frame_info_df = frame_info_df.drop(
         columns=['Turn', 'Turn_x', 'Turn_y'], errors='ignore'
     )
@@ -120,19 +129,27 @@ def add_turn_info(frame_info_df, turn_csv_path: str):
 
 
 def add_tailpack_data(markers_df, frame_info_df, tailpack_csv, wingspan_path=None):
-    """
-    Add tailpack data to the markers DataFrame.
+    """Append tailpack marker coordinates to the markers DataFrame.
 
-    Parameters:
-    - markers_df (pd.DataFrame): A DataFrame containing the markers.
-    - frame_info_df (pd.DataFrame): A DataFrame containing the frame info.
-    - tailpack_csv (str): The path to the tailpack CSV file.
-    - wingspan_path (str, optional): Path to TotalWingspans.yml. If provided,
-      tailpack coordinates are scaled by wingspan to match the wing markers.
+    Loads a tailpack CSV, aligns it with the existing frame metadata via
+    ``frameID``, optionally normalises by wingspan, and concatenates the
+    tailpack marker with the existing wing markers. Frames without tailpack
+    data are dropped, and the frame-info DataFrame is trimmed to match.
+
+    Args:
+        markers_df: DataFrame of wing marker coordinates (one marker trio
+            per group of three columns).
+        frame_info_df: DataFrame of per-frame metadata aligned with
+            ``markers_df``.
+        tailpack_csv: Path to the tailpack marker CSV file.
+        wingspan_path: Path to ``TotalWingspans.yml``. If provided,
+            tailpack coordinates are normalised by wingspan to match the
+            already-scaled wing markers. Defaults to None.
 
     Returns:
-    - combined_markers (numpy.ndarray): Markers including tailpack data.
-    - combined_frame_info_df (pd.DataFrame): Frame info aligned with tailpack data.
+        Tuple of (combined_markers, combined_frame_info_df) where
+        combined_markers has shape ``(n_frames, n_wing_markers + 1, 3)``
+        and combined_frame_info_df is the trimmed frame metadata.
     """
     n_markers_original = len(markers_df.columns) // 3
     print(f"Original number of markers: {n_markers_original}")
@@ -140,25 +157,19 @@ def add_tailpack_data(markers_df, frame_info_df, tailpack_csv, wingspan_path=Non
     tailpack_df = pd.read_csv(tailpack_csv)
     tailpack_df = rename_tailpack_data(tailpack_df)
 
-    # Merge the tailpack data, returning an index of non-NaN rows
     merged_df, row_index = merge_frame_info(tailpack_df, frame_info_df)
 
-    # Use NaN index to remove rows without tailpack data
     combined_frame_info_df = frame_info_df.copy()
     combined_frame_info_df = combined_frame_info_df[row_index].reset_index(drop=True)
 
-    # Build the markers numpy array
     marker_cols = merged_df.columns[merged_df.columns.str.contains('_x|_y|_z')]
 
-    # Scale tailpack by wingspan if wingspan_path is provided
     if wingspan_path is not None:
         with open(wingspan_path) as file:
             total_wingspans = yaml.load(file, Loader=yaml.FullLoader)
 
         for hawk in ["Drogon", "Rhaegal", "Ruby", "Toothless", "Charmander"]:
             for year in [2017, 2020]:
-                # merged_df has frame_info columns from the merge, so we can
-                # filter directly on it rather than needing combined_frame_info_df
                 filter_mask = filter_by(merged_df, hawkname=hawk, year=year)
                 if sum(filter_mask) == 0:
                     continue
@@ -172,9 +183,8 @@ def add_tailpack_data(markers_df, frame_info_df, tailpack_csv, wingspan_path=Non
     merged_df = merged_df[marker_cols]
     n_markers = len(marker_cols) // 3
 
-    combined_markers = merged_df.to_numpy().reshape(-1, n_markers, 3)
+    combined_markers = np.asarray(merged_df).reshape(-1, n_markers, 3)
 
-    # Align the original markers to the same row subset
     markers_df_new = markers_df.copy()
     markers_df_new = markers_df_new[row_index].reset_index(drop=True)
 
@@ -189,8 +199,17 @@ def add_tailpack_data(markers_df, frame_info_df, tailpack_csv, wingspan_path=Non
 
 
 def rename_tailpack_data(markers_df):
-    """
-    Rename tailpack columns to standard marker naming convention.
+    """Rename tailpack columns to the standard marker naming convention.
+
+    Maps the raw ``rot_xyz_1/2/3`` column names produced by the motion
+    capture pipeline to ``tailpack_x/y/z`` and removes any raw ``xyz``
+    columns that are not needed.
+
+    Args:
+        markers_df: DataFrame containing raw tailpack marker columns.
+
+    Returns:
+        Copy of ``markers_df`` with renamed columns.
     """
     markers_df = markers_df.copy()
 
@@ -198,7 +217,7 @@ def rename_tailpack_data(markers_df):
     new_name_cols = ["tailpack_x", "tailpack_y", "tailpack_z"]
 
     markers_df.rename(
-        columns=dict(zip(rot_markers_cols, new_name_cols)), inplace=True
+        columns=dict(zip(rot_markers_cols, new_name_cols, strict=False)), inplace=True
     )
 
     remove_cols = ["xyz_1", "xyz_2", "xyz_3"]

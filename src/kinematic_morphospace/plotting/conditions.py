@@ -1,41 +1,51 @@
 """Condition-comparison score plots (obstacle, weight, naive vs experienced)."""
 
-import numpy as np
 import matplotlib as mpl
+import matplotlib.collections
+import numpy as np
 from matplotlib import pyplot as plt
 
-from ..pca_scores import get_binned_scores
 from ..data_filtering import filter_by
+from ..pca_scores import get_binned_scores
 from .scores import plot_score
 
 
-def plot_score_obstacle_control(scores_df, PC_name,
-                                 hawkname_list=("Drogon", "Toothless", "Charmander", "Ruby"),
-                                 **filters):
-    """Plot PC scores comparing obstacle vs control flights for each hawk.
+def plot_score_obstacle_control(
+    scores_df,
+    PC_name,
+    hawkname_list=("Drogon", "Toothless", "Charmander", "Ruby"),
+    **filters,
+):
+    """Plot binned PC score traces comparing obstacle and control flights for each hawk.
 
-    Parameters
-    ----------
-    scores_df : pandas.DataFrame
-        DataFrame containing PC scores and metadata.
-    PC_name : str
-        Name of the PC column to plot (e.g. 'PC01').
-    hawkname_list : sequence of str
-        Hawks to plot.
-    **filters
-        Additional filters passed to plot_score. Must not include 'obstacle'.
+    Creates a 1xN row of subplots (one per hawk). Within each subplot the control
+    flight trace is shown as a dotted line with lighter shading and the obstacle
+    flight as a solid line, so deviations in wing shape during obstacle avoidance
+    are immediately visible.
 
-    Returns
-    -------
-    fig, axes : matplotlib Figure and Axes
+    Args:
+        scores_df: DataFrame containing PC scores and per-frame metadata.
+        PC_name: Name of the PC column to plot (e.g. 'PC01').
+        hawkname_list: Hawks to include, one subplot each. Defaults to all four
+            hawks from the 2020 experiment.
+        **filters: Additional keyword filters forwarded to plot_score. Must not
+            include 'obstacle', which is managed internally.
+
+    Returns:
+        Tuple of (fig, axes).
+
+    Raises:
+        ValueError: If 'obstacle' is included in filters.
     """
     if 'obstacle' in filters:
-        raise ValueError("Obstacle should not be in filters")
+        msg = "Obstacle should not be in filters"
+        raise ValueError(msg)
 
     condition_labels = ['Control', 'Obstacle']
 
     fig, axes = plt.subplots(1, len(hawkname_list), figsize=(12, 2.5), sharex=True)
 
+    ax = axes.flatten()[0]
     for ii, hawk in enumerate(hawkname_list):
         for obs in [0, 1]:
             ax = axes.flatten()[ii]
@@ -50,7 +60,7 @@ def plot_score_obstacle_control(scores_df, PC_name,
             if obs == 0:
                 ax.lines[-1].set_linestyle(':')
                 for collection in ax.collections:
-                    if isinstance(collection, mpl.collections.PolyCollection):
+                    if isinstance(collection, matplotlib.collections.PolyCollection):
                         collection.set_alpha(0.2)
 
             ax.spines['top'].set_visible(False)
@@ -89,33 +99,41 @@ def plot_score_obstacle_control(scores_df, PC_name,
     return fig, axes
 
 
-def plot_score_weight_control(scores_df, PC_name,
-                               hawkname_list=("Drogon", "Toothless", "Charmander", "Ruby"),
-                               **filters):
-    """Plot PC scores comparing weight vs control flights for each hawk.
+def plot_score_weight_control(
+    scores_df,
+    PC_name,
+    hawkname_list=("Drogon", "Toothless", "Charmander", "Ruby"),
+    **filters,
+):
+    """Plot binned PC score traces comparing weight-loaded and control flights.
 
-    Parameters
-    ----------
-    scores_df : pandas.DataFrame
-        DataFrame containing PC scores and metadata.
-    PC_name : str
-        Name of the PC column to plot.
-    hawkname_list : sequence of str
-        Hawks to plot.
-    **filters
-        Additional filters. Must not include 'IMU'.
+    Creates a 1xN row of subplots (one per hawk). Control flights are shown as
+    dotted lines; weight-loaded flights as solid lines. This reveals how the
+    added IMU weight shifts wing-shape strategies during landing.
 
-    Returns
-    -------
-    fig, axes : matplotlib Figure and Axes
+    Args:
+        scores_df: DataFrame containing PC scores and per-frame metadata.
+        PC_name: Name of the PC column to plot (e.g. 'PC01').
+        hawkname_list: Hawks to include, one subplot each. Defaults to all four
+            hawks from the 2020 experiment.
+        **filters: Additional keyword filters forwarded to plot_score. Must not
+            include 'IMU', which is managed internally.
+
+    Returns:
+        Tuple of (fig, axes).
+
+    Raises:
+        ValueError: If 'IMU' is included in filters.
     """
     if 'IMU' in filters:
-        raise ValueError("IMU/Weight should not be in filters")
+        msg = "IMU/Weight should not be in filters"
+        raise ValueError(msg)
 
     condition_labels = ['Control', 'Weight']
 
     fig, axes = plt.subplots(1, len(hawkname_list), figsize=(12, 2.5), sharex=True)
 
+    ax = axes.flatten()[0]
     for ii, hawk in enumerate(hawkname_list):
         for exp in [0, 1]:
             ax = axes.flatten()[ii]
@@ -130,7 +148,7 @@ def plot_score_weight_control(scores_df, PC_name,
             if exp == 0:
                 ax.lines[-1].set_linestyle(':')
                 for collection in ax.collections:
-                    if isinstance(collection, mpl.collections.PolyCollection):
+                    if isinstance(collection, matplotlib.collections.PolyCollection):
                         collection.set_alpha(0.2)
 
             ax.spines['top'].set_visible(False)
@@ -167,33 +185,42 @@ def plot_score_weight_control(scores_df, PC_name,
     return fig, axes
 
 
-def plot_score_naive_control(scores_df, PC_name,
-                              hawkname_list=("Drogon", "Toothless", "Rhaegal"),
-                              **filters):
-    """Plot PC scores comparing naive (juvenile) vs experienced flights for each hawk.
+def plot_score_naive_control(
+    scores_df,
+    PC_name,
+    hawkname_list=("Drogon", "Toothless", "Rhaegal"),
+    **filters,
+):
+    """Plot binned PC score traces comparing naive (juvenile) and experienced flights.
 
-    Parameters
-    ----------
-    scores_df : pandas.DataFrame
-        DataFrame containing PC scores and metadata.
-    PC_name : str
-        Name of the PC column to plot.
-    hawkname_list : sequence of str
-        Hawks to plot.
-    **filters
-        Additional filters. Must not include 'obstacle'.
+    Creates a 1xN row of subplots (one per hawk). 2017 (naive/juvenile) flights
+    are drawn as dotted lines; 2020 (experienced) flights as solid lines. This
+    reveals how wing-shape strategies change with experience over the hawks'
+    first years of landing practice.
 
-    Returns
-    -------
-    fig, axes : matplotlib Figure and Axes
+    Args:
+        scores_df: DataFrame containing PC scores and per-frame metadata.
+        PC_name: Name of the PC column to plot (e.g. 'PC01').
+        hawkname_list: Hawks to include; must have data in both years.
+            Defaults to the three hawks with 2017 data.
+        **filters: Additional keyword filters forwarded to plot_score. Must not
+            include 'obstacle', which is managed internally.
+
+    Returns:
+        Tuple of (fig, axes).
+
+    Raises:
+        ValueError: If 'obstacle' is included in filters.
     """
     if 'obstacle' in filters:
-        raise ValueError("Obstacle should not be in filters")
+        msg = "Obstacle should not be in filters"
+        raise ValueError(msg)
 
     condition_labels = ['Naive', 'Experienced']
 
     fig, axes = plt.subplots(1, len(hawkname_list), figsize=(8, 4), sharex=True)
 
+    ax = axes.flatten()[0]
     for ii, hawk in enumerate(hawkname_list):
         has_data = True
         for exp in [0, 1]:
@@ -227,7 +254,7 @@ def plot_score_naive_control(scores_df, PC_name,
             if exp == 0:
                 ax.lines[-1].set_linestyle(':')
                 for collection in ax.collections:
-                    if isinstance(collection, mpl.collections.PolyCollection):
+                    if isinstance(collection, matplotlib.collections.PolyCollection):
                         collection.set_alpha(0.2)
 
             ax.spines['top'].set_visible(False)

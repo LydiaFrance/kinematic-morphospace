@@ -1,5 +1,4 @@
-"""
-Flight segmentation from continuous motion-capture recordings.
+"""Flight segmentation from continuous motion-capture recordings.
 
 Detects individual flights from the velocity profile of moving markers,
 using peak detection on the absolute gradient of the smoothed median
@@ -16,6 +15,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.signal import find_peaks, peak_widths
 
 logger = logging.getLogger(__name__)
 
@@ -33,33 +33,31 @@ def detect_velocity_peaks(
     min_peak_height: float = 0.01,
     smooth_fraction: float = 0.05,
 ) -> pd.DataFrame:
-    """Auto-detect flights from median Y velocity peaks.
+    """Detect individual flights from peaks in the median Y velocity profile.
 
-    Reproduces the MATLAB ``findpeaks`` call on
+    Computes the absolute gradient of a smoothed per-frame median Y position
+    (using moving markers only), then finds peaks corresponding to distinct
+    flight events. This replicates the MATLAB ``findpeaks`` call on
     ``abs(gradient(movmean(median_Y, window)))``.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Long-format marker table with columns ``frame``, ``Y``, and
-        ``label_stationary`` (or only moving markers).
-    min_peak_distance : int
-        Minimum frames between peaks (MATLAB ``MinPeakDistance``).
-    min_peak_width : int
-        Minimum width of each peak in frames (MATLAB ``MinPeakWidth``).
-    min_peak_height : float
-        Minimum peak height in velocity units (MATLAB ``MinPeakHeight``).
-    smooth_fraction : float
-        Smoothing window as fraction of total frames (default 5%).
+    Args:
+        df: Long-format marker table with columns ``frame``, ``Y``, and
+            optionally ``label_stationary`` (used to exclude stationary
+            markers).
+        min_peak_distance: Minimum number of frames between consecutive
+            flight peaks (MATLAB ``MinPeakDistance``). Defaults to 250.
+        min_peak_width: Minimum peak width in frames (MATLAB
+            ``MinPeakWidth``). Defaults to 150.
+        min_peak_height: Minimum velocity peak height (MATLAB
+            ``MinPeakHeight``). Defaults to 0.01.
+        smooth_fraction: Smoothing window expressed as a fraction of the
+            total number of frames. Defaults to 0.05 (5%).
 
-    Returns
-    -------
-    pd.DataFrame
-        Table with columns ``peak_frame``, ``peak_height``, ``width``,
-        ``start_frame``, ``end_frame`` for each detected flight.
+    Returns:
+        DataFrame with one row per detected flight and columns
+        ``peak_frame``, ``peak_height``, ``width``, ``start_frame``, and
+        ``end_frame``.
     """
-    from scipy.signal import find_peaks, peak_widths
-
     # Filter to moving markers if label_stationary column exists
     if "label_stationary" in df.columns:
         moving = df[~df["label_stationary"]].copy()
@@ -74,14 +72,17 @@ def detect_velocity_peaks(
     # Smooth with moving mean (window = smooth_fraction * n_frames)
     n_frames = len(y_values)
     window = max(3, int(np.floor(n_frames * smooth_fraction)))
-    smoothed = _moving_mean(y_values, window)
+    # Ensure y_values is numpy array (may be ExtensionArray from Series.values)
+    if hasattr(y_values, '__array__'):
+        y_values = np.asarray(y_values)
+    smoothed = _moving_mean(y_values, window)  # type: ignore[arg-type]
 
     # Compute absolute velocity gradient
     velocity = np.gradient(smoothed, frames)
     abs_velocity = np.abs(velocity)
 
     # Find peaks
-    peaks, properties = find_peaks(
+    peaks, _properties = find_peaks(
         abs_velocity,
         distance=min_peak_distance,
         height=min_peak_height,
@@ -91,7 +92,7 @@ def detect_velocity_peaks(
     if len(peaks) == 0:
         logger.warning("  No velocity peaks detected")
         return pd.DataFrame(
-            columns=["peak_frame", "peak_height", "width", "start_frame", "end_frame"]
+            columns=pd.Index(["peak_frame", "peak_height", "width", "start_frame", "end_frame"])
         )
 
     # Get peak widths for trial boundary calculation
@@ -147,15 +148,11 @@ def _moving_mean(values: np.ndarray, window: int) -> np.ndarray:
 def load_annotations(path: str | Path) -> list[dict]:
     """Load trial boundary annotations from a JSON file.
 
-    Parameters
-    ----------
-    path : str or Path
-        Path to a JSON file with trial annotations.
+    Args:
+        path: Path to a JSON file containing trial annotations.
 
-    Returns
-    -------
-    list[dict]
-        List of dicts with ``start_frame`` and ``end_frame`` keys.
+    Returns:
+        List of dicts, each with ``start_frame`` and ``end_frame`` keys.
     """
     path = Path(path)
     with path.open() as f:
@@ -167,12 +164,10 @@ def load_annotations(path: str | Path) -> list[dict]:
 def save_annotations(annotations: list[dict], path: str | Path) -> None:
     """Save trial boundary annotations to a JSON file.
 
-    Parameters
-    ----------
-    annotations : list[dict]
-        List of dicts with ``start_frame`` and ``end_frame`` keys.
-    path : str or Path
-        Output path.
+    Args:
+        annotations: List of dicts with ``start_frame`` and ``end_frame``
+            keys defining each trial's boundaries.
+        path: Output file path for the JSON file.
     """
     path = Path(path)
     with path.open("w") as f:
@@ -189,21 +184,21 @@ def split_by_trial(
     df: pd.DataFrame,
     annotations: list[dict],
 ) -> pd.DataFrame:
-    """Assign a ``trial`` column to each row based on trial boundary annotations.
+    """Assign a 1-indexed trial number to each frame based on boundary annotations.
 
-    Frames not falling within any trial boundary get ``trial=0``.
+    Frames that fall within a trial's start/end boundaries receive the trial
+    index (1-based). Frames outside all boundaries receive ``trial=0``.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Marker table with a ``frame`` column.
-    annotations : list[dict]
-        Trial boundaries, each with ``start_frame`` and ``end_frame``.
+    Args:
+        df: Marker table with a ``frame`` column containing integer frame
+            numbers.
+        annotations: List of trial boundary dicts, each with ``start_frame``
+            and ``end_frame`` keys, as produced by :func:`detect_velocity_peaks`
+            or :func:`load_annotations`.
 
-    Returns
-    -------
-    pd.DataFrame
-        Copy of *df* with an added ``trial`` column (1-indexed, 0 = no trial).
+    Returns:
+        Copy of ``df`` with a ``trial`` column added (integer, 1-indexed;
+        0 indicates frames not belonging to any trial).
     """
     df = df.copy()
     df["trial"] = 0

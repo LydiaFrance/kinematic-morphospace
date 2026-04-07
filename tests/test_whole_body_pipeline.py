@@ -90,9 +90,9 @@ class TestComputeRelativePositions:
             "smooth_Z": [2.5, 3.0],
         })
         result = compute_relative_positions(df, smooth)
-        np.testing.assert_allclose(result["xyz_1"].values, [0.5, 1.0])
-        np.testing.assert_allclose(result["xyz_2"].values, [1.5, 2.0])
-        np.testing.assert_allclose(result["xyz_3"].values, [2.5, 3.0])
+        np.testing.assert_allclose(result["xyz_1"].to_numpy(), [0.5, 1.0])
+        np.testing.assert_allclose(result["xyz_2"].to_numpy(), [1.5, 2.0])
+        np.testing.assert_allclose(result["xyz_3"].to_numpy(), [2.5, 3.0])
 
     def test_inner_join(self):
         df = pd.DataFrame({
@@ -135,7 +135,7 @@ class TestSmoothTrajectoryWithGaps:
         assert "smooth" in result
         assert "velocity" in result
         assert "acceleration" in result
-        assert result["smooth"].shape[1] == 3
+        assert np.asarray(result["smooth"]).shape[1] == 3
 
     def test_gap_detection(self):
         # Create data with a 50-frame gap

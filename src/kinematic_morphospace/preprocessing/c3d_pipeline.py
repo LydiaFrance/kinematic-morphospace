@@ -1,5 +1,4 @@
-"""
-Orchestration pipeline for C3D → processed marker tables.
+"""Orchestration pipeline for C3D → processed marker tables.
 
 Chains all upstream processing steps (C3D loading, stationary detection,
 trial splitting, body marker labelling, smoothing, coordinate transforms,
@@ -12,7 +11,9 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import cast
 
+import numpy as np
 import pandas as pd
 
 from .body_frame import estimate_body_pitch
@@ -107,10 +108,10 @@ class C3DConfig:
 
     # --- Coordinate transforms ---
     left_perch: list[float] = field(
-        default_factory=lambda: LEFT_PERCH.tolist()
+        default_factory=LEFT_PERCH.tolist
     )
     right_perch: list[float] = field(
-        default_factory=lambda: RIGHT_PERCH.tolist()
+        default_factory=RIGHT_PERCH.tolist
     )
 
     # --- Time sync ---
@@ -134,29 +135,28 @@ def run_single_c3d(
     path: str | Path,
     config: C3DConfig | None = None,
 ) -> dict[str, pd.DataFrame]:
-    """Process a single C3D recording through the full pipeline.
+    """Process a single C3D recording through the complete 8-step pipeline.
 
-    Parameters
-    ----------
-    path : str or Path
-        Path to a ``.c3d`` file.
-    config : C3DConfig, optional
-        Pipeline configuration. Uses defaults if not provided.
+    Chains C3D loading, stationary detection, trial splitting, body marker
+    labelling, body statistics, coordinate transformation, time
+    synchronisation, and body pitch estimation into a single call.
 
-    Returns
-    -------
-    dict[str, pd.DataFrame]
-        Processed tables:
+    Args:
+        path: Path to a ``.c3d`` motion-capture file.
+        config: Pipeline configuration. Uses :class:`C3DConfig` defaults if
+            not provided.
 
-        - ``"markers"`` — full marker table with labels and trial column
-        - ``"body_stats"`` — per-frame body statistics
-        - ``"body_pitch"`` — per-frame pitch estimates
-        - ``"metadata"`` — single-row metadata table
+    Returns:
+        Dict with keys:
+
+        - ``"markers"`` — full marker table with anatomical labels and trial
+          column.
+        - ``"body_stats"`` — per-frame body position, velocity, and speed.
+        - ``"body_pitch"`` — per-frame body pitch estimates (degrees).
+        - ``"metadata"`` — single-row table of recording-level metadata.
     """
     if config is None:
         config = C3DConfig()
-
-    import numpy as np
 
     logger.info("Processing: %s", Path(path).name)
 
@@ -171,13 +171,13 @@ def run_single_c3d(
         df, threshold=config.stationary_threshold,
         n_outlier_passes=config.n_outlier_passes,
     )
-    df["label_stationary"] = df["marker_id"].map(is_stationary).fillna(False)
+    df["label_stationary"] = df["marker_id"].map(is_stationary).fillna(False)  # type: ignore[arg-type]
 
     # Step 2b: Label fixed objects
     object_labels = label_fixed_objects(
         df, is_stationary, y_ranges=config.object_y_ranges,
     )
-    df["object_label"] = df["marker_id"].map(object_labels).fillna("unknown")
+    df["object_label"] = df["marker_id"].map(object_labels).fillna("unknown")  # type: ignore[arg-type]
 
     # Step 3: Trial splitting
     logger.info("  Step 3: Splitting trials")
@@ -189,7 +189,7 @@ def run_single_c3d(
         smooth_fraction=config.smooth_fraction,
     )
     if not peaks.empty:
-        annotations = peaks[["start_frame", "end_frame"]].to_dict("records")
+        annotations = cast(list[dict], peaks[["start_frame", "end_frame"]].to_dict("records"))  # type: ignore[call-overload]
         df = split_by_trial(df, annotations)
     else:
         df["trial"] = 0
@@ -202,7 +202,7 @@ def run_single_c3d(
         backpack_bins=config.backpack_bins,
         tailpack_bins=config.tailpack_bins,
     )
-    df["body_label"] = df["marker_id"].map(body_labels).fillna("unlabelled")
+    df["body_label"] = df["marker_id"].map(body_labels).fillna("unlabelled")  # type: ignore[arg-type]
 
     # Step 5: Body statistics (smoothing)
     logger.info("  Step 5: Computing body statistics")
@@ -271,26 +271,29 @@ def run_single_c3d(
 def run_from_c3d(
     config: C3DConfig,
 ) -> dict[str, pd.DataFrame]:
-    """Process all C3D files in a directory through the full pipeline.
+    """Process all C3D recordings in a directory and concatenate the results.
 
-    Scans the ``config.mocap_folder`` for C3D files, filters for recordings
-    with wing markers and backpack, processes each one, and concatenates
-    the results.
+    Scans ``config.mocap_folder`` for C3D files, filters out nobackpack
+    sessions, runs each recording through :func:`run_single_c3d`, and
+    concatenates all outputs. Failed recordings are logged and skipped.
 
-    Parameters
-    ----------
-    config : C3DConfig
-        Pipeline configuration.
+    Args:
+        config: Pipeline configuration including the input folder, processing
+            parameters, and optional output directory.
 
-    Returns
-    -------
-    dict[str, pd.DataFrame]
-        Concatenated output tables:
+    Returns:
+        Dict with concatenated tables across all recordings:
 
-        - ``"markers"`` — all marker data with labels, trials, time
-        - ``"body_stats"`` — per-frame body statistics for all recordings
-        - ``"body_pitch"`` — per-frame pitch for all recordings
-        - ``"metadata"`` — one row per recording
+        - ``"markers"`` — all marker data with anatomical labels, trial
+          assignments, and time.
+        - ``"body_stats"`` — per-frame body statistics for all recordings.
+        - ``"body_pitch"`` — per-frame pitch estimates for all recordings.
+        - ``"metadata"`` — one row per successfully processed recording.
+
+    Raises:
+        FileNotFoundError: If no C3D files are found in the mocap folder.
+        ValueError: If no recordings have both wing markers and a backpack.
+        RuntimeError: If all recordings fail to process.
     """
     logger.info("=" * 60)
     logger.info("kinematic-morphospace C3D Pipeline")
@@ -316,7 +319,7 @@ def run_from_c3d(
 
     for _, row in filtered.iterrows():
         try:
-            result = run_single_c3d(row["path"], config)
+            result = run_single_c3d(str(row["path"]), config)
             # Tag with recording info
             for key in ["markers", "body_stats", "body_pitch"]:
                 result[key]["source_file"] = row["filename"]

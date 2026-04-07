@@ -1,29 +1,33 @@
+"""PCA reconstruction and bilateral/unilateral conversion utilities.
+
+Provides functions to reconstruct marker positions from PCA scores and
+to convert between bilateral (both wings) and unilateral (one wing,
+mirrored) representations used throughout the morphospace pipeline.
+"""
+
 import numpy as np
 
 
 def to_bilateral(right, left=None):
-    """
-    Assemble bilateral marker array from unilateral sides.
+    """Assemble a bilateral marker array from unilateral sides.
 
-    If only *right* is provided, the left side is created by mirroring
+    If only ``right`` is provided, the left side is created by mirroring
     (negating the x-coordinate), producing a symmetric shape.
 
-    If both *right* and *left* are provided, the left side is unmirrored
+    If both ``right`` and ``left`` are provided, the left side is unmirrored
     (x-coordinate negated back) and interleaved with the right side,
     preserving any asymmetry.
 
-    Parameters
-    ----------
-    right : np.ndarray, shape (n_frames, n_markers, 3)
-        Right-side unilateral markers (as stored by PCA — x already positive).
-    left : np.ndarray, optional, shape (n_frames, n_markers, 3)
-        Left-side unilateral markers (x-mirrored convention, i.e. x positive).
-        If None, the right side is mirrored to create a symmetric shape.
+    Args:
+        right: Right-side unilateral markers of shape ``(n_frames, n_markers, 3)``
+            (x already positive, as stored by PCA).
+        left: Left-side unilateral markers of shape ``(n_frames, n_markers, 3)``
+            with x-mirrored convention (x positive). If None, the right side
+            is mirrored to create a symmetric shape. Defaults to None.
 
-    Returns
-    -------
-    np.ndarray, shape (n_frames, 2 * n_markers, 3)
-        Bilateral markers with left at even indices, right at odd indices.
+    Returns:
+        Bilateral marker array of shape ``(n_frames, 2 * n_markers, 3)`` with
+        left markers at even indices and right markers at odd indices.
     """
     if left is None:
         left = right  # symmetric: both sides identical before mirroring
@@ -43,27 +47,24 @@ def to_bilateral(right, left=None):
 
 
 def to_unilateral(bilateral, left_indices=None, right_indices=None):
-    """
-    Split bilateral marker array into stacked unilateral frames.
+    """Split a bilateral marker array into stacked unilateral frames.
 
     Separates left and right markers, mirrors left x-coordinates so both
     sides share the same coordinate frame, and stacks them (left first,
-    then right), doubling the frame count.
+    then right), doubling the frame count. This is the standard
+    pre-processing step before PCA, as it exploits bilateral symmetry to
+    double the effective sample size.
 
-    Parameters
-    ----------
-    bilateral : np.ndarray, shape (n_frames, n_bilateral_markers, 3)
-        Bilateral marker data with paired left/right markers.
-    left_indices : list[int], optional
-        Indices of left-side markers. Default: [0, 2, 4, 6].
-    right_indices : list[int], optional
-        Indices of right-side markers. Default: [1, 3, 5, 7].
+    Args:
+        bilateral: Bilateral marker data of shape
+            ``(n_frames, n_bilateral_markers, 3)``.
+        left_indices: Indices of left-side markers. Defaults to [0, 2, 4, 6].
+        right_indices: Indices of right-side markers. Defaults to [1, 3, 5, 7].
 
-    Returns
-    -------
-    np.ndarray, shape (2 * n_frames, n_markers_per_side, 3)
-        Stacked unilateral data (left frames first, then right frames),
-        with left x-coordinates mirrored.
+    Returns:
+        Stacked unilateral array of shape ``(2 * n_frames, n_markers_per_side, 3)``
+        with left frames first, then right, and left x-coordinates mirrored
+        to match the right-side convention.
     """
     if left_indices is None:
         left_indices = [0, 2, 4, 6]
@@ -81,27 +82,38 @@ def to_unilateral(bilateral, left_indices=None, right_indices=None):
 
 
 def reconstruct(score_frames, principal_components, mu, components_list=None):
-    """
-    Reconstruct frames based on principal components and score frames.
+    """Reconstruct marker positions from PCA scores and principal components.
 
-    Parameters:
-    - score_frames (numpy.ndarray): The score frames for reconstruction.
-    - principal_components (numpy.ndarray): The principal components matrix.
-    - mu (numpy.ndarray): The mean shape [1, n_markers, 3].
-    - components_list (list): List of component indices to use. Defaults to all.
+    Computes ``mu + selected_scores @ selected_PCs`` to recover the marker
+    positions corresponding to given score values. Optionally restricts
+    reconstruction to a subset of components, allowing visualisation of
+    individual shape modes.
+
+    Args:
+        score_frames: Score array of shape ``(n_frames, n_components)``.
+        principal_components: Principal component matrix of shape
+            ``(n_components, n_features)``.
+        mu: Mean shape array of shape ``(1, n_markers, 3)``.
+        components_list: List of component indices to include in the
+            reconstruction. Defaults to all components.
 
     Returns:
-    - numpy.ndarray: The reconstructed frames.
-    """
+        Reconstructed marker array of shape ``(n_frames, n_markers, 3)``.
 
+    Raises:
+        TypeError: If ``score_frames`` is not a NumPy array.
+        ValueError: If ``score_frames`` is not 2-D.
+    """
     if components_list is None:
         components_list = range(principal_components.shape[1])
 
     if not isinstance(score_frames, np.ndarray):
-        raise TypeError("score_frames must be a numpy array.")
+        msg = "score_frames must be a numpy array."
+        raise TypeError(msg)
 
     if len(score_frames.shape) != 2:
-        raise ValueError("score_frames must be 2d.")
+        msg = "score_frames must be 2d."
+        raise ValueError(msg)
 
     assert score_frames.shape[1] == principal_components.shape[0], \
         "score_frames must have the same number of columns as principal components."
@@ -113,7 +125,6 @@ def reconstruct(score_frames, principal_components, mu, components_list=None):
     n_dims = mu.shape[2]
     n_frames = score_frames.shape[0]
 
-    # Select principal components and scores based on the provided list
     selected_PCs = principal_components[components_list, :]
     selected_scores = score_frames[:, components_list]
 

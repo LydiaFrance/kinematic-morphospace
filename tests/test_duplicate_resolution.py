@@ -88,7 +88,7 @@ class TestDetectDuplicates:
         assert len(dup_pairs) == 0
 
     def test_empty_input(self):
-        df = pd.DataFrame(columns=["frameID", "label", "xyz_1", "xyz_2", "xyz_3"])
+        df = pd.DataFrame(columns=pd.Index(["frameID", "label", "xyz_1", "xyz_2", "xyz_3"]))
         unique, dup_pairs, excess = detect_duplicates(df)
         assert len(unique) == 0
         assert len(dup_pairs) == 0
@@ -199,7 +199,7 @@ class TestResolveDuplicates:
         assert all(l.startswith("right_") for l in result["label"])
 
     def test_empty_input(self):
-        df = pd.DataFrame(columns=["frameID", "label", "xyz_1", "xyz_2", "xyz_3"])
+        df = pd.DataFrame(columns=pd.Index(["frameID", "label", "xyz_1", "xyz_2", "xyz_3"]))
         result = resolve_duplicates(df)
         assert len(result) == 0
 
@@ -262,7 +262,7 @@ class TestSplitLabelledTable:
         assert total == len(df)
 
     def test_empty_input(self):
-        df = pd.DataFrame(columns=["frameID", "label", "xyz_1", "xyz_2", "xyz_3"])
+        df = pd.DataFrame(columns=pd.Index(["frameID", "label", "xyz_1", "xyz_2", "xyz_3"]))
         result = split_labelled_table(df)
         assert len(result["feather"]) == 0
         assert len(result["body"]) == 0

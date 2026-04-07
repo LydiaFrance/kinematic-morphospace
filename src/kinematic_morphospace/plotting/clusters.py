@@ -2,34 +2,27 @@
 
 Combines plotting functions previously in labelling.py and clustering.py.
 """
-import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
+import numpy as np
 
 from ..data_filtering import filter_by
-
 
 # --- From clustering.py ---
 
 def get_cluster_colours(labels, n_clusters=8, noise_colour='blanchedalmond'):
-    """
-    Get a list of colours for cluster labels using the Set3 colourmap.
+    """Map cluster labels to RGBA colours using the Set3 colourmap.
 
-    Parameters
-    ----------
-    labels : array-like
-        Cluster labels (may include -1 for noise).
-    n_clusters : int
-        Number of clusters.
-    noise_colour : str
-        Colour name for noise points (label -1).
+    Args:
+        labels: Cluster label per frame; may include -1 for noise points.
+        n_clusters: Total number of valid clusters (excluding noise). Defaults to 8.
+        noise_colour: Named colour for noise points (label -1). Defaults to
+            'blanchedalmond'.
 
-    Returns
-    -------
-    colours_by_cluster : list
-        RGBA colour for each label.
-    colour_map : dict
-        Mapping from cluster index to RGBA colour.
+    Returns:
+        Tuple of (colours_by_cluster, colour_map) where colours_by_cluster is a
+        list of RGBA tuples aligned with labels, and colour_map is a dict mapping
+        each cluster index to its RGBA colour.
     """
     set3 = plt.cm.get_cmap('Set3')
     cluster_colours = [set3(i) for i in range(set3.N)]
@@ -45,29 +38,34 @@ def get_cluster_colours(labels, n_clusters=8, noise_colour='blanchedalmond'):
     return colours_by_cluster, colour_map
 
 
-def plot_clusters(selected_scores, cluster_centroids, cluster_colours, PC_pair=None, ax=None):
-    """
-    Scatter plot of scores coloured by cluster assignment.
+def plot_clusters(
+    selected_scores,
+    cluster_centroids,
+    cluster_colours,
+    PC_pair=None,
+    ax=None,
+):
+    """Scatter plot of PCA scores coloured by cluster assignment.
 
-    Parameters
-    ----------
-    selected_scores : np.ndarray
-        Score matrix (n_frames, n_PCs).
-    cluster_centroids : np.ndarray
-        Centroid positions (n_clusters, n_PCs).
-    cluster_colours : list
-        Colour per frame.
-    PC_pair : list of int, optional
-        Two PC indices to plot. Defaults to [0, 1].
-    ax : matplotlib.axes.Axes, optional
-        Axes to plot on.
+    Each point represents one frame; colour indicates the cluster it belongs
+    to. Cluster indices are annotated near their centroids.
+
+    Args:
+        selected_scores: Score matrix of shape (n_frames, n_PCs).
+        cluster_centroids: Centroid coordinates of shape (n_clusters, n_PCs).
+        cluster_colours: List of RGBA colours aligned with selected_scores rows,
+            as returned by get_cluster_colours().
+        PC_pair: Two-element list of PC column indices to plot on the x and y
+            axes respectively. Defaults to [0, 1].
+        ax: Matplotlib Axes object to draw on; if None, a new figure is created.
     """
     if PC_pair is None:
         PC_pair = [0, 1]
 
     standalone = ax is None
     if standalone:
-        fig, ax = plt.subplots(figsize=(4, 6))
+        _fig, ax = plt.subplots(figsize=(4, 6))
+    assert ax is not None
 
     PC_1 = PC_pair[1]
     PC_2 = PC_pair[0]
@@ -90,16 +88,17 @@ def plot_clusters(selected_scores, cluster_centroids, cluster_colours, PC_pair=N
 
 
 def get_cluster_counts(scores_df, all_labels=None):
-    """Return unique cluster labels and their percentage counts.
+    """Return unique cluster labels and their percentage of total frames.
 
-    Parameters
-    ----------
-    scores_df : pandas.DataFrame
-        DataFrame with a 'cluster' column.
-    all_labels : array-like, optional
-        If provided, ensures counts are returned for every label in this
-        array (inserting zeros for missing clusters).  This prevents
-        shape mismatches when comparing conditions.
+    Args:
+        scores_df: DataFrame with a ``cluster`` column.
+        all_labels: If provided, counts are returned for every label in this
+            sequence (inserting zeros for clusters absent from scores_df).
+            This prevents shape mismatches when comparing conditions.
+
+    Returns:
+        Tuple of (labels, counts) where labels is an array of unique cluster
+        indices and counts is the percentage of frames in each cluster.
     """
     unique, counts = np.unique(scores_df['cluster'], return_counts=True)
     counts = counts / np.sum(counts) * 100
@@ -116,25 +115,21 @@ def get_cluster_counts(scores_df, all_labels=None):
 
 
 def plot_cluster_counts(unique, counts, colour_list, title=None, fig=None, ax=None):
-    """
-    Bar chart of cluster frame percentages.
+    """Bar chart showing the percentage of frames assigned to each cluster.
 
-    Parameters
-    ----------
-    unique : np.ndarray
-        Cluster labels.
-    counts : np.ndarray
-        Percentage of frames in each cluster.
-    colour_list : dict
-        Mapping from cluster index to RGBA colour.
-    title : str, optional
-        Subplot title.
-    fig : matplotlib.figure.Figure, optional
-    ax : matplotlib.axes.Axes, optional
+    Args:
+        unique: Array of cluster label values.
+        counts: Percentage of total frames in each cluster, aligned with unique.
+        colour_list: Dict mapping cluster index to RGBA colour, as returned by
+            get_cluster_colours().
+        title: Optional subplot title text.
+        fig: Existing Figure to draw into; if None, a new figure is created.
+        ax: Existing Axes to draw into; if None, a new axes is created.
     """
     standalone = fig is None
     if standalone:
         fig, ax = plt.subplots(figsize=(6, 6))
+    assert ax is not None
 
     colour_array = np.array(list(colour_list.values()))
     ax.bar(unique, counts, color=colour_array)
@@ -162,10 +157,16 @@ def _ax_settings_cluster_diffs(ax, y_lim, y_tick):
 
 
 def plot_cluster_diffs(scores_df, colour_list):
-    """
-    Plot cluster count differences across conditions for each hawk.
+    """Plot cluster count differences between control and treatment conditions.
 
-    Compares control vs weight, obstacle, and experience conditions.
+    Creates a 4x4 grid of bar charts. Each row is one hawk (Drogon,
+    Toothless, Ruby, Charmander); columns show the absolute control counts
+    followed by differences for weight, obstacle, and experience conditions.
+    Noise frames (cluster == -1) are excluded.
+
+    Args:
+        scores_df: DataFrame containing PC scores, cluster labels, and metadata.
+        colour_list: Dict mapping cluster index to RGBA colour.
     """
     fig, axes = plt.subplots(4, 4, figsize=(10, 10))
     axes = axes.flatten()
@@ -232,8 +233,16 @@ def plot_cluster_diffs(scores_df, colour_list):
 
 
 def plot_cluster_experience_diffs(scores_df, colour_list):
-    """
-    Plot cluster count differences between naive and experienced flights.
+    """Plot cluster count differences between naive and experienced flights.
+
+    Creates a 3x2 grid of bar charts: left column shows absolute cluster
+    counts for the experienced year; right column shows the count difference
+    (experienced minus naive). Only hawks with both 2017 and 2020 data are
+    included.
+
+    Args:
+        scores_df: DataFrame containing PC scores, cluster labels, and metadata.
+        colour_list: Dict mapping cluster index to RGBA colour.
     """
     fig, axes = plt.subplots(3, 2, figsize=(6, 6))
     axes = axes.flatten()
@@ -279,22 +288,19 @@ def plot_cluster_experience_diffs(scores_df, colour_list):
 # --- From labelling.py ---
 
 def plot_reconstruction_errors(errors, percentile=98):
-    """
-    Plot a histogram of reconstruction errors with a percentile threshold.
+    """Plot a histogram of per-frame reconstruction errors with a percentile threshold.
 
-    Parameters
-    ----------
-    errors : np.ndarray
-        Reconstruction error per frame.
-    percentile : int
-        Percentile for threshold line.
+    Used to identify outlier frames where the PCA reconstruction is poor,
+    which typically indicates labelling errors or unusual wing postures.
 
-    Returns
-    -------
-    threshold : float
-        Error value at the given percentile.
-    num_bad_frames : int
-        Number of frames above the threshold.
+    Args:
+        errors: Per-frame reconstruction error values.
+        percentile: Percentile used to compute the threshold line. Frames above
+            this threshold are considered outliers. Defaults to 98.
+
+    Returns:
+        Tuple of (threshold, num_bad_frames) where threshold is the error value
+        at the given percentile and num_bad_frames is the count of frames above it.
     """
     plt.figure(figsize=(10, 6))
     plt.hist(errors, bins=50, color='skyblue', edgecolor='black')
@@ -309,29 +315,54 @@ def plot_reconstruction_errors(errors, percentile=98):
     plt.show()
 
     num_bad_frames = np.sum(errors > threshold)
-    print(f"Number of frames above the {percentile}th percentile threshold: {num_bad_frames}")
-    print(f"Error value at the {percentile}th percentile threshold: {threshold}")
+    print(
+        f"Number of frames above the {percentile}th percentile threshold: "
+        f"{num_bad_frames}"
+    )
+    print(
+        f"Error value at the {percentile}th percentile threshold: "
+        f"{threshold}"
+    )
     return threshold, num_bad_frames
 
 
-def plot_marker_errors_with_thresholds(data,
-                                        per_marker_errors,
-                                        per_marker_thresholds,
-                                        marker_labels,
-                                        view_labels):
+def plot_marker_errors_with_thresholds(
+    data,
+    per_marker_errors,
+    per_marker_thresholds,
+    marker_labels,
+    view_labels,
+):
+    """Scatter plot of per-marker positions with high reconstruction error.
+
+    Creates a 4x3 grid (one row per marker, three columns for XY, XZ, YZ
+    views). Frames whose reconstruction error exceeds the per-marker
+    threshold are drawn in red at larger size; well-reconstructed frames are
+    drawn in black.
+
+    Args:
+        data: Marker position array of shape (n_frames, n_markers, 3).
+        per_marker_errors: Per-frame, per-marker reconstruction errors of shape
+            (n_frames, n_markers).
+        per_marker_thresholds: Error threshold for each marker, length n_markers.
+        marker_labels: Names for each marker (used as subplot titles).
+        view_labels: Labels for each 2-D projection (e.g. ['XY', 'XZ', 'YZ']).
     """
-    Plot per-marker reconstruction errors in XY, XZ, YZ views,
-    highlighting errors above threshold in red.
-    """
-    fig, axes = plt.subplots(4, 3, figsize=(12, 12))
+    _fig, axes = plt.subplots(4, 3, figsize=(12, 12))
     base_size, error_size = 0.5, 2
 
     for ii in range(4):
         threshold = per_marker_thresholds[ii]
         for jj, (x, y) in enumerate([(0, 1), (0, 2), (1, 2)]):
-            colors = np.where(per_marker_errors[:, ii] > threshold, 'red', 'black')
-            sizes = np.where(per_marker_errors[:, ii] > threshold, error_size, base_size)
-            alphas = np.where(per_marker_errors[:, ii] > threshold, 0.5, 0.1)
+            colors = np.where(
+                per_marker_errors[:, ii] > threshold, 'red', 'black'
+            )
+            sizes = np.where(
+                per_marker_errors[:, ii] > threshold, error_size, base_size
+            )
+            alphas = np.where(
+                per_marker_errors[:, ii] > threshold, 0.5, 0.1
+            )
 
             axes[ii, jj].scatter(data[:, ii, x], data[:, ii, y],
                                   c=colors, s=sizes, alpha=alphas, edgecolor="none")
@@ -346,7 +377,7 @@ def plot_marker_errors_with_thresholds(data,
 
 
 def plot_cluster_size_distribution(cluster_sizes):
-    """Plot a histogram of cluster sizes."""
+    """Plot a histogram of HDBSCAN cluster sizes."""
     plt.figure(figsize=(10, 5))
     plt.hist(cluster_sizes, bins=50)
     plt.xlabel('Cluster Size (number of frames)')

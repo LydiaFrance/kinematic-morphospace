@@ -1,5 +1,4 @@
-"""
-Trajectory smoothing and derivative computation.
+"""Trajectory smoothing and derivative computation.
 
 Provides moving-average smoothing and optional spline fitting for marker
 trajectories. Also computes per-frame body statistics (mean body position,
@@ -14,6 +13,7 @@ import logging
 
 import numpy as np
 import pandas as pd
+from scipy.interpolate import UnivariateSpline
 
 logger = logging.getLogger(__name__)
 
@@ -27,19 +27,14 @@ def moving_mean_smooth(
     values: np.ndarray,
     window: int = 10,
 ) -> np.ndarray:
-    """Apply a centred moving average, matching MATLAB ``movmean``.
+    """Apply a centred moving-average filter, matching MATLAB ``movmean``.
 
-    Parameters
-    ----------
-    values : np.ndarray
-        1-D array of values to smooth.
-    window : int
-        Smoothing window size.
+    Args:
+        values: 1D array of values to smooth.
+        window: Number of samples in the smoothing window. Defaults to 10.
 
-    Returns
-    -------
-    np.ndarray
-        Smoothed values (same length as input).
+    Returns:
+        Smoothed array of the same length as ``values``.
     """
     if window < 1:
         return values.copy()
@@ -60,44 +55,33 @@ def smooth_spline(
     y: np.ndarray,
     rms: float = 0.0001,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Fit a smoothing cubic spline and compute velocity + acceleration.
+    """Fit a smoothing cubic spline and return values, velocity, and acceleration.
 
     Uses ``scipy.interpolate.UnivariateSpline`` with a smoothing factor
-    derived from *rms*. This is an approximation of MATLAB's ``spaps``
-    function with different parameterisation.
+    derived from ``rms`` as ``s = rms**2 * len(x)``. This approximates
+    MATLAB's ``spaps`` function with a different but analogous parameterisation.
 
-    Parameters
-    ----------
-    x : np.ndarray
-        Independent variable (e.g. frame numbers).
-    y : np.ndarray
-        Dependent variable (e.g. one coordinate).
-    rms : float
-        Desired RMS smoothing tolerance. Converted to ``s = rms**2 * len(x)``
-        for UnivariateSpline.
+    Args:
+        x: Independent variable array, e.g. time or frame numbers.
+        y: Dependent variable array, e.g. one spatial coordinate.
+        rms: Desired RMS residual tolerance. Converted to a scipy smoothing
+            factor via ``s = rms**2 * len(x)``. Defaults to 0.0001.
 
-    Returns
-    -------
-    y_smooth : np.ndarray
-        Smoothed values.
-    velocity : np.ndarray
-        First derivative (dy/dx).
-    acceleration : np.ndarray
-        Second derivative (d²y/dx²).
+    Returns:
+        Tuple of three arrays ``(y_smooth, velocity, acceleration)``.
+        ``y_smooth`` is the spline-smoothed signal. ``velocity`` is the
+        first derivative (dy/dx). ``acceleration`` is the second derivative
+        (d²y/dx²).
 
-    Raises
-    ------
-    ImportError
-        If scipy is not installed.
+    Raises:
+        ImportError: If scipy is not installed.
     """
-    from scipy.interpolate import UnivariateSpline
-
     s = rms**2 * len(x)
     spline = UnivariateSpline(x, y, s=s, k=3)
 
-    y_smooth = spline(x)
-    velocity = spline.derivative(n=1)(x)
-    acceleration = spline.derivative(n=2)(x)
+    y_smooth = np.asarray(spline(x))
+    velocity = np.asarray(spline.derivative(n=1)(x))
+    acceleration = np.asarray(spline.derivative(n=2)(x))
 
     return y_smooth, velocity, acceleration
 
@@ -118,50 +102,40 @@ def smooth_trajectory_with_gaps(
     min_time: float = 0.0,
     min_horz_dist: float = 0.3,
     horz_dist: np.ndarray | None = None,
-) -> dict[str, np.ndarray]:
-    """Smooth a marker trajectory with gap detection and removal.
+) -> dict[str, np.ndarray | list]:
+    """Smooth a 3D marker trajectory, excising large gap regions before fitting.
 
     Reproduces the per-sequence smoothing logic from MATLAB
     ``run_whole_body_analysis.m`` (steps 1 and 8):
 
-    1. Reconstruct full frame/time signals from sparse observations.
-    2. Detect gaps > ``max_gap_frames`` frames.
-    3. Exclude gap regions that occur before ``min_time`` or closer than
-       ``min_horz_dist`` to the perch.
-    4. Remove large gap regions from the interpolation signal.
-    5. Apply :func:`smooth_spline` per coordinate.
+    1. Reconstruct the full frame/time signal from sparse observations.
+    2. Detect inter-observation gaps larger than ``max_gap_frames``.
+    3. Skip gaps that occur before ``min_time`` or within ``min_horz_dist``
+       of the perch (typically pre-flight).
+    4. Remove large gap regions from the interpolation grid.
+    5. Fit a smoothing spline per coordinate over the gap-free grid.
 
-    Parameters
-    ----------
-    time : np.ndarray
-        (M,) observed time values.
-    frames : np.ndarray
-        (M,) observed frame numbers (integers).
-    xyz : np.ndarray
-        (M, 3) observed marker positions.
-    rms : float
-        Smoothing tolerance for the spline fit.
-    frame_rate : float
-        Recording frame rate in Hz.
-    max_gap_frames : int
-        Gaps larger than this are flagged and removed from interpolation.
-    min_time : float
-        Ignore gaps occurring before this time (e.g. before takeoff).
-    min_horz_dist : float
-        Ignore gaps occurring closer than this horizontal distance to perch.
-    horz_dist : np.ndarray, optional
-        (M,) horizontal distance from perch for each observation.
-        If None, distance-based gap filtering is skipped.
+    Args:
+        time: (M,) observed time values in seconds.
+        frames: (M,) observed frame numbers (integers).
+        xyz: (M, 3) observed marker positions in metres.
+        rms: Smoothing tolerance passed to :func:`smooth_spline`. Defaults
+            to 0.001.
+        frame_rate: Recording frame rate in Hz, used to reconstruct the
+            time grid. Defaults to 200.0.
+        max_gap_frames: Gaps larger than this number of frames are removed
+            from the interpolation grid. Defaults to 30.
+        min_time: Gaps occurring before this time (seconds) are ignored.
+            Defaults to 0.0.
+        min_horz_dist: Gaps occurring within this horizontal distance
+            (metres) from the perch are ignored. Defaults to 0.3.
+        horz_dist: (M,) horizontal distance from the perch for each
+            observation. If None, distance-based gap filtering is skipped.
 
-    Returns
-    -------
-    dict
-        ``"frames"``: (K,) output frame numbers,
-        ``"time"``: (K,) output time values,
-        ``"smooth"``: (K, 3) smoothed positions,
-        ``"velocity"``: (K, 3) velocity,
-        ``"acceleration"``: (K, 3) acceleration,
-        ``"gaps"``: list of dicts with gap info.
+    Returns:
+        Dict with keys ``"frames"`` (K,), ``"time"`` (K,), ``"smooth"``
+        (K, 3), ``"velocity"`` (K, 3), ``"acceleration"`` (K, 3), and
+        ``"gaps"`` (list of dicts with ``frame``, ``size``, ``time``).
     """
     frames = np.asarray(frames, dtype=int)
     time = np.asarray(time, dtype=float)
@@ -221,9 +195,8 @@ def smooth_trajectory_with_gaps(
     acceleration = np.empty((n_out, 3))
 
     for coord in range(3):
-        s, v, a = smooth_spline(time, xyz[:, coord], rms=rms)
+        _s, _v, _a = smooth_spline(time, xyz[:, coord], rms=rms)
         # Re-evaluate at the output time signal
-        from scipy.interpolate import UnivariateSpline
         s_param = rms**2 * len(time)
         spline = UnivariateSpline(time, xyz[:, coord], s=s_param, k=3)
         smooth[:, coord] = spline(time_signal)
@@ -252,39 +225,35 @@ def compute_body_statistics(
     smooth_window: int = 10,
     frame_rate: float = 200.0,
 ) -> pd.DataFrame:
-    """Compute per-frame body position, smoothed XYZ, velocity, and speed.
+    """Compute per-frame body position, smoothed trajectory, velocity, and speed.
 
-    Groups body markers (backpack + tailpack + headpack) by frame, computes
-    the mean position, applies moving-average smoothing, then numerical
-    gradient for velocity and speed.
+    Groups body-pack markers (backpack, tailpack, headpack) by frame, computes
+    the mean position, applies moving-average smoothing, then estimates
+    velocity via numerical gradient and speed as the smoothed norm of velocity.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Marker table with ``frame``, ``marker_id``, ``X``, ``Y``, ``Z``.
-    body_labels : pd.Series, optional
-        Series indexed by ``marker_id`` with body-pack labels. If provided,
-        only markers labelled ``"backpack"``, ``"tailpack"``, or
-        ``"headpack"`` are included. If None, all markers are used.
-    smooth_window : int
-        Moving-mean window for position smoothing (default 10 frames,
-        matching MATLAB).
-    frame_rate : float
-        Recording frame rate in Hz (default 200).
+    Args:
+        df: Marker table with columns ``frame``, ``marker_id``, ``X``,
+            ``Y``, ``Z``.
+        body_labels: Series indexed by ``marker_id`` with body-pack labels.
+            If provided, only markers labelled ``"backpack"``,
+            ``"tailpack"``, or ``"headpack"`` are included. If None, all
+            markers are used.
+        smooth_window: Moving-mean window size in frames for position
+            smoothing. Defaults to 10 (matching MATLAB).
+        frame_rate: Recording frame rate in Hz, used to scale velocity from
+            frames to seconds. Defaults to 200.0.
 
-    Returns
-    -------
-    pd.DataFrame
-        One row per frame with columns:
-        ``frame``, ``mean_X``, ``mean_Y``, ``mean_Z``,
-        ``smooth_X``, ``smooth_Y``, ``smooth_Z``,
-        ``vel_X``, ``vel_Y``, ``vel_Z``, ``speed``.
+    Returns:
+        DataFrame with one row per frame and columns ``frame``,
+        ``mean_X/Y/Z``, ``smooth_X/Y/Z``, ``vel_X/Y/Z``, and ``speed``
+        (m/s).
     """
     # Filter to body markers if labels provided
     if body_labels is not None:
-        body_ids = body_labels[
+        filtered_labels = body_labels[
             body_labels.isin(["backpack", "tailpack", "headpack"])
-        ].index
+        ]
+        body_ids = list(pd.Series(filtered_labels).index)
         body = df[df["marker_id"].isin(body_ids)].copy()
     else:
         body = df.copy()
@@ -293,23 +262,35 @@ def compute_body_statistics(
     frame_mean = body.groupby("frame")[["X", "Y", "Z"]].mean().sort_index()
     frame_mean.columns = ["mean_X", "mean_Y", "mean_Z"]
 
-    frames = frame_mean.index.values.astype(float)
+    frames = np.asarray(frame_mean.index.values, dtype=float)
 
     # Smooth XYZ with moving mean
-    frame_mean["smooth_X"] = moving_mean_smooth(frame_mean["mean_X"].values, smooth_window)
-    frame_mean["smooth_Y"] = moving_mean_smooth(frame_mean["mean_Y"].values, smooth_window)
-    frame_mean["smooth_Z"] = moving_mean_smooth(frame_mean["mean_Z"].values, smooth_window)
+    smooth_x_vals = np.asarray(frame_mean["mean_X"], dtype=float)
+    smooth_y_vals = np.asarray(frame_mean["mean_Y"], dtype=float)
+    smooth_z_vals = np.asarray(frame_mean["mean_Z"], dtype=float)
+    frame_mean.loc[:, "smooth_X"] = moving_mean_smooth(smooth_x_vals, smooth_window)
+    frame_mean.loc[:, "smooth_Y"] = moving_mean_smooth(smooth_y_vals, smooth_window)
+    frame_mean.loc[:, "smooth_Z"] = moving_mean_smooth(smooth_z_vals, smooth_window)
 
     # Velocity: gradient of smoothed position, scaled by frame rate
-    frame_mean["vel_X"] = np.gradient(frame_mean["smooth_X"].values, frames) * frame_rate
-    frame_mean["vel_Y"] = np.gradient(frame_mean["smooth_Y"].values, frames) * frame_rate
-    frame_mean["vel_Z"] = np.gradient(frame_mean["smooth_Z"].values, frames) * frame_rate
+    vel_x_vals = np.asarray(frame_mean["smooth_X"], dtype=float)
+    vel_y_vals = np.asarray(frame_mean["smooth_Y"], dtype=float)
+    vel_z_vals = np.asarray(frame_mean["smooth_Z"], dtype=float)
+    frame_mean.loc[:, "vel_X"] = (
+        np.gradient(vel_x_vals, frames) * frame_rate
+    )
+    frame_mean.loc[:, "vel_Y"] = (
+        np.gradient(vel_y_vals, frames) * frame_rate
+    )
+    frame_mean.loc[:, "vel_Z"] = (
+        np.gradient(vel_z_vals, frames) * frame_rate
+    )
 
     # Speed: norm of velocity, with additional smoothing
-    velocity = frame_mean[["vel_X", "vel_Y", "vel_Z"]].values
+    velocity = np.asarray(frame_mean[["vel_X", "vel_Y", "vel_Z"]], dtype=float)
     raw_speed = np.linalg.norm(velocity, axis=1)
     speed_window = max(1, int(frame_rate / 10))
-    frame_mean["speed"] = moving_mean_smooth(raw_speed, speed_window)
+    frame_mean.loc[:, "speed"] = moving_mean_smooth(raw_speed, speed_window)
 
     result = frame_mean.reset_index()
     logger.info(

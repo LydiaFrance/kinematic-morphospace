@@ -1,5 +1,4 @@
-"""
-Body marker identification by pairwise inter-marker distances.
+"""Body marker identification by pairwise inter-marker distances.
 
 Labels moving markers as headpack, backpack, or tailpack based on
 characteristic pairwise distances between co-located markers within each
@@ -49,19 +48,20 @@ TAILPACK_BINS: list[tuple[float, float]] = [
 def compute_pairwise_distances(
     df: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Compute all pairwise marker distances within each frame.
+    """Compute all pairwise Euclidean distances between markers within each frame.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Marker table with columns ``frame``, ``marker_id``, ``X``, ``Y``,
-        ``Z``. Should contain only moving (non-stationary) markers.
+    Frames with fewer than two valid (non-NaN) markers are skipped. The
+    resulting table drives the distance-bin labelling in
+    :func:`label_body_markers`.
 
-    Returns
-    -------
-    pd.DataFrame
-        Table with columns ``frame``, ``marker_i``, ``marker_j``,
-        ``distance``.
+    Args:
+        df: Marker table with columns ``frame``, ``marker_id``, ``X``,
+            ``Y``, ``Z``. Should contain only moving (non-stationary)
+            markers.
+
+    Returns:
+        DataFrame with columns ``frame``, ``marker_i``, ``marker_j``, and
+        ``distance`` (metres).
     """
     rows = []
 
@@ -107,8 +107,9 @@ def _find_markers_in_bins(
     for d_min, d_max in bins:
         mask = (distances["distance"] >= d_min) & (distances["distance"] <= d_max)
         hits = distances[mask]
-        matched.update(hits["marker_i"].values)
-        matched.update(hits["marker_j"].values)
+        assert isinstance(hits, pd.DataFrame)
+        matched.update(hits["marker_i"].to_numpy())
+        matched.update(hits["marker_j"].to_numpy())
     return matched
 
 
@@ -121,33 +122,31 @@ def label_body_markers(
     tailpack_bins: list[tuple[float, float]] | None = None,
     sample_n_frames: int | None = None,
 ) -> pd.Series:
-    """Label markers as headpack, backpack, or tailpack by distance bins.
+    """Label moving markers as headpack, backpack, or tailpack using distance bins.
 
-    For each frame (or a random sample), computes pairwise distances between
-    all moving markers and checks which marker pairs fall within the
-    characteristic distance bins for each body pack.
+    For each frame (or an optional random subsample), computes pairwise
+    inter-marker distances and checks which marker pairs fall within the
+    characteristic distance bins for each body pack. Conflicts are resolved
+    with priority: backpack > tailpack > headpack, as the backpack bins are
+    most reliable.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Marker table with ``frame``, ``marker_id``, ``X``, ``Y``, ``Z``.
-    is_stationary : pd.Series, optional
-        Boolean Series indexed by ``marker_id``; True = stationary. If
-        provided, stationary markers are excluded before labelling.
-    headpack_bins : list of (min, max), optional
-        Override default headpack distance bins.
-    backpack_bins : list of (min, max), optional
-        Override default backpack distance bins.
-    tailpack_bins : list of (min, max), optional
-        Override default tailpack distance bins.
-    sample_n_frames : int, optional
-        If set, randomly sample this many frames for labelling (faster for
-        long recordings). Uses majority voting across sampled frames.
+    Args:
+        df: Marker table with columns ``frame``, ``marker_id``, ``X``,
+            ``Y``, ``Z``.
+        is_stationary: Boolean Series indexed by ``marker_id``; True means
+            the marker is stationary and will be excluded before labelling.
+        headpack_bins: Inter-marker distance ranges (min, max) in metres that
+            identify the headpack. Defaults to :data:`HEADPACK_BINS`.
+        backpack_bins: Inter-marker distance ranges that identify the
+            backpack. Defaults to :data:`BACKPACK_BINS`.
+        tailpack_bins: Inter-marker distance ranges that identify the
+            tailpack. Defaults to :data:`TAILPACK_BINS`.
+        sample_n_frames: If set, randomly subsample this many frames before
+            computing distances (useful for long recordings). Uses seed 42
+            for reproducibility.
 
-    Returns
-    -------
-    pd.Series
-        String Series indexed by ``marker_id`` with labels: ``"headpack"``,
+    Returns:
+        String Series indexed by ``marker_id`` with values ``"headpack"``,
         ``"backpack"``, ``"tailpack"``, or ``"unlabelled"``.
     """
     h_bins = headpack_bins or HEADPACK_BINS
@@ -156,20 +155,28 @@ def label_body_markers(
 
     # Filter to moving markers only
     if is_stationary is not None:
-        moving_ids = is_stationary[~is_stationary].index
-        moving = df[df["marker_id"].isin(moving_ids)].copy()
+        filtered_series = is_stationary[~is_stationary]
+        assert isinstance(filtered_series, pd.Series)
+        moving_ids = filtered_series.index
+        moving_df = df[df["marker_id"].isin(list(moving_ids))].copy()
+        assert isinstance(moving_df, pd.DataFrame)
+        moving = moving_df
     else:
         moving = df.copy()
+    assert isinstance(moving, pd.DataFrame)
 
     # Optionally subsample frames
     if sample_n_frames is not None:
         unique_frames = moving["frame"].unique()
         if len(unique_frames) > sample_n_frames:
             rng = np.random.default_rng(42)
-            sampled = rng.choice(unique_frames, size=sample_n_frames, replace=False)
-            moving = moving[moving["frame"].isin(sampled)]
+            sampled = rng.choice(np.arange(len(unique_frames)), size=sample_n_frames, replace=False)
+            selected_frames = list(unique_frames[sampled])
+            moving = moving[moving["frame"].isin(selected_frames)]
+            assert isinstance(moving, pd.DataFrame)
 
     # Compute pairwise distances
+    assert isinstance(moving, pd.DataFrame)
     distances = compute_pairwise_distances(moving)
 
     if distances.empty:
@@ -210,25 +217,22 @@ def fix_mislabelled_tailpack(
     relative_y_col: str = "xyz_2",
     label_col: str = "label",
 ) -> pd.DataFrame:
-    """Relabel tailpack markers that are ahead of the backpack as headpack.
+    """Correct tailpack markers that are anatomically ahead of the backpack.
 
-    In the MATLAB pipeline, tailpack markers with positive relative Y
-    (i.e. ahead of the backpack) are mislabelled and should be headpack.
-    Reproduces MATLAB lines 253-256 of ``run_whole_body_analysis.m``.
+    Tailpack markers with a positive relative Y coordinate (i.e. in front
+    of the backpack) are anatomically impossible and indicate mislabelling;
+    they are reassigned to ``"headpack"``. Reproduces MATLAB lines 253-256
+    of ``run_whole_body_analysis.m``.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Marker table with relative position and label columns.
-    relative_y_col : str
-        Column name for relative Y position (marker - smooth backpack).
-    label_col : str
-        Column containing marker labels.
+    Args:
+        df: Marker table with relative position columns and a label column.
+        relative_y_col: Column name for the relative Y position (marker
+            minus smooth backpack Y). Defaults to ``"xyz_2"``.
+        label_col: Column name containing marker labels.
 
-    Returns
-    -------
-    pd.DataFrame
-        Updated DataFrame with corrected labels.
+    Returns:
+        Copy of ``df`` with mislabelled tailpack markers relabelled as
+        ``"headpack"``.
     """
     df = df.copy()
     is_tail = df[label_col].str.contains("tail", na=False)
@@ -256,33 +260,25 @@ def filter_by_distance(
     xyz_cols: tuple[str, str, str] = ("xyz_1", "xyz_2", "xyz_3"),
     label_col: str = "label",
 ) -> pd.DataFrame:
-    """Remove markers outside a distance range from the backpack.
+    """Remove markers of a given label that fall outside an expected distance range.
 
-    Markers of the given ``label`` whose Euclidean distance (computed from
-    relative XYZ columns) falls outside ``[min_dist, max_dist]`` are
-    relabelled as ``""`` (unlabelled).
-
+    Markers whose Euclidean distance from the backpack (computed from relative
+    XYZ columns) is less than ``min_dist`` or greater than ``max_dist`` are
+    relabelled as ``""`` (unlabelled). This removes markers that were assigned
+    by polygon labelling but are implausibly close to or far from the body.
     Reproduces MATLAB lines 665-707 of ``run_whole_body_analysis.m``.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Marker table with relative position columns and label column.
-    label : str
-        Marker label to filter (e.g. ``"backpack"``, ``"tailpack"``).
-    min_dist : float
-        Minimum allowed distance from backpack.
-    max_dist : float
-        Maximum allowed distance from backpack.
-    xyz_cols : tuple of str
-        Column names for relative X, Y, Z coordinates.
-    label_col : str
-        Column containing marker labels.
+    Args:
+        df: Marker table with relative position columns and a label column.
+        label: Anatomical label to filter, e.g. ``"backpack"`` or
+            ``"tailpack"``. Substring matching is used.
+        min_dist: Minimum plausible distance from the backpack in metres.
+        max_dist: Maximum plausible distance from the backpack in metres.
+        xyz_cols: Column names for the relative X, Y, Z coordinates.
+        label_col: Column name containing marker labels.
 
-    Returns
-    -------
-    pd.DataFrame
-        Updated DataFrame with out-of-range markers relabelled as ``""``.
+    Returns:
+        Copy of ``df`` with out-of-range markers relabelled as ``""``.
     """
     df = df.copy()
 

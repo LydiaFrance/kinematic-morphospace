@@ -4,16 +4,17 @@ Each function produces a single figure with the schematic stacked on top
 and the corresponding CEV results underneath, at a shared width.
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.gridspec import GridSpec
 
 from .schematics import (
-    _layout_shuffle_schematic, _layout_subsampling_schematic,
-    _layout_relabelling_schematic, _layout_imputation_schematic,
+    _layout_imputation_schematic,
     _layout_pairwise_distance_schematic,
+    _layout_relabelling_schematic,
+    _layout_shuffle_schematic,
+    _layout_subsampling_schematic,
 )
-
 
 # ── Shared styling ────────────────────────────────────────────────────
 
@@ -38,7 +39,7 @@ SORTED_COLOUR = "#BC96C9"
 
 def _style_result_ax(ax, title, show_ylabel=False, title_color=LABEL_COLOUR,
                       title_y=0.73, orig_y=1.0):
-    """Apply clean styling to a results axes matching schematic aesthetic."""
+    """Apply clean styling to a results axes matching the schematic aesthetic."""
     # Remove box frame, keep only bottom and left spines
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -66,24 +67,21 @@ def _place_results_under_schematics(fig, schem_axes, result_indices,
                                      width_scale=1.0):
     """Create result axes positioned directly under specific schematic axes.
 
-    Parameters
-    ----------
-    fig : Figure
-    schem_axes : list of Axes
-        All schematic axes (top row).
-    result_indices : list of int
-        Which schematic axes to place results under.
-    gap : float
-        Gap between schematic bottom and result top (figure coords).
-    result_frac : float
-        Result height as fraction of the schematic height.
-    width_scale : float
-        Scale factor for result width relative to schematic width.
-        Values < 1.0 narrow the result axes (centred under schematic).
+    Args:
+        fig: The parent Figure.
+        schem_axes: List of all schematic Axes in the top row.
+        result_indices: Indices into schem_axes indicating which panels should
+            have a result axes placed beneath them.
+        gap: Vertical gap between the schematic bottom and the result top, in
+            figure coordinates. Defaults to 0.04.
+        result_frac: Result height as a fraction of the schematic height.
+            Defaults to 0.75.
+        width_scale: Scale factor for result width relative to the schematic
+            width. Values less than 1.0 narrow the result axes while keeping it
+            centred under the schematic. Defaults to 1.0.
 
-    Returns
-    -------
-    result_axes : list of Axes
+    Returns:
+        List of newly created Axes, one per entry in result_indices.
     """
     # Force a draw so axes positions are resolved (needed for aspect="equal")
     fig.canvas.draw()
@@ -110,13 +108,13 @@ def _place_results_under_schematics(fig, schem_axes, result_indices,
 # ── Results layout helpers ────────────────────────────────────────────
 
 def _layout_shuffle_results(axes, cev, shuffle_results, n_comp):
-    """Draw shuffle CEV results onto 4 axes."""
+    """Draw shuffle CEV results onto four axes."""
     mode_names = ["temporal", "column", "label", "complete"]
     mode_labels = ["Temporal shuffle", "Column shuffle",
                    "Label shuffle", "Complete shuffle"]
     k_vals = np.arange(1, n_comp + 1)
 
-    for ax, mode, label in zip(axes, mode_names, mode_labels):
+    for ax, mode, label in zip(axes, mode_names, mode_labels, strict=False):
         null_cev = shuffle_results[mode]
         null_mean = np.mean(null_cev, axis=0)
         null_lo = np.percentile(null_cev, 2.5, axis=0)
@@ -135,10 +133,10 @@ def _layout_shuffle_results(axes, cev, shuffle_results, n_comp):
 
 
 def _layout_subsampling_results(axes, cev, results_subsets):
-    """Draw subsampling CEV results onto 4 axes."""
+    """Draw subsampling CEV results onto four axes."""
     k_full = np.arange(1, len(cev) + 1)
 
-    for ax, result in zip(axes, results_subsets):
+    for ax, result in zip(axes, results_subsets, strict=False):
         held_out = result["held_out"]
         subset_cev = result["cev"]
         k_sub = np.arange(1, len(subset_cev) + 1)
@@ -163,7 +161,7 @@ def _layout_subsampling_results(axes, cev, results_subsets):
 
 def _layout_pairwise_results(axes, cev, pw_cev, pw_sorted_cev,
                               pw_shuffled_cev):
-    """Draw pairwise distance CEV results onto 3 axes."""
+    """Draw pairwise distance CEV results onto three axes."""
     k_vals = np.arange(1, 7)
     variant_data = [
         ("Labelled distances", pw_cev, LABELLED_COLOUR, 's-'),
@@ -171,7 +169,7 @@ def _layout_pairwise_results(axes, cev, pw_cev, pw_sorted_cev,
         ("Shuffled distances\n(within-frame)", pw_shuffled_cev, 'grey', 'x--'),
     ]
 
-    for ax, (label, var_cev, colour, fmt) in zip(axes, variant_data):
+    for ax, (label, var_cev, colour, fmt) in zip(axes, variant_data, strict=False):
         ax.plot(k_vals, cev[:6], 'o-', color='#51B3D4',
                 label='Marker coords', markersize=_MARKER_SIZE)
         ax.plot(k_vals, var_cev[:6], fmt, color=colour, label=label,
@@ -187,7 +185,7 @@ def _layout_relabelling_results(axes, cev, relabel_results, fractions,
     """Draw relabelling CEV results onto axes (one per fraction)."""
     k_vals = np.arange(1, n_comp + 1)
 
-    for ax, frac in zip(axes, fractions):
+    for ax, frac in zip(axes, fractions, strict=False):
         cev_dist = relabel_results[frac]["cev"]
         cev_mean = np.mean(cev_dist, axis=0)
         cev_lo = np.percentile(cev_dist, 2.5, axis=0)
@@ -234,7 +232,23 @@ def _layout_imputation_results(ax, cev, imputed_cev, cosines, n_comp):
 # ── Composite figures ─────────────────────────────────────────────────
 
 def plot_shuffle_composite(cev, shuffle_results, n_comp=12, fig_width=20):
-    """Schematic + results for shuffle controls."""
+    """Composite figure of shuffle schematic and CEV results for shuffle controls.
+
+    Stacks the five-panel shuffle schematic above four CEV result panels (one per
+    shuffle mode: temporal, column, label, complete). Each result panel shows
+    the observed CEV against the null distribution from that shuffle mode.
+
+    Args:
+        cev: Cumulative explained variance array for the original data, length
+            n_comp.
+        shuffle_results: Dict mapping shuffle mode name to a 2-D array of null
+            CEV curves, shape (n_replicates, n_comp).
+        n_comp: Number of PCA components to show on the x-axis. Defaults to 12.
+        fig_width: Figure width in inches. Defaults to 20.
+
+    Returns:
+        Figure containing the composite schematic and results.
+    """
     fig = plt.figure(figsize=(fig_width, 10))
 
     # Top row: schematics (5 panels, equal aspect)
@@ -243,7 +257,7 @@ def plot_shuffle_composite(cev, shuffle_results, n_comp=12, fig_width=20):
     schem_axes = [fig.add_subplot(gs_top[0, i]) for i in range(5)]
     _layout_shuffle_schematic(schem_axes)
 
-    # Place results directly under schematic columns 1–4
+    # Place results directly under schematic columns 1-4
     result_axes = _place_results_under_schematics(
         fig, schem_axes, [1, 2, 3, 4],
         gap=0.04, result_frac=0.75, width_scale=0.8)
@@ -253,7 +267,22 @@ def plot_shuffle_composite(cev, shuffle_results, n_comp=12, fig_width=20):
 
 
 def plot_subsampling_composite(cev, results_subsets, fig_width=20):
-    """Schematic + results for subsampling controls."""
+    """Composite figure of marker subsampling schematic and CEV results.
+
+    Stacks the five-panel subsampling schematic above four result panels (one per
+    held-out marker combination). Each result panel compares the full-dataset
+    CEV against the leave-one-marker-out CEV.
+
+    Args:
+        cev: Cumulative explained variance array for the full dataset.
+        results_subsets: List of dicts, one per held-out-marker combination.
+            Each dict has keys 'held_out' (marker name), 'cev' (CEV array), and
+            'cosines' (principal cosines between full and subset solutions).
+        fig_width: Figure width in inches. Defaults to 20.
+
+    Returns:
+        Figure containing the composite schematic and results.
+    """
     fig = plt.figure(figsize=(fig_width, 10))
 
     gs_top = GridSpec(1, 5, figure=fig, left=0.03, right=0.97,
@@ -271,7 +300,23 @@ def plot_subsampling_composite(cev, results_subsets, fig_width=20):
 
 def plot_pairwise_composite(cev, pw_cev, pw_sorted_cev, pw_shuffled_cev,
                              fig_width=14):
-    """Schematic + results for pairwise distance controls."""
+    """Composite figure of pairwise-distance schematic and CEV results.
+
+    Stacks the pairwise-distance schematic above three result panels comparing
+    labelled, sorted, and within-frame-shuffled pairwise-distance representations
+    against the standard marker-coordinate PCA.
+
+    Args:
+        cev: Cumulative explained variance for the marker-coordinate PCA.
+        pw_cev: CEV for the labelled pairwise-distance representation.
+        pw_sorted_cev: CEV for the sorted pairwise-distance representation.
+        pw_shuffled_cev: CEV for the within-frame-shuffled pairwise-distance
+            representation (null control).
+        fig_width: Figure width in inches. Defaults to 14.
+
+    Returns:
+        Figure containing the composite schematic and results.
+    """
     fig = plt.figure(figsize=(fig_width, 9))
 
     # Pairwise schematic uses its own internal GridSpec
@@ -296,7 +341,26 @@ def plot_pairwise_composite(cev, pw_cev, pw_sorted_cev, pw_shuffled_cev,
 
 def plot_relabelling_composite(cev, relabel_results, fractions=(0.05, 0.25),
                                 n_comp=12, fig_width=12):
-    """Schematic + results for relabelling controls."""
+    """Composite figure of relabelling schematic and CEV results.
+
+    Stacks the relabelling schematic above result panels (one per relabelling
+    fraction) showing how randomly swapping marker labels at a given rate
+    degrades the PCA CEV and aligns with the original components.
+
+    Args:
+        cev: Cumulative explained variance for the original data.
+        relabel_results: Dict mapping relabelling fraction (float) to a dict
+            with keys 'cev' (2-D array, shape (n_reps, n_comp)) and 'cosines'
+            (2-D array of principal cosines between relabelled and original
+            solutions).
+        fractions: Tuple of relabelling fractions to show. Defaults to
+            (0.05, 0.25).
+        n_comp: Number of components on the x-axis. Defaults to 12.
+        fig_width: Figure width in inches. Defaults to 12.
+
+    Returns:
+        Figure containing the composite schematic and results.
+    """
     n_panels = 1 + len(fractions)
     fig = plt.figure(figsize=(fig_width, 10))
 
@@ -316,7 +380,23 @@ def plot_relabelling_composite(cev, relabel_results, fractions=(0.05, 0.25),
 
 def plot_imputation_composite(cev, imputed_cev, cosines, n_comp=12,
                                fig_width=12):
-    """Schematic + results for imputation controls."""
+    """Composite figure of imputation schematic and CEV results.
+
+    Stacks the missing-data imputation schematic above a result panel comparing
+    the original CEV against the imputed-data CEV. Principal cosines between
+    the two solutions are annotated on the result panel.
+
+    Args:
+        cev: Cumulative explained variance for the complete (no-missing) data.
+        imputed_cev: Cumulative explained variance for the imputed dataset.
+        cosines: Per-component principal cosines between the original and
+            imputed PCA solutions, length n_comp.
+        n_comp: Number of components on the x-axis. Defaults to 12.
+        fig_width: Figure width in inches. Defaults to 12.
+
+    Returns:
+        Figure containing the composite schematic and results.
+    """
     fig = plt.figure(figsize=(fig_width, 10))
 
     gs_top = GridSpec(1, 3, figure=fig, left=0.05, right=0.95,
@@ -335,7 +415,7 @@ def plot_imputation_composite(cev, imputed_cev, cosines, n_comp=12,
     # Centre a square-ish result between cols 1 and 2
     mid_x = (pos1.x0 + pos1.width + pos2.x0) / 2
     w = result_height * (fig.get_figheight() / fig.get_figwidth())  # square
-    result_ax = fig.add_axes([mid_x - w / 2, result_bottom, w, result_height])
+    result_ax = fig.add_axes((mid_x - w / 2, result_bottom, w, result_height))
     _layout_imputation_results(result_ax, cev, imputed_cev, cosines, n_comp)
 
     return fig
@@ -343,29 +423,28 @@ def plot_imputation_composite(cev, imputed_cev, cosines, n_comp=12,
 
 def plot_hull_coverage(pts_labelled, pts_unlabelled, pca_embed,
                        coverage_rev=None, figsize=(7, 6)):
-    """Scatter + marginals showing labelled vs unlabelled frame overlap.
+    """Scatter plot with marginal histograms showing labelled/unlabelled overlap.
 
-    Central panel shows both groups as translucent scatter points.
-    Top and right margins show normalised density histograms for PC1 and PC2.
-    Coverage statistics are annotated directly on the plot.
+    The central panel shows both groups as translucent scatter points in the
+    PCA-embedded pairwise-distance space. Top and right margins show normalised
+    density histograms for PC1 and PC2 respectively. If the labelled frames
+    adequately cover the unlabelled distribution, most unlabelled points fall
+    inside the labelled convex hull.
 
-    Parameters
-    ----------
-    pts_labelled : ndarray, shape (n_labelled, n_components)
-        PCA-embedded pairwise-distance histograms for labelled frames.
-    pts_unlabelled : ndarray, shape (n_unlabelled, n_components)
-        PCA-embedded pairwise-distance histograms for unlabelled frames.
-    pca_embed : PCA
-        Fitted PCA used for embedding (for axis labels).
-    coverage_rev : float, optional
-        Fraction of unlabelled frames inside the labelled convex hull.
+    Args:
+        pts_labelled: PCA-embedded pairwise-distance histograms for labelled
+            frames, shape (n_labelled, n_components).
+        pts_unlabelled: PCA-embedded pairwise-distance histograms for unlabelled
+            frames, shape (n_unlabelled, n_components).
+        pca_embed: Fitted PCA object used for the embedding (for axis labels
+            showing explained variance).
+        coverage_rev: Fraction of unlabelled frames inside the labelled convex
+            hull, annotated on the plot. If None, no annotation is shown.
+        figsize: Figure size (width, height) in inches. Defaults to (7, 6).
 
-    Returns
-    -------
-    fig : Figure
+    Returns:
+        Figure containing the scatter and marginal histograms.
     """
-    from matplotlib.gridspec import GridSpec
-
     fig = plt.figure(figsize=figsize)
     gs = GridSpec(2, 2, figure=fig, width_ratios=[4, 1], height_ratios=[1, 4],
                   hspace=0.04, wspace=0.04)
@@ -375,8 +454,7 @@ def plot_hull_coverage(pts_labelled, pts_unlabelled, pca_embed,
     ax_right = fig.add_subplot(gs[1, 1], sharey=ax_main)
 
     # Colours
-    c_unlab = "mediumorchid" \
-    ""
+    c_unlab = "mediumorchid"
     c_lab = OBSERVED_COLOUR
 
     # --- Central scatter ---
@@ -420,8 +498,8 @@ def plot_hull_coverage(pts_labelled, pts_unlabelled, pca_embed,
             f"Unlabelled shapes inside labelled hull: {coverage_rev:.0%}",
             transform=ax_main.transAxes,
             va="top", ha="left", fontsize=_LABEL_SIZE, color=LABEL_COLOUR,
-            bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="0.8",
-                      alpha=0.85),
+            bbox={"boxstyle": "round,pad=0.3", "fc": "white", "ec": "0.8",
+                      "alpha": 0.85},
         )
 
     # --- Labels and styling ---
@@ -456,23 +534,22 @@ def plot_hull_coverage(pts_labelled, pts_unlabelled, pca_embed,
 
 
 def plot_hull_outlier_markers(marker_counts, outside_mask, figsize=(5, 3.5)):
-    """Outlier rate vs marker count, showing the confound.
+    """Scatter plot showing outlier rate versus marker count for unlabelled frames.
 
-    Each dot is one marker-count value (2, 3, ... 20+). The y-axis shows
-    what percentage of frames with that count fall outside the labelled
-    convex hull. Dot size encodes sample size. A vertical line at 8
-    marks the expected feather marker count.
+    Each point represents one unique marker-count value (number of visible marker
+    detections in a frame). The y-axis shows what percentage of frames with that
+    count fall outside the labelled convex hull. Dot size encodes sample size.
+    A vertical line at 8 marks the expected feather marker count, and a horizontal
+    line shows the overall outlier rate.
 
-    Parameters
-    ----------
-    marker_counts : ndarray of int
-        Number of visible marker detections per unlabelled frame.
-    outside_mask : ndarray of bool
-        True for frames outside the labelled convex hull.
+    Args:
+        marker_counts: Number of visible marker detections per unlabelled frame.
+        outside_mask: Boolean array, True for frames outside the labelled convex
+            hull.
+        figsize: Figure size (width, height) in inches. Defaults to (5, 3.5).
 
-    Returns
-    -------
-    fig : Figure
+    Returns:
+        Figure containing the scatter plot.
     """
     unique_counts = np.unique(marker_counts)
     outlier_rates = []
@@ -532,30 +609,29 @@ def plot_hull_outlier_markers(marker_counts, outside_mask, figsize=(5, 3.5)):
     return fig
 
 
-def plot_occlusion_bias(complete_scores, partial_scores, labels,
-                        n_bins=30, figsize=(10, 3.5)):
-    """Overlaid histograms of PC scores for complete vs partial frames.
+def plot_occlusion_bias(
+    complete_scores, partial_scores, labels, n_bins=30, figsize=(10, 3.5)
+):
+    """Overlaid density histograms of PC scores for complete/occluded frames.
 
-    Two-panel figure: one per morphing axis. Each panel shows normalised
-    density histograms for complete-marker frames and partial-marker
-    frames (scored via least-squares projection). Differences reveal
-    which wing shapes are underrepresented due to marker occlusion.
+    Two-panel figure, one per morphing axis. Each panel shows normalised
+    density histograms for complete-marker frames (8 visible markers) and
+    partial-marker frames scored by least-squares projection. Differences in
+    the distributions reveal which wing shapes are underrepresented due to
+    marker occlusion.
 
-    Parameters
-    ----------
-    complete_scores : dict
-        Keys are axis labels. Values are 1D arrays of scores for
-        complete frames.
-    partial_scores : dict
-        Same keys. Values are 1D arrays of scores for partial frames.
-    labels : tuple of str
-        Legend labels, e.g. ("Complete (8 markers)", "Partial (<8)").
-    n_bins : int
-        Number of equal-width histogram bins.
+    Args:
+        complete_scores: Dict mapping axis label strings to 1-D score arrays
+            for complete-marker frames.
+        partial_scores: Dict with the same keys as complete_scores; values are
+            1-D score arrays for partial-marker frames.
+        labels: Tuple of two legend labels, e.g. ('Complete (8 markers)',
+            'Partial (<8)').
+        n_bins: Number of equal-width histogram bins. Defaults to 30.
+        figsize: Figure size (width, height) in inches. Defaults to (10, 3.5).
 
-    Returns
-    -------
-    fig : Figure
+    Returns:
+        Figure containing the two histogram panels.
     """
     n_panels = len(complete_scores)
     fig, axes = plt.subplots(1, n_panels, figsize=figsize)
@@ -565,7 +641,7 @@ def plot_occlusion_bias(complete_scores, partial_scores, labels,
     c_complete = OBSERVED_COLOUR
     c_partial = "mediumorchid"
 
-    for ax, key in zip(axes, complete_scores):
+    for ax, key in zip(axes, complete_scores, strict=False):
         comp = complete_scores[key]
         part = partial_scores[key]
 

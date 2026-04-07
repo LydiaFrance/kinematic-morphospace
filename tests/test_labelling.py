@@ -272,32 +272,16 @@ class TestFilterLowErrorFrames:
 # -- TestClusteringAnalysis --
 
 def _run_clustering_analysis_mocked(data, **kwargs):
-    """Run clustering_analysis with matplotlib mocked via sys.modules."""
-    import sys
+    """Run clustering_analysis with matplotlib patched at the import site."""
+    from unittest.mock import patch
     mock_plt = MagicMock()
     mock_fig = MagicMock()
     mock_ax1 = MagicMock()
     mock_ax2 = MagicMock()
     mock_plt.subplots.return_value = (mock_fig, (mock_ax1, mock_ax2))
 
-    # The function does `from matplotlib import pyplot as plt`
-    # so we need matplotlib.pyplot in sys.modules
-    mock_matplotlib = MagicMock()
-    mock_matplotlib.pyplot = mock_plt
-    saved = {
-        'matplotlib': sys.modules.get('matplotlib'),
-        'matplotlib.pyplot': sys.modules.get('matplotlib.pyplot'),
-    }
-    sys.modules['matplotlib'] = mock_matplotlib
-    sys.modules['matplotlib.pyplot'] = mock_plt
-    try:
+    with patch('kinematic_morphospace.labelling.plt', mock_plt):
         result = clustering_analysis(data, **kwargs)
-    finally:
-        for key, val in saved.items():
-            if val is None:
-                sys.modules.pop(key, None)
-            else:
-                sys.modules[key] = val
     return result, mock_plt
 
 

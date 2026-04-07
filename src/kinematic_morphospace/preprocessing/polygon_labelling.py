@@ -1,5 +1,4 @@
-"""
-Polygon-based marker labelling using boundary definitions.
+"""Polygon-based marker labelling using boundary definitions.
 
 Labels unlabelled motion-capture markers by testing whether their relative
 positions (in both XY and YZ planes) fall within predefined polygon boundaries
@@ -16,6 +15,9 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from matplotlib.path import Path as MplPath
+
+from .mat_loader import load_mat
 
 logger = logging.getLogger(__name__)
 
@@ -23,25 +25,25 @@ logger = logging.getLogger(__name__)
 def load_polygon_boundaries(
     mat_path: str | Path,
 ) -> dict[str, dict[str, dict[str, np.ndarray]]]:
-    """Load polygon boundary definitions from a MATLAB .mat file.
+    """Load per-bird, per-marker polygon boundary definitions from a .mat file.
 
     Reads a nested MATLAB struct of the form
     ``areaDefs.<bird>.<marker_type>.flightPhase(1).XY`` and
-    ``areaDefs.<bird>.<marker_type>.flightPhase(1).YZ``.
+    ``areaDefs.<bird>.<marker_type>.flightPhase(1).YZ`` to extract 2D
+    polygon vertices used for labelling unlabelled markers.
 
-    Parameters
-    ----------
-    mat_path : str or Path
-        Path to the ``.mat`` file (e.g. ``230530_AreaDefs.mat``).
+    Args:
+        mat_path: Path to the ``.mat`` file containing polygon boundary
+            definitions (e.g. ``230530_AreaDefs.mat``).
 
-    Returns
-    -------
-    dict
-        Nested dict: ``boundaries[bird][marker_type][plane]`` → (N, 2) array
-        of polygon vertices, where ``plane`` is ``"XY"`` or ``"YZ"``.
+    Returns:
+        Nested dict with structure
+        ``boundaries[bird][marker_type][plane]`` → (N, 2) array of polygon
+        vertices, where ``plane`` is ``"XY"`` or ``"YZ"``.
+
+    Raises:
+        KeyError: If the ``areaDefs`` variable is not found in the .mat file.
     """
-    from .mat_loader import load_mat
-
     data = load_mat(mat_path)
 
     if "areaDefs" not in data:
@@ -86,7 +88,9 @@ def _get_flight_phase(marker_data: Any) -> Any:
             return fp[0]
         return fp
     # Handle scipy structured arrays
-    if hasattr(marker_data, "dtype") and "flightPhase" in (marker_data.dtype.names or []):
+    if hasattr(marker_data, "dtype") and "flightPhase" in (
+        marker_data.dtype.names or []
+    ):
         fp = marker_data["flightPhase"]
         if hasattr(fp, "flat"):
             fp = fp.flat[0]
@@ -122,39 +126,31 @@ def label_by_polygons(
     label_col: str = "label",
     lateralise: bool = False,
 ) -> pd.DataFrame:
-    """Label unlabelled markers using polygon boundaries in XY and YZ planes.
+    """Label unlabelled markers by testing them against polygon boundaries.
 
-    For each bird, tests all unlabelled markers against each marker type's
-    polygon boundaries. A marker is labelled only if it falls inside both
-    the XY and YZ polygons.
+    For each bird, tests all currently unlabelled markers against the
+    per-marker-type polygon boundaries in both the XY and YZ planes. A
+    marker receives a label only when it falls inside both polygons, using
+    ``matplotlib.path.Path.contains_points()`` as a vectorised equivalent
+    of MATLAB's ``inpolygon``.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Marker table with relative position columns and a label column.
-        Unlabelled markers should have ``label_col`` equal to ``""``.
-    boundaries : dict
-        Polygon boundaries from :func:`load_polygon_boundaries`.
-    bird_col : str
-        Column used to identify the bird (matched to boundary keys).
-    bird_id_map : dict, optional
-        Maps bird identifiers extracted from ``bird_col`` to boundary dict
-        keys. E.g. ``{"01": "Drogon", "03": "Ruby"}``.
-    xyz_cols : tuple of str
-        Column names for relative X, Y, Z coordinates.
-    label_col : str
-        Column containing marker labels.
-    lateralise : bool
-        When ``True``, prefix labels with ``left_`` (x < 0) or ``right_``
-        (x >= 0) based on the marker's X coordinate. Default ``False``.
+    Args:
+        df: Marker table with relative position columns and a label column.
+            Unlabelled markers must have ``label_col`` set to ``""``.
+        boundaries: Polygon boundaries as returned by
+            :func:`load_polygon_boundaries`.
+        bird_col: Column used to identify which bird each row belongs to,
+            matched against boundary dict keys.
+        bird_id_map: Maps bird identifiers from ``bird_col`` to boundary
+            dict keys, e.g. ``{"01": "Drogon", "03": "Ruby"}``.
+        xyz_cols: Column names for the relative X, Y, Z coordinates.
+        label_col: Column name containing marker labels.
+        lateralise: If True, prefix assigned labels with ``"left_"``
+            (X < 0) or ``"right_"`` (X >= 0). Defaults to False.
 
-    Returns
-    -------
-    pd.DataFrame
-        Updated DataFrame with newly labelled markers.
+    Returns:
+        Updated copy of ``df`` with newly labelled markers.
     """
-    from matplotlib.path import Path as MplPath
-
     df = df.copy()
     x_col, y_col, z_col = xyz_cols
 

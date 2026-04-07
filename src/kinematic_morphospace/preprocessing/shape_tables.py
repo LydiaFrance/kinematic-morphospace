@@ -1,5 +1,4 @@
-"""
-Construct unilateral and bilateral marker tables from long-format labelled data.
+"""Construct unilateral and bilateral marker tables from long-format labelled data.
 
 The unilateral table mirrors left-side markers (negating the X coordinate) and
 pivots from long format (one row per marker per frame) to wide format (one row
@@ -43,7 +42,11 @@ _INFO_COLS = [
 
 def _get_coord_columns(df: pd.DataFrame, coord_prefix: str) -> list[str]:
     """Find the _1, _2, _3 columns for a given coordinate prefix."""
-    return [f"{coord_prefix}_{i}" for i in (1, 2, 3) if f"{coord_prefix}_{i}" in df.columns]
+    return [
+        f"{coord_prefix}_{i}"
+        for i in (1, 2, 3)
+        if f"{coord_prefix}_{i}" in df.columns
+    ]
 
 
 def pivot_markers_wide(
@@ -55,31 +58,34 @@ def pivot_markers_wide(
 ) -> tuple[pd.DataFrame, list[str]]:
     """Pivot marker data from long to wide format via successive inner joins.
 
-    For each marker in *markers*, filters *markers_df* to matching rows,
-    renames the coordinate columns to ``{marker}_{coord_prefix}_N``, and
-    inner-joins with *info_df* on ``frameID``.
+    For each marker in ``markers``, filters the long-format table to matching
+    rows, renames coordinate columns to ``{marker}_{coord_prefix}_N``, and
+    inner-joins with the frame-level metadata. Only frames where all requested
+    markers are present survive the successive joins.
 
-    Parameters
-    ----------
-    info_df : pd.DataFrame
-        Deduplicated frame-level metadata (one row per frameID).
-    markers_df : pd.DataFrame
-        Long-format marker data with ``frameID``, ``MarkerName``, and
-        coordinate columns (e.g. ``rot_xyz_1``, ``rot_xyz_2``, ``rot_xyz_3``).
-    markers : list[str]
-        Marker names/substrings to pivot (e.g. ``["wingtip", "primary"]``).
-    coord_prefix : str
-        Prefix of the coordinate columns (e.g. ``"rot_xyz"`` or ``"xyz"``).
-    use_contains : bool
-        If True, matches ``MarkerName`` using substring containment
-        (``str.contains``). If False, uses exact matching (``isin``).
+    Args:
+        info_df: Deduplicated frame-level metadata with one row per
+            ``frameID``.
+        markers_df: Long-format marker table with columns ``frameID``,
+            ``MarkerName``, and coordinate columns (e.g. ``rot_xyz_1``,
+            ``rot_xyz_2``, ``rot_xyz_3``).
+        markers: Marker names or substrings to pivot, e.g.
+            ``["wingtip", "primary"]``.
+        coord_prefix: Prefix of the coordinate columns to rename, e.g.
+            ``"rot_xyz"`` or ``"xyz"``.
+        use_contains: If True, matches ``MarkerName`` via substring
+            containment (``str.contains``). If False, uses exact equality.
+            Defaults to True.
 
-    Returns
-    -------
-    tuple[pd.DataFrame, list[str]]
-        - The wide-format DataFrame with one row per frameID.
-        - A list of all ``MarkerName`` columns accumulated during joins
-          (for later left/right analysis).
+    Returns:
+        Tuple of (wide_df, marker_name_cols). ``wide_df`` has one row per
+        ``frameID`` with per-marker coordinate columns. ``marker_name_cols``
+        is a list of accumulated ``MarkerName_*`` column names, used by
+        :func:`filter_pure_side_frames` to detect left/right mixing.
+
+    Raises:
+        ValueError: If no coordinate columns matching ``coord_prefix`` are
+            found in ``markers_df``.
     """
     coord_cols = _get_coord_columns(markers_df, coord_prefix)
     if not coord_cols:
@@ -130,24 +136,23 @@ def mirror_left_markers(
     coord_prefix: str = "rot_xyz",
     marker_col: str = "MarkerName",
 ) -> pd.DataFrame:
-    """Negate the X coordinate for left-side markers.
+    """Negate X coordinate of left-side markers to produce a mirrored shape.
 
-    Identifies left markers by checking if *marker_col* contains ``"left"``.
-    Negates the ``_1`` (X) component of the coordinate columns.
+    Identifies left markers by checking whether ``marker_col`` contains
+    ``"left"``, then negates the ``_1`` (X) component so left-wing
+    observations can be pooled with right-wing observations in the unilateral
+    analysis.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Long-format marker data.
-    coord_prefix : str
-        Prefix of coordinate columns.
-    marker_col : str
-        Column containing marker names.
+    Args:
+        df: Long-format marker table.
+        coord_prefix: Prefix of the coordinate columns whose X component
+            (``{coord_prefix}_1``) will be negated.
+        marker_col: Column containing marker names used to identify left-side
+            markers.
 
-    Returns
-    -------
-    pd.DataFrame
-        Copy of *df* with mirrored left-side X coordinates.
+    Returns:
+        Copy of ``df`` with the X coordinate negated for all left-side
+        markers.
     """
     df = df.copy()
     x_col = f"{coord_prefix}_1"
@@ -174,26 +179,25 @@ def filter_pure_side_frames(
     marker_name_cols: list[str],
     n_markers: int = 4,
 ) -> tuple[pd.DataFrame, pd.Series]:
-    """Keep only frames where all markers are from the same side.
+    """Discard frames where markers from both wings are present simultaneously.
 
-    Counts how many of the marker name columns contain ``"left"`` for each
-    row. Keeps rows where the count is 0 (all right) or *n_markers* (all
-    left). Discards mixed-side frames.
+    Counts how many marker name columns contain ``"left"`` for each frame.
+    Keeps only frames where all markers are from the same side — either all
+    left (count == n_markers) or all right (count == 0). Mixed-side frames
+    occur when both wings are partially visible and are excluded from
+    unilateral analysis.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Wide-format marker data with accumulated MarkerName columns.
-    marker_name_cols : list[str]
-        Names of the MarkerName columns from the pivot step.
-    n_markers : int
-        Expected number of markers per side.
+    Args:
+        df: Wide-format marker DataFrame with accumulated ``MarkerName_*``
+            columns from the pivot step.
+        marker_name_cols: List of ``MarkerName_*`` column names used to
+            count left-side markers per frame.
+        n_markers: Expected number of markers per side. Defaults to 4.
 
-    Returns
-    -------
-    tuple[pd.DataFrame, pd.Series]
-        - Filtered DataFrame with mixed-side rows removed.
-        - Boolean Series indicating left-side frames (True = left).
+    Returns:
+        Tuple of (filtered_df, is_left). ``filtered_df`` has mixed-side
+        frames removed. ``is_left`` is a boolean Series aligned to
+        ``filtered_df`` indicating which frames are left-side (True = left).
     """
     # Count "left" occurrences across marker name columns
     left_count = pd.Series(0, index=df.index)
@@ -226,34 +230,27 @@ def create_unilateral_table(
     coord_prefix: str = "rot_xyz",
     info_cols: list[str] | None = None,
 ) -> pd.DataFrame:
-    """Create the unilateral marker table from long-format labelled data.
+    """Build the unilateral shape table from long-format labelled marker data.
 
-    Steps:
-    1. Remove rows with any NaN values.
-    2. Filter to the 4 marker types.
-    3. Add ``VertDistance`` from smooth backpack Z.
-    4. Mirror left-side X coordinates.
-    5. Pivot to wide format via inner joins.
-    6. Filter out mixed-side frames.
-    7. Add ``Left`` boolean column.
-    8. Deduplicate.
+    Mirrors left-wing observations to the right-wing convention (negating X),
+    then pivots to one row per frame with all four marker types as column
+    groups. Only pure-side frames (all markers from the same wing) are kept.
+    Steps: (1) drop NaN rows, (2) filter to the 4 marker types, (3) add
+    VertDistance, (4) mirror left-side X, (5) pivot wide, (6) filter
+    mixed-side frames, (7) add Left indicator, (8) deduplicate.
 
-    Parameters
-    ----------
-    labelled_df : pd.DataFrame
-        Full labelled marker table (long format).
-    markers : list[str], optional
-        Marker type substrings to include. Defaults to
-        ``["wingtip", "primary", "secondary", "tailtip"]``.
-    coord_prefix : str
-        Coordinate column prefix (``"rot_xyz"`` or ``"xyz"``).
-    info_cols : list[str], optional
-        Metadata columns to carry through. Defaults to :data:`_INFO_COLS`.
+    Args:
+        labelled_df: Full labelled marker table in long format (one row per
+            marker per frame).
+        markers: Marker type substrings to include. Defaults to
+            ``["wingtip", "primary", "secondary", "tailtip"]``.
+        coord_prefix: Coordinate column prefix, either ``"rot_xyz"`` for
+            rotated coordinates or ``"xyz"`` for raw coordinates.
+        info_cols: Frame-level metadata columns to carry through the pivot.
+            Defaults to :data:`_INFO_COLS`.
 
-    Returns
-    -------
-    pd.DataFrame
-        Wide-format unilateral marker table.
+    Returns:
+        Wide-format unilateral marker table with one row per pure-side frame.
     """
     markers = markers or UNILATERAL_MARKERS
     info_columns = info_cols or _INFO_COLS
@@ -288,11 +285,11 @@ def create_unilateral_table(
     available_info = [c for c in info_columns if c in df.columns]
     coord_cols = _get_coord_columns(df, coord_prefix)
     marker_data = df[["frameID", "MarkerName", *coord_cols]].copy()
-    info_data = df[available_info].drop_duplicates(subset="frameID")
+    info_data = df[available_info].drop_duplicates(subset=["frameID"])  # type: ignore[call-overload]
 
     # Step 6: Pivot wide
     wide, marker_name_cols = pivot_markers_wide(
-        info_data, marker_data, markers,
+        info_data, marker_data, markers,  # type: ignore[arg-type]
         coord_prefix=coord_prefix,
         use_contains=True,
     )
@@ -311,7 +308,7 @@ def create_unilateral_table(
 
     # Step 9: Deduplicate
     n_before = len(wide)
-    wide = wide.drop_duplicates()
+    wide = wide.drop_duplicates()  # type: ignore[call-overload]
     if n_before > len(wide):
         logger.info("  Removed %d duplicate rows", n_before - len(wide))
 
@@ -326,26 +323,26 @@ def create_bilateral_table(
     coord_prefix: str = "rot_xyz",
     info_cols: list[str] | None = None,
 ) -> pd.DataFrame:
-    """Create the bilateral marker table from long-format labelled data.
+    """Build the bilateral shape table from long-format labelled marker data.
 
-    Same as :func:`create_unilateral_table` but uses all 8 markers
-    (left + right x 4 types), no mirroring, and no side filtering.
+    Similar to :func:`create_unilateral_table` but retains all 8 markers
+    (left and right wingtip, primary, secondary, and tailtip) without
+    mirroring or side filtering. Uses exact marker name matching to preserve
+    left/right distinction.
 
-    Parameters
-    ----------
-    labelled_df : pd.DataFrame
-        Full labelled marker table (long format).
-    markers : list[str], optional
-        Exact marker names to include. Defaults to all 8 bilateral markers.
-    coord_prefix : str
-        Coordinate column prefix.
-    info_cols : list[str], optional
-        Metadata columns to carry through.
+    Args:
+        labelled_df: Full labelled marker table in long format (one row per
+            marker per frame).
+        markers: Exact marker names to include. Defaults to all 8 bilateral
+            markers from :data:`BILATERAL_MARKERS`.
+        coord_prefix: Coordinate column prefix, either ``"rot_xyz"`` or
+            ``"xyz"``.
+        info_cols: Frame-level metadata columns to carry through the pivot.
+            Defaults to :data:`_INFO_COLS`.
 
-    Returns
-    -------
-    pd.DataFrame
-        Wide-format bilateral marker table.
+    Returns:
+        Wide-format bilateral marker table with one row per frame where all
+        8 markers are present.
     """
     markers = markers or BILATERAL_MARKERS
     info_columns = info_cols or _INFO_COLS
@@ -391,7 +388,7 @@ def create_bilateral_table(
 
     # Step 7: Deduplicate
     n_before = len(wide)
-    wide = wide.drop_duplicates()
+    wide = wide.drop_duplicates()  # type: ignore[call-overload]
     if n_before > len(wide):
         logger.info("  Removed %d duplicate rows", n_before - len(wide))
 

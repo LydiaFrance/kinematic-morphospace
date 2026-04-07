@@ -1,39 +1,32 @@
 """Left-right symmetry visualisation for bilateral PC scores."""
 
 import numpy as np
-from matplotlib import pyplot as plt
 import pandas as pd
+from matplotlib import pyplot as plt
 from sklearn.decomposition import PCA
 
-from ..pca_scores import get_binned_scores
 from ..data_filtering import filter_by
 from .markers import plot_raw_markers
 
 
 def prepare_left_right_comparison(scores_df, **filters):
-    """Prepare merged left/right PC scores for symmetry analysis.
+    """Prepare merged left/right PC scores for bilateral symmetry analysis.
 
-    Filters left- and right-wing scores, merges them on ``frameID``,
-    and computes axis-limit percentiles for consistent plotting.
+    Filters left- and right-wing scores separately, merges them on frameID
+    into a single row per frame, and computes axis-limit percentiles for
+    consistent cross-panel scaling. Manual overrides for specific PCs ensure
+    that all panels share a visually consistent scale.
 
-    Parameters
-    ----------
-    scores_df : pandas.DataFrame
-        DataFrame containing PC scores and metadata (must include
-        ``frameID``, ``seqID``, and ``left`` columns).
-    **filters
-        Keyword arguments forwarded to
-        :func:`~kinematic_morphospace.data_filtering.filter_by` (e.g. ``obstacle``,
-        ``horzdist``, ``hawkname``).
+    Args:
+        scores_df: DataFrame containing PC scores and metadata; must include
+            frameID, seqID, and left columns.
+        **filters: Keyword arguments forwarded to filter_by() to select the
+            subset of flights to include (e.g. obstacle=0, hawkname='Drogon').
 
-    Returns
-    -------
-    left_right_scores : pandas.DataFrame
-        Merged DataFrame with ``_left`` / ``_right`` suffixed PC columns.
-    score_5 : pandas.Series
-        Lower axis-limit percentiles per PC.
-    score_95 : pandas.Series
-        Upper axis-limit percentiles per PC.
+    Returns:
+        Tuple of (left_right_scores, score_5, score_95) where left_right_scores
+        is a merged DataFrame with _left and _right suffixed PC columns, and
+        score_5 / score_95 are per-PC lower and upper axis-limit Series.
     """
     # Create base filters
     left_filter = filter_by(scores_df, left=1, **filters)
@@ -45,7 +38,12 @@ def prepare_left_right_comparison(scores_df, **filters):
     right_scores = scores_df[right_filter].set_index('frameID')
 
     # Merge left and right scores
-    left_right_scores = left_scores.merge(right_scores, left_index=True, right_index=True, suffixes=('_left', '_right'))
+    left_right_scores = left_scores.merge(
+        right_scores,
+        left_index=True,
+        right_index=True,
+        suffixes=('_left', '_right'),
+    )
 
     # Calculate score percentiles
     PC_cols = [f'PC{i:02}' for i in np.arange(1, 13)]
@@ -83,10 +81,18 @@ def prepare_left_right_comparison(scores_df, **filters):
 # ---------- Shared helpers for left-right symmetry plots ----------
 
 def _major_axis_regression(data):
-    """Fit a PCA major-axis line to 2D *data* (N×2).
+    """Fit a PCA major-axis regression line to 2-D bivariate data.
 
-    This is major-axis (MA) regression — the first eigenvector of the
-    bivariate cloud — not reduced major-axis (RMA) regression.
+    This is major-axis (MA) regression — the first eigenvector of the bivariate
+    cloud — not reduced major-axis (RMA) regression.
+
+    Args:
+        data: Array of shape (N, 2) containing paired left/right scores.
+
+    Returns:
+        Tuple of (slope, intercept, variance_pct) where slope and intercept
+        define the major-axis line and variance_pct is the percentage of
+        variance explained by the first principal component.
     """
     pca = PCA(n_components=2)
     pca.fit(data)
@@ -158,33 +164,84 @@ def _plot_one_pc(ax, left_right_scores, score_5, score_95, PC,
 
 # ---------- Public plotting functions ----------
 
-def plot_left_right(left_right_scores, score_5, score_95, alpha=0.05, bkgrd_color='white'):
-    """Plot a 4x3 grid comparing left vs right PC scores for all 12 PCs.
+def summarise_symmetry(left_right_scores):
+    """Compute major-axis regression statistics for all 12 PC modes.
 
-    Each panel shows a scatter of left-wing against right-wing scores
-    with a PCA major-axis regression line and the line of perfect
-    symmetry overlaid.
+    For each PC, computes the slope, intercept, and variance explained by the
+    major-axis regression of left scores against right scores. Qualitative
+    coupling labels (strong / moderate / weak) are assigned based on how close
+    the slope is to 1.0 (perfect symmetry).
 
-    Parameters
-    ----------
-    left_right_scores : pandas.DataFrame
-        Merged left/right scores as returned by
-        :func:`prepare_left_right_comparison`.
-    score_5 : pandas.Series
-        Lower axis limits per PC.
-    score_95 : pandas.Series
-        Upper axis limits per PC.
-    alpha : float, optional
-        Scatter-point transparency.
-    bkgrd_color : str, optional
-        Background colour for the panels.
+    Args:
+        left_right_scores: Merged left/right DataFrame as returned by
+            prepare_left_right_comparison().
 
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-        The figure.
-    axs : numpy.ndarray of matplotlib.axes.Axes
-        Flat array of subplot axes.
+    Returns:
+        DataFrame with one row per PC and columns: mode, slope, intercept,
+        variance_pct, and coupling (qualitative symmetry label).
+    """
+    rows = []
+    for pc in range(12):
+        pc_label = f'PC{pc + 1:02}'
+        data = np.array([left_right_scores[f'{pc_label}_right'],
+                         left_right_scores[f'{pc_label}_left']]).T
+        slope, intercept, var_pct = _major_axis_regression(data)
+        # Qualitative coupling label based on slope proximity to 1.0
+        dev = abs(slope - 1.0)
+        if dev < 0.05:
+            coupling = 'strong'
+        elif dev < 0.15:
+            coupling = 'moderate'
+        else:
+            coupling = 'weak'
+        rows.append({
+            'mode': pc_label,
+            'slope': slope,
+            'intercept': intercept,
+            'variance_pct': var_pct,
+            'coupling': coupling,
+        })
+    return pd.DataFrame(rows)
+
+
+def print_symmetry_summary(left_right_scores, label=''):
+    """Print a formatted major-axis regression summary for all 12 PC modes.
+
+    Args:
+        left_right_scores: Merged left/right DataFrame as returned by
+            prepare_left_right_comparison().
+        label: Optional heading string printed before the table (e.g.
+            'Flapping'). If empty, no heading is printed. Defaults to ''.
+    """
+    df = summarise_symmetry(left_right_scores)
+    if label:
+        print(f'\n--- {label} ---')
+    print(f'  {"Mode":<6} {"Slope":>7} {"Intercept":>10} {"Var %":>7}  {"Coupling"}')
+    for _, r in df.iterrows():
+        print(f'  {r["mode"]:<6} {r["slope"]:>7.3f} {r["intercept"]:>10.4f} '
+              f'{r["variance_pct"]:>6.1f}%  {r["coupling"]}')
+
+
+def plot_left_right(
+    left_right_scores, score_5, score_95, alpha=0.05, bkgrd_color='white'
+):
+    """Plot 4x3 grid comparing left vs right PC scores for all modes.
+
+    Each of the 12 panels shows a scatter of left-wing scores against
+    right-wing scores for one PC, with the major-axis regression line and the
+    line of perfect symmetry (y = x) overlaid. Deviation from the diagonal
+    reveals left-right asymmetry in that morphing mode.
+
+    Args:
+        left_right_scores: Merged left/right DataFrame as returned by
+            prepare_left_right_comparison().
+        score_5: Per-PC lower axis limits.
+        score_95: Per-PC upper axis limits.
+        alpha: Scatter-point opacity. Defaults to 0.05.
+        bkgrd_color: Background colour for each panel. Defaults to 'white'.
+
+    Returns:
+        Tuple of (fig, axs) where axs is a flat array of 12 Axes.
     """
     fig, axs = plt.subplots(4, 3, figsize=(8, 8),
                             sharex=False, sharey=False,
@@ -203,30 +260,21 @@ def plot_left_right(left_right_scores, score_5, score_95, alpha=0.05, bkgrd_colo
 
 
 def plot_left_right_just_two(left_right_scores, score_5, score_95, alpha=0.05):
-    """Plot left-vs-right symmetry for PCs 1--2 only.
+    """Plot left-vs-right symmetry panels for PC1 and PC2 only.
 
-    Intended for showing pre-rotation-correction scores where the first
-    two components have not yet been forced symmetrical. Remaining
+    Intended for showing scores before the rotation-correction step, where
+    only the first two components have been bilateralised. The remaining 10
     panels are hidden.
 
-    Parameters
-    ----------
-    left_right_scores : pandas.DataFrame
-        Merged left/right scores as returned by
-        :func:`prepare_left_right_comparison`.
-    score_5 : pandas.Series
-        Lower axis limits per PC.
-    score_95 : pandas.Series
-        Upper axis limits per PC.
-    alpha : float, optional
-        Scatter-point transparency.
+    Args:
+        left_right_scores: Merged left/right DataFrame as returned by
+            prepare_left_right_comparison().
+        score_5: Per-PC lower axis limits.
+        score_95: Per-PC upper axis limits.
+        alpha: Scatter-point opacity. Defaults to 0.05.
 
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-        The figure.
-    axs : numpy.ndarray of matplotlib.axes.Axes
-        Flat array of subplot axes.
+    Returns:
+        Tuple of (fig, axs) where axs is a flat array of 12 Axes (10 hidden).
     """
     fig, axs = plt.subplots(4, 3, figsize=(8, 8),
                             sharex=False, sharey=False,
@@ -244,33 +292,26 @@ def plot_left_right_just_two(left_right_scores, score_5, score_95, alpha=0.05):
     return fig, axs
 
 
-def plot_left_right_empty(score_5, score_95, PC=0, bkgrd_color='white', figsize=(2, 2)):
-    """Create an empty symmetry panel with reference lines for annotation.
+def plot_left_right_empty(
+    score_5, score_95, PC=0, bkgrd_color='white', figsize=(2, 2)
+):
+    """Create empty symmetry panel with reference lines for legend/schematic.
 
-    Draws the line of perfect symmetry (solid) and an offset guide line
-    (dotted) without any data, useful as a legend or schematic panel.
+    Draws the line of perfect symmetry (y = x, solid grey) and an offset
+    guide line (dotted) without any data. Useful as an explanatory panel
+    showing what the symmetry scatter plots represent.
 
-    Parameters
-    ----------
-    score_5 : dict or pandas.Series
-        Lower axis limits per PC.
-    score_95 : dict or pandas.Series
-        Upper axis limits per PC.
-    PC : int, optional
-        Zero-indexed PC number (default 0 for PC1).
-    bkgrd_color : str, optional
-        Background colour of the panel.
-    figsize : tuple of float, optional
-        Figure size ``(width, height)`` in inches.
+    Args:
+        score_5: Per-PC lower axis limits (dict or Series indexed by PC name).
+        score_95: Per-PC upper axis limits (dict or Series indexed by PC name).
+        PC: Zero-indexed PC number for which to draw the panel. Defaults to 0
+            (PC1).
+        bkgrd_color: Background colour of the panel. Defaults to 'white'.
+        figsize: Figure size (width, height) in inches. Defaults to (2, 2).
 
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-        The figure.
-    ax : matplotlib.axes.Axes
-        The axes.
+    Returns:
+        Tuple of (fig, ax).
     """
-
     fig, ax = plt.subplots(figsize=figsize)
 
     # Get min and max values for this PC
@@ -312,8 +353,8 @@ def plot_left_right_empty(score_5, score_95, PC=0, bkgrd_color='white', figsize=
     ax.set_yticklabels("")
 
     # Labels
-    ax.set_ylabel(f'left scores', fontsize=8)
-    ax.set_xlabel(f'right scores', fontsize=8)
+    ax.set_ylabel('left scores', fontsize=8)
+    ax.set_xlabel('right scores', fontsize=8)
     # Grid
     ax.grid(True)
 
@@ -323,28 +364,26 @@ def plot_left_right_empty(score_5, score_95, PC=0, bkgrd_color='white', figsize=
 
 
 def plot_symmetry_scores(symmetry_scores, threshold=0.05):
-    """Plot per-component asymmetry scores with a significance threshold.
+    """Plot per-component asymmetry scores with a significance threshold line.
 
-    Draws a scatter of asymmetry scores (one per PC) and a horizontal
-    line indicating the threshold above which a component is considered
-    meaningfully asymmetric.
+    Draws a scatter of asymmetry scores (one point per PC) and a horizontal
+    dashed red line at the threshold value. Components above the threshold are
+    considered meaningfully asymmetric.
 
-    Parameters
-    ----------
-    symmetry_scores : array-like
-        Asymmetry score for each principal component.
-    threshold : float, optional
-        Threshold value drawn as a horizontal dashed line.
+    Args:
+        symmetry_scores: Asymmetry score for each principal component, length 12.
+        threshold: Threshold value drawn as a dashed red line. Defaults to 0.05.
 
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-        The figure.
-    ax : matplotlib.axes.Axes
-        The axes.
+    Returns:
+        Tuple of (fig, ax).
     """
     fig, ax = plt.subplots(figsize=(6, 3))
-    ax.scatter(np.arange(1, len(symmetry_scores)+1), symmetry_scores, color='black', s=5)
+    ax.scatter(
+        np.arange(1, len(symmetry_scores) + 1),
+        symmetry_scores,
+        color='black',
+        s=5,
+    )
     ax.axhline(threshold, color='red', linestyle='--')
     ax.set_xticks(np.arange(1, len(symmetry_scores)+1))
     ax.set_xticklabels(np.arange(1, len(symmetry_scores)+1), fontsize=8, rotation=45)

@@ -89,7 +89,7 @@ class TestLabelByPolygons:
         assert result.loc[0, "label"] == "tailpack"
 
     def test_empty_dataframe(self, square_boundaries):
-        df = pd.DataFrame(columns=["seqID", "frameID", "label", "xyz_1", "xyz_2", "xyz_3"])
+        df = pd.DataFrame(columns=pd.Index(["seqID", "frameID", "label", "xyz_1", "xyz_2", "xyz_3"]))
         result = label_by_polygons(df, square_boundaries, bird_col="seqID")
         assert len(result) == 0
 

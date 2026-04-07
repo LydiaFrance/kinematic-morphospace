@@ -1,5 +1,4 @@
-"""
-Load MATLAB .mat files and convert MATLAB table structures to pandas DataFrames.
+"""Load MATLAB .mat files and convert MATLAB table structures to pandas DataFrames.
 
 Handles both v5/v7 (.mat via scipy) and v7.3 (.mat via mat73/h5py) formats
 with automatic detection. Converts multi-column numeric fields (e.g. XYZ)
@@ -28,17 +27,17 @@ def _is_hdf5(path: Path) -> bool:
 
 
 def load_mat(path: str | Path) -> dict[str, Any]:
-    """Load a .mat file, auto-detecting v5/v7 vs v7.3 format.
+    """Load a MATLAB .mat file, auto-detecting v5/v7 versus v7.3 (HDF5) format.
 
-    Parameters
-    ----------
-    path : str or Path
-        Path to the .mat file.
+    Args:
+        path: Path to the ``.mat`` file.
 
-    Returns
-    -------
-    dict
-        Mapping of variable names to their values (numpy arrays, dicts, etc.).
+    Returns:
+        Dict mapping MATLAB variable names to their values (NumPy arrays,
+        nested dicts, etc.).
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
     """
     path = Path(path)
     if not path.exists():
@@ -52,7 +51,7 @@ def load_mat(path: str | Path) -> dict[str, Any]:
 
 def _load_mat_scipy(path: Path) -> dict[str, Any]:
     """Load a v5/v7 .mat file using scipy."""
-    from scipy.io import loadmat
+    from scipy.io import loadmat  # noqa: PLC0415
 
     data = loadmat(str(path), squeeze_me=True, struct_as_record=False)
     # Remove MATLAB metadata keys
@@ -61,7 +60,7 @@ def _load_mat_scipy(path: Path) -> dict[str, Any]:
 
 def _load_mat73(path: Path) -> dict[str, Any]:
     """Load a v7.3 (HDF5) .mat file using mat73."""
-    import mat73
+    import mat73  # type: ignore  # noqa: PLC0415
 
     return mat73.loadmat(str(path))
 
@@ -82,29 +81,27 @@ def _struct_to_dict(struct: Any) -> dict[str, Any]:
 
 
 def matlab_table_to_dataframe(table_struct: Any) -> pd.DataFrame:
-    """Convert a MATLAB table (loaded as a struct) to a pandas DataFrame.
+    """Convert a MATLAB table struct to a pandas DataFrame.
 
-    Multi-column numeric fields (e.g. an Nx3 array stored as ``XYZ``) are
-    split into separate columns with ``_1``, ``_2``, ``_3`` suffixes.
-    String arrays and cell arrays are converted to pandas string columns.
+    Multi-column numeric fields (e.g. an Nx3 ``XYZ`` array) are split into
+    separate columns with ``_1``, ``_2``, ``_3`` suffixes, matching the
+    kinematic-morphospace CSV convention. String and cell arrays are
+    flattened to Python string columns.
 
-    Parameters
-    ----------
-    table_struct : struct or dict
-        A MATLAB table loaded via scipy or mat73. If loaded via scipy with
-        ``struct_as_record=False``, this is a ``mat_struct`` object; if loaded
-        via mat73, it is typically a dict.
+    Args:
+        table_struct: A MATLAB table loaded via scipy (as a ``mat_struct``
+            object when using ``struct_as_record=False``) or via mat73 (as a
+            plain dict).
 
-    Returns
-    -------
-    pd.DataFrame
-        The converted DataFrame.
+    Returns:
+        DataFrame with one column per MATLAB field (multi-column fields
+        expanded with numeric suffixes).
     """
     data = _struct_to_dict(table_struct)
     columns: dict[str, Any] = {}
 
-    for name, values in data.items():
-        values = np.asarray(values)
+    for name, raw_values in data.items():
+        values = np.asarray(raw_values)
 
         if values.dtype.kind == "O":
             # Object array — likely cell array of strings
@@ -128,8 +125,10 @@ def _flatten_string_array(arr: np.ndarray) -> list[str]:
     for item in arr:
         if isinstance(item, np.ndarray):
             # Nested array — take first element
-            item = item.flat[0] if item.size > 0 else ""
-        result.append(str(item) if item is not None else "")
+            val = item.flat[0] if item.size > 0 else ""
+        else:
+            val = item
+        result.append(str(val) if val is not None else "")
     return result
 
 
@@ -155,30 +154,24 @@ def load_2020_data(
     data_dir: str | Path,
     file_names: dict[str, str] | None = None,
 ) -> dict[str, pd.DataFrame]:
-    """Load all 2020 campaign .mat files and convert to DataFrames.
+    """Load all 2020 campaign .mat files and convert them to DataFrames.
 
     .. note::
 
        MATLAB ``table`` objects stored in v5/v7 .mat files are opaque MCOS
        objects that cannot be read by scipy, mat73, or any Python library.
-       This function only works if the .mat files contain struct arrays
-       (not tables). For the standard hawk dataset, use
+       This function only works when the .mat files contain struct arrays
+       (not MATLAB tables). For the standard hawk dataset, use
        :func:`load_intermediate_csvs` instead.
 
-    Parameters
-    ----------
-    data_dir : str or Path
-        Directory containing the 2020 .mat files.
-    file_names : dict, optional
-        Override default file names. Keys: ``backpack``, ``unlabelled``,
-        ``smooth``, ``labelled_markers``.
+    Args:
+        data_dir: Directory containing the 2020 .mat files.
+        file_names: Override default file names. Keys: ``backpack``,
+            ``unlabelled``, ``smooth``, ``labelled_markers``.
 
-    Returns
-    -------
-    dict[str, pd.DataFrame]
-        Keys: ``trajectory``, ``info``, ``tail``, ``smooth_tail``,
-        ``labelled``, ``labelled_body``, ``unlabelled``,
-        ``all_markers``.
+    Returns:
+        Dict with keys ``trajectory``, ``info``, ``tail``, ``labelled``,
+        ``labelled_body``, ``unlabelled``, and ``all_markers``.
     """
     data_dir = Path(data_dir)
     fnames = {**_DEFAULT_2020_FILES, **(file_names or {})}
@@ -226,31 +219,28 @@ def load_2017_data(
     data_dir_labelled: str | Path | None = None,
     file_names: dict[str, str] | None = None,
 ) -> dict[str, pd.DataFrame]:
-    """Load all 2017 campaign .mat files and convert to DataFrames.
+    """Load all 2017 campaign .mat files and convert them to DataFrames.
 
     .. note::
 
        MATLAB ``table`` objects stored in v5/v7 .mat files are opaque MCOS
        objects that cannot be read by scipy, mat73, or any Python library.
-       This function only works if the .mat files contain struct arrays
-       (not tables). For the standard hawk dataset, use
+       This function only works when the .mat files contain struct arrays
+       (not MATLAB tables). For the standard hawk dataset, use
        :func:`load_intermediate_csvs` instead.
 
-    Parameters
-    ----------
-    data_dir_body : str or Path
-        Directory containing ``220125_bodyTables.mat``.
-    data_dir_labelled : str or Path, optional
-        Directory containing ``220324_labelledMarkers.mat``.
-        Defaults to *data_dir_body* if not provided.
-    file_names : dict, optional
-        Override default file names. Keys: ``body``, ``labelled``.
+    Args:
+        data_dir_body: Directory containing the body tables .mat file
+            (``220125_bodyTables.mat`` by default).
+        data_dir_labelled: Directory containing the labelled markers .mat
+            file (``220324_labelledMarkers.mat`` by default). Defaults to
+            ``data_dir_body`` if not provided.
+        file_names: Override default file names. Keys: ``body``,
+            ``labelled``.
 
-    Returns
-    -------
-    dict[str, pd.DataFrame]
-        Keys: ``trajectory``, ``smooth``, ``tail``, ``labelled``,
-        ``labelled_body``.
+    Returns:
+        Dict with keys ``trajectory``, ``smooth``, ``tail``, ``labelled``,
+        and ``labelled_body``.
     """
     data_dir_body = Path(data_dir_body)
     data_dir_labelled = Path(data_dir_labelled or data_dir_body)
@@ -300,28 +290,27 @@ def load_intermediate_csvs(
     date_prefix: str = "2024-03-24-",
     file_names: dict[str, str] | None = None,
 ) -> dict[str, pd.DataFrame]:
-    """Load per-year intermediate CSVs exported by the MATLAB pipeline.
+    """Load the per-year intermediate CSVs exported by the MATLAB pipeline.
 
-    This is the recommended entry point for the hawk dataset, since the
-    original .mat files contain MATLAB ``table`` objects that are opaque
-    to Python readers.
+    This is the recommended entry point for the hawk dataset, because the
+    original .mat files contain MATLAB ``table`` objects that are opaque to
+    Python readers. MATLAB was used to export these CSVs as an intermediate
+    step.
 
-    Parameters
-    ----------
-    data_dir : str or Path
-        Directory containing the CSV files.
-    date_prefix : str
-        Prefix prepended to each default file name (e.g. ``"2024-03-24-"``
-        yields ``"2024-03-24-Traj2017.csv"``). Set to ``""`` to disable.
-    file_names : dict, optional
-        Override default file names. Keys: ``traj_2017``, ``traj_2020``,
-        ``labelled_2017``, ``labelled_2020``.
+    Args:
+        data_dir: Directory containing the intermediate CSV files.
+        date_prefix: Prefix prepended to each default filename, e.g.
+            ``"2024-03-24-"`` yields ``"2024-03-24-Traj2017.csv"``. Set
+            to ``""`` to use bare filenames.
+        file_names: Override default file names. Keys: ``traj_2017``,
+            ``traj_2020``, ``labelled_2017``, ``labelled_2020``.
 
-    Returns
-    -------
-    dict[str, pd.DataFrame]
-        Keys: ``traj_2017``, ``traj_2020``, ``labelled_2017``,
-        ``labelled_2020``.
+    Returns:
+        Dict with keys ``traj_2017``, ``traj_2020``, ``labelled_2017``,
+        and ``labelled_2020``.
+
+    Raises:
+        FileNotFoundError: If any expected CSV file is missing.
     """
     data_dir = Path(data_dir)
     names = {**_DEFAULT_CSV_FILES, **(file_names or {})}

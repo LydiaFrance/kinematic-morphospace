@@ -7,27 +7,19 @@ from ..data_filtering import filter_by
 
 
 def bin_and_plot(ax, x, y, color, label):
-    """Bin data by horizontal distance and plot mean +/-2 SD.
+    """Bin angle data by horizontal distance and plot the mean with ±2 SD shading.
 
-    Parameters
-    ----------
-    ax : matplotlib.axes.Axes
-        Axes to plot on.
-    x : numpy.ndarray
-        Horizontal-distance values.
-    y : numpy.ndarray
-        Angle values corresponding to *x*.
-    color : str
-        Line and fill colour.
-    label : str
-        Legend label for the line.
+    Divides the x range into 0.05 m bins, computes the mean and standard
+    deviation of y within each bin, and draws the mean line with a filled
+    ±2 SD envelope. Bins with no data are silently skipped.
 
-    Returns
-    -------
-    None
-        The axes are modified in place.
+    Args:
+        ax: Matplotlib Axes object to draw on.
+        x: Horizontal-distance values in metres, one per frame.
+        y: Angle values in degrees corresponding to each x value.
+        color: Line and fill colour (any Matplotlib colour string).
+        label: Legend label for the mean line.
     """
-
     # Define bin edges
     size_bin = 0.05
     bins = np.arange(-12.2, 0.2, size_bin)
@@ -38,10 +30,14 @@ def bin_and_plot(ax, x, y, color, label):
     bin_indices = np.digitize(x, bins) - 1
 
     # Calculate means and standard deviations for each bin
-    bin_means = [np.mean(y[bin_indices == i]) if np.sum(bin_indices == i) > 0 else np.nan
-                for i in range(len(bins) - 1)]
-    bin_stds = [np.std(y[bin_indices == i]) if np.sum(bin_indices == i) > 0 else np.nan
-                for i in range(len(bins) - 1)]
+    bin_means = [
+        np.mean(y[bin_indices == i]) if np.sum(bin_indices == i) > 0 else np.nan
+        for i in range(len(bins) - 1)
+    ]
+    bin_stds = [
+        np.std(y[bin_indices == i]) if np.sum(bin_indices == i) > 0 else np.nan
+        for i in range(len(bins) - 1)
+    ]
 
     # Convert to numpy arrays
     bin_means = np.array(bin_means)
@@ -56,24 +52,19 @@ def bin_and_plot(ax, x, y, color, label):
 def plot_whole_body_angles(info_df, euler_angles):
     """Plot whole-body pitch, roll, and yaw for left, right, and straight turns.
 
-    Creates a 3x3 grid: rows are turn directions, columns are angle
-    components. Data is binned by horizontal distance.
+    Creates a 3x3 grid of panels where rows correspond to turn direction
+    (left, right, straight) and columns to angle components (pitch, roll, yaw).
+    All data are binned by horizontal distance to the perch.
 
-    Parameters
-    ----------
-    info_df : pandas.DataFrame
-        Per-frame metadata including ``body_pitch``, ``HorzDistance``,
-        and turn-direction columns.
-    euler_angles : numpy.ndarray
-        Euler angles, shape ``(n_frames, 3)`` with columns
-        (pitch, yaw, roll).
+    Args:
+        info_df: Per-frame metadata DataFrame containing ``body_pitch``,
+            ``HorzDistance``, and turn-direction columns.
+        euler_angles: Euler angle array of shape (n_frames, 3) with columns
+            ordered as (pitch, yaw, roll).
 
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-        The figure.
-    ax : numpy.ndarray of matplotlib.axes.Axes
-        Flat array of subplot axes.
+    Returns:
+        Tuple of (fig, ax) where fig is the Figure and ax is a flat array of
+        9 Axes objects.
     """
     pitch_angles = euler_angles[:, 0]
     yaw_angles = euler_angles[:, 1]
@@ -141,49 +132,40 @@ def plot_whole_body_angles(info_df, euler_angles):
 
 
     turn_list = ['Left Turn', 'Right Turn', 'Control']
-    counter = 0
-    for i in range(2, 9, 3):
+    for counter, i in enumerate(range(2, 9, 3)):
         # Put a text label right of the plot at 0
         ax[i].text(0.5, 0.5, turn_list[counter])
-        counter += 1
 
 
 
-    for i in range(0, 3):
+    for i in range(3):
         ax[i].set_title(titles[i])
 
     # Set common labels
-    fig.text(0.5, 0.04, 'Horizontal Distance to perch (m)', ha='center')
-    fig.text(0.04, 0.5, 'Angle (degrees)', va='center', rotation='vertical')
+    fig.supxlabel('Horizontal Distance to perch (m)')
+    fig.supylabel('Angle (degrees)')
 
-    plt.tight_layout(rect=[0.03, 0.03, 1, 0.95])
+    plt.tight_layout()
 
     return fig, ax
 
 
 def plot_angles_by_distance(info_df, euler_angles):
-    """Plot whole-body angles for each perch distance (5, 7, 9, 12 m).
+    """Plot whole-body angles separately for each perch distance (5, 7, 9, 12 m).
 
-    Creates a 4x3 grid: rows are perch distances (2017 data only),
-    columns are pitch, roll, and yaw.
+    Creates a 4x3 grid where rows are perch distances and columns are pitch,
+    roll, and yaw. Only 2017 data are used, which span all four distances.
 
-    Parameters
-    ----------
-    info_df : pandas.DataFrame
-        Per-frame metadata including ``body_pitch``, ``HorzDistance``,
-        ``PerchDistance``, and ``Year`` columns.
-    euler_angles : numpy.ndarray
-        Euler angles, shape ``(n_frames, 3)`` with columns
-        (pitch, yaw, roll).
+    Args:
+        info_df: Per-frame metadata DataFrame containing ``body_pitch``,
+            ``HorzDistance``, ``PerchDistance``, and ``Year`` columns.
+        euler_angles: Euler angle array of shape (n_frames, 3) with columns
+            ordered as (pitch, yaw, roll).
 
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-        The figure.
-    ax : numpy.ndarray of matplotlib.axes.Axes
-        2-D array of subplot axes, shape ``(4, 3)``.
+    Returns:
+        Tuple of (fig, ax) where fig is the Figure and ax is a 2-D array of
+        Axes with shape (4, 3).
     """
-
     pitch_angles = euler_angles[:, 0]
     yaw_angles = euler_angles[:, 1]
     roll_angles = euler_angles[:, 2]
@@ -202,7 +184,9 @@ def plot_angles_by_distance(info_df, euler_angles):
     # Plot for each distance
     for row, distance in enumerate(distances):
         # Filter data for specific distance and year
-        distance_filter = (info_df['PerchDistance'] == distance) & (info_df['Year'] == 2017)
+        distance_filter = (
+            (info_df['PerchDistance'] == distance) & (info_df['Year'] == 2017)
+        )
 
         x_data = info_df['HorzDistance'][distance_filter]
         y_pitch = pitch_angles[distance_filter]
@@ -239,8 +223,8 @@ def plot_angles_by_distance(info_df, euler_angles):
                 ax[i, j].set_yticks([-20, 0, 20])
 
     # Set common labels
-    fig.text(0.5, 0.04, 'Horizontal Distance to perch (m)', ha='center', fontsize=12)
-    fig.text(0.04, 0.5, 'Angle (degrees)', va='center', rotation='vertical', fontsize=12)
+    fig.supxlabel('Horizontal Distance to perch (m)', fontsize=12)
+    fig.supylabel('Angle (degrees)', fontsize=12)
 
     plt.tight_layout()
 

@@ -1,9 +1,13 @@
-import numpy as np
-import matplotlib as mpl
-from matplotlib import pyplot as plt
-import matplotlib.gridspec as gridspec
+"""PC score heatmap visualisation for comparing flight conditions.
 
-from ..pca_scores import get_binned_scores
+Functions here produce heatmaps of PC scores binned by horizontal distance to the
+perch. Two-row colour images allow direct visual comparison of conditions such as
+obstacle vs control or naive vs experienced flight.
+"""
+import matplotlib.gridspec as gridspec
+import numpy as np
+from matplotlib import pyplot as plt
+
 from ..data_filtering import filter_by
 
 PC_NAMES = {
@@ -23,28 +27,24 @@ PC_NAMES = {
 
 
 def prepare_heatmap_comparison(scores_df, reference_filters, condition1, condition2):
-    """Prepare PC scores for comparison between two conditions.
+    """Filter and scale PC scores for a two-condition heatmap comparison.
 
-    Parameters
-    ----------
-    scores_df : pandas.DataFrame
-        DataFrame containing PC scores and metadata.
-    reference_filters : str or dict
-        Either a bird name (str) for score normalisation, or a dict of filters
-        to select reference data.
-    condition1, condition2 : dict
-        Dictionaries containing filters for each condition to compare.
+    Selects scores for each condition and computes 1st/99th percentile limits
+    from the reference dataset. These limits are used to set a consistent colour
+    scale across all PC panels.
 
-    Returns
-    -------
-    condition1_df : pandas.DataFrame
-        Filtered scores for first condition.
-    condition2_df : pandas.DataFrame
-        Filtered scores for second condition.
-    score_5 : pandas.Series
-        1st percentile scores for scaling.
-    score_95 : pandas.Series
-        99th percentile scores for scaling.
+    Args:
+        scores_df: DataFrame containing PC scores and per-frame metadata.
+        reference_filters: Either a hawk name string (scores for that bird are
+            used as the colour-scale reference) or a dict of filter kwargs to
+            select the reference subset.
+        condition1: Dict of filter kwargs selecting the first condition.
+        condition2: Dict of filter kwargs selecting the second condition.
+
+    Returns:
+        Tuple of (condition1_df, condition2_df, score_5, score_95) where
+        condition1_df and condition2_df are filtered DataFrames and score_5 /
+        score_95 are per-PC 1st and 99th percentile Series used for colour scaling.
     """
     # Handle reference data selection
     if isinstance(reference_filters, str):
@@ -79,36 +79,45 @@ def prepare_heatmap_comparison(scores_df, reference_filters, condition1, conditi
 def plot_difference_PC_scores_heatmap(df_control,
                                       df_exp,
                                       PC_cols, score_5, score_95):
-    """Plot a heatmap comparing PC scores between control and experimental conditions.
+    """Plot heatmap comparing mean PC scores between obstacle and control flights.
 
-    Parameters
-    ----------
-    df_control : pandas.DataFrame
-        DataFrame containing the control scores.
-    df_exp : pandas.DataFrame
-        DataFrame containing the experimental scores.
-    PC_cols : list
-        List of PC columns to plot.
-    score_5 : dict
-        1st percentile scores for colour scaling.
-    score_95 : dict
-        99th percentile scores for colour scaling.
+    Creates one subplot per PC component. Each subplot is a two-row colour
+    image: the top row shows the experimental condition and the bottom row
+    the control, both binned by horizontal distance to the perch and
+    colour-scaled by 1st/99th percentile limits. A vertical line marks the
+    obstacle position at -4.5 m. The last five bins (nearest the perch) are
+    removed to avoid contamination from the perch-grab phase.
 
-    Returns
-    -------
-    ax : matplotlib.axes.Axes
+    Args:
+        df_control: Control-condition scores DataFrame with a 'bins' column.
+        df_exp: Experimental-condition scores DataFrame with a 'bins' column.
+        PC_cols: List of PC column names to include (e.g. ['PC01', 'PC02', ...]).
+        score_5: Per-PC 1st percentile scores used as vmin for colour scaling.
+        score_95: Per-PC 99th percentile scores used as vmax for colour scaling.
+
+    Returns:
+        Axes object for the last subplot created.
     """
-
     # Convert bins to float when finding common bins
     control_bins = df_control['bins'].astype(float).unique()
     exp_bins = df_exp['bins'].astype(float).unique()
-    common_bins = sorted(list(set(control_bins) & set(exp_bins)))
+    common_bins = sorted(set(control_bins) & set(exp_bins))
 
     # Calculate means using float bins
-    mean_scores_control = df_control[df_control['bins'].astype(float).isin(common_bins)].pivot_table(
-        index='bins', values=PC_cols, aggfunc='mean', observed=True).T
-    mean_scores_exp = df_exp[df_exp['bins'].astype(float).isin(common_bins)].pivot_table(
-        index='bins', values=PC_cols, aggfunc='mean', observed=True).T
+    control_filter = df_control['bins'].astype(float).isin(common_bins)
+    mean_scores_control = df_control[control_filter].pivot_table(
+        index='bins',
+        values=PC_cols,
+        aggfunc='mean',
+        observed=True,
+    ).T
+    exp_filter = df_exp['bins'].astype(float).isin(common_bins)
+    mean_scores_exp = df_exp[exp_filter].pivot_table(
+        index='bins',
+        values=PC_cols,
+        aggfunc='mean',
+        observed=True,
+    ).T
 
     num_pairs = len(PC_cols)
     fig = plt.figure(figsize=(8, 8))
@@ -123,6 +132,7 @@ def plot_difference_PC_scores_heatmap(df_control,
     # Find the nearest actual bin index for each desired tick position
     tick_indices = [np.abs(actual_positions - tick).argmin() for tick in desired_ticks]
 
+    ax = fig.add_subplot(gs[0])
     for ii, PC in enumerate(PC_cols):
         # Get data for this PC
         control_data = mean_scores_control.loc[PC].values
@@ -146,7 +156,7 @@ def plot_difference_PC_scores_heatmap(df_control,
         combined_data = np.clip(combined_data, vmin, vmax)
 
         im = ax.imshow(combined_data.astype(float), cmap='Spectral_r', aspect='auto',
-                        vmin=vmin, vmax=vmax, extent=[0, len(actual_positions), 0, 2])
+                        vmin=vmin, vmax=vmax, extent=(0, len(actual_positions), 0, 2))
 
         # Apply x-tick positions for every subplot
         ax.set_xticks(tick_indices)
@@ -156,7 +166,8 @@ def plot_difference_PC_scores_heatmap(df_control,
         ax.axvline(x=obstacle_idx, color='black', linewidth=1.5, alpha=0.2)
 
         if ii == 0:
-            cbar_ax = fig.add_axes([0.134, 0.91, 0.1, 0.02])
+            cbar_ax = fig.add_axes((0.134, 0.91, 0.1, 0.02))
+            assert cbar_ax is not None
             cbar = plt.colorbar(im, cax=cbar_ax, orientation='horizontal')
             cbar.set_label('Score percentile', rotation=0, fontsize=9)
             cbar.ax.xaxis.set_label_position('top')
@@ -182,8 +193,13 @@ def plot_difference_PC_scores_heatmap(df_control,
             ax.set_xticks([])
 
         elif ii == len(PC_cols) - 1:
-            tick_indices = [np.abs(actual_positions - tick).argmin() for tick in desired_ticks]
-            ax.set_xticklabels([f"{x:.0f}" for x in desired_ticks], rotation=45)
+            tick_indices = [
+                np.abs(actual_positions - tick).argmin()
+                for tick in desired_ticks
+            ]
+            ax.set_xticklabels(
+                [f"{x:.0f}" for x in desired_ticks], rotation=45
+            )
             ax.set_xlim(0, len(actual_positions) - 1)
 
             obstacle_idx = np.abs(actual_positions - (-4.5)).argmin()
@@ -210,36 +226,38 @@ def plot_difference_PC_scores_heatmap(df_control,
     return ax
 
 
-def plot_PC_score_heatmaps(scores_df, PC_cols, score_5, score_95, score_mid, title):
-    """Plot a single heatmap of PC scores binned by horizontal distance.
+def plot_PC_score_heatmaps(
+    scores_df, PC_cols, score_5, score_95, _score_mid, title
+):
+    """Plot heatmap of mean PC scores binned by horizontal distance to perch.
 
-    Parameters
-    ----------
-    scores_df : pandas.DataFrame
-        DataFrame containing PC scores with a 'bins' column.
-    PC_cols : list
-        List of PC column names.
-    score_5, score_95 : dict
-        Percentile scores for colour scaling per PC.
-    score_mid : dict
-        Median scores for reference.
-    title : str
-        Plot title.
+    Creates one image where rows are PC components and columns are distance
+    bins.
+    Colour represents the mean score within each bin, scaled per component using
+    the supplied percentile limits.
 
-    Returns
-    -------
-    ax : matplotlib.axes.Axes
+    Args:
+        scores_df: DataFrame containing PC scores with a 'bins' column for
+            horizontal distance bins.
+        PC_cols: List of PC column names to include as rows.
+        score_5: Per-PC lower percentile scores used as vmin for colour scaling.
+        score_95: Per-PC upper percentile scores used as vmax for colour scaling.
+        score_mid: Per-PC median scores (currently unused; reserved for future
+            diverging-colour centring).
+        title: Title text displayed above the heatmap.
+
+    Returns:
+        Axes object containing the heatmap.
     """
     pc_scores = scores_df.pivot_table(index='bins', values=PC_cols, aggfunc='mean',
                                        observed=False).T
 
-    fig, ax = plt.subplots(1, 1, figsize=(4, 6))
-    fig.set_constrained_layout(True)
+    fig, ax = plt.subplots(1, 1, figsize=(4, 6), constrained_layout=True)
 
-    for ii, PC in enumerate(PC_cols):
+    for _ii, PC in enumerate(PC_cols):
         data = pc_scores.copy()
         data.loc[data.index != PC, :] = np.nan
-        im = ax.imshow(data, cmap='Spectral', aspect='auto',
+        ax.imshow(data, cmap='Spectral', aspect='auto',
                         vmin=score_5[PC], vmax=score_95[PC])
 
     ax.set_title(title)
@@ -256,28 +274,26 @@ def plot_difference_exp_scores_heatmap(df_control,
                                         df_exp,
                                         name_exp,
                                         PC_cols, score_5, score_95):
-    """Plot a heatmap comparing two experimental conditions side by side.
+    """Plot a stacked heatmap comparing two experimental conditions side by side.
 
-    Parameters
-    ----------
-    df_control : pandas.DataFrame
-        Control condition scores.
-    name_control : str
-        Label for control condition.
-    df_exp : pandas.DataFrame
-        Experimental condition scores.
-    name_exp : str
-        Label for experimental condition.
-    PC_cols : list
-        List of PC column names.
-    score_5, score_95 : dict
-        Percentile scores for colour scaling.
+    Similar to plot_difference_PC_scores_heatmap() but designed for comparing any
+    two labelled conditions (e.g. naive vs experienced) rather than specifically
+    obstacle vs control. Uses 5th/95th percentile colour scaling, which is more
+    appropriate when both conditions may contain outliers. The last five bins are
+    trimmed to exclude the perch-grab phase.
 
-    Returns
-    -------
-    ax : matplotlib.axes.Axes
+    Args:
+        df_control: First (reference) condition scores DataFrame with a 'bins' column.
+        name_control: Display label for the first condition (shown on the right axis).
+        df_exp: Second (experimental) condition scores DataFrame with a 'bins' column.
+        name_exp: Display label for the second condition (shown on the right axis).
+        PC_cols: List of PC column names to include.
+        score_5: Per-PC 5th percentile scores used as vmin.
+        score_95: Per-PC 95th percentile scores used as vmax.
+
+    Returns:
+        Axes object for the last subplot created.
     """
-
     mean_scores_control = df_control.pivot_table(index='bins', values=PC_cols,
                                                   aggfunc='mean', observed=False).T
     mean_scores_exp = df_exp.pivot_table(index='bins', values=PC_cols,
@@ -287,6 +303,7 @@ def plot_difference_exp_scores_heatmap(df_control,
     fig = plt.figure(figsize=(8, 8))
     gs = gridspec.GridSpec(num_pairs, 1, height_ratios=[1] * num_pairs, hspace=0.15)
 
+    ax = fig.add_subplot(gs[0])
     for ii, PC in enumerate(PC_cols):
         min_len = min(mean_scores_control.shape[1], mean_scores_exp.shape[1])
         control_data = mean_scores_control.loc[PC].values[:min_len]
@@ -305,7 +322,8 @@ def plot_difference_exp_scores_heatmap(df_control,
         ax.set_yticks([0, 1])
 
         if ii == 0:
-            cbar_ax = fig.add_axes([0.134, 0.91, 0.1, 0.02])
+            cbar_ax = fig.add_axes((0.134, 0.91, 0.1, 0.02))
+            assert cbar_ax is not None
             cbar = plt.colorbar(im, cax=cbar_ax, orientation='horizontal')
             cbar.set_label('Score percentile', rotation=0, fontsize=9)
             cbar.ax.xaxis.set_label_position('top')

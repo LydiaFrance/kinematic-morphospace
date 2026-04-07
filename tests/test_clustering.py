@@ -65,26 +65,36 @@ class TestGetClusterLabels:
 
     def test_labels_shape(self, synthetic_cluster_data):
         labels, centers = get_cluster_labels(synthetic_cluster_data, n_clusters=3, random_state=42)
+        assert labels is not None
+        assert centers is not None
         assert labels.shape == (synthetic_cluster_data.shape[0],)
 
     def test_centers_shape(self, synthetic_cluster_data):
         labels, centers = get_cluster_labels(synthetic_cluster_data, n_clusters=3, random_state=42)
+        assert labels is not None
+        assert centers is not None
         assert centers.shape == (3, synthetic_cluster_data.shape[1])
 
     def test_labels_in_valid_range(self, synthetic_cluster_data):
         labels, _ = get_cluster_labels(synthetic_cluster_data, n_clusters=3, random_state=42)
+        assert labels is not None
         assert np.all(labels >= 0)
         assert np.all(labels < 3)
 
     def test_deterministic_with_same_random_state(self, synthetic_cluster_data):
         labels1, centers1 = get_cluster_labels(synthetic_cluster_data, n_clusters=3, random_state=42)
+        assert labels1 is not None
+        assert centers1 is not None
         labels2, centers2 = get_cluster_labels(synthetic_cluster_data, n_clusters=3, random_state=42)
+        assert labels2 is not None
+        assert centers2 is not None
         np.testing.assert_array_equal(labels1, labels2)
         np.testing.assert_array_equal(centers1, centers2)
 
     def test_well_separated_blobs_recover_clusters(self, synthetic_cluster_data):
         """Well-separated blobs should be perfectly separated into 3 clusters."""
         labels, _ = get_cluster_labels(synthetic_cluster_data, n_clusters=3, random_state=42)
+        assert labels is not None
         unique_labels = np.unique(labels)
         assert len(unique_labels) == 3
         # Each blob should have a consistent label
@@ -242,11 +252,13 @@ class TestContinuumEvidence:
             rng.normal(loc=[40, 40, 40], scale=0.5, size=(100, 3)),
         ])
         blob_labels, _ = get_cluster_labels(blobs, n_clusters=3, random_state=0)
+        assert blob_labels is not None
         sil_blobs = silhouette_score(blobs, blob_labels)
 
         # Continuous uniform data (no cluster structure)
         uniform = rng.uniform(low=0, high=40, size=(300, 3))
         uniform_labels, _ = get_cluster_labels(uniform, n_clusters=3, random_state=0)
+        assert uniform_labels is not None
         sil_uniform = silhouette_score(uniform, uniform_labels)
 
         assert sil_blobs > sil_uniform + 0.2, (
