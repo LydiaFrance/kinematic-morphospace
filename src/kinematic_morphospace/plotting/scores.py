@@ -10,8 +10,7 @@ from matplotlib import pyplot as plt
 from ..pca_scores import get_binned_scores
 
 
-def plot_score(scores_df,
-                PC_name = 'PC01', ax=None, alpha=1, **filters):
+def plot_score(scores_df, PC_name='PC01', ax=None, alpha=1, **filters):
     """Plot a single PC score trace against horizontal distance to the perch.
 
     Bins the scores by horizontal distance and draws the mean score as a line
@@ -30,23 +29,36 @@ def plot_score(scores_df,
         Axes object containing the score trace.
     """
     if ax is None:
-        fig, ax = plt.subplots()
+        _fig, ax = plt.subplots()
 
-    colour_PC_dict = {'PC01': '#B5E675',    'PC02': '#6ED8A9',   'PC03': '#51B3D4',
-                    'PC04': '#4579AA',   'PC05': '#F19EBA',   'PC06': '#BC96C9',
-                    'PC07': '#917AC2',   'PC08': '#BE607F',   'PC09': '#624E8B',
-                    'PC10': '#888888',  'PC11': '#888888',  'PC12': '#888888'}
+    colour_PC_dict = {
+        'PC01': '#B5E675',
+        'PC02': '#6ED8A9',
+        'PC03': '#51B3D4',
+        'PC04': '#4579AA',
+        'PC05': '#F19EBA',
+        'PC06': '#BC96C9',
+        'PC07': '#917AC2',
+        'PC08': '#BE607F',
+        'PC09': '#624E8B',
+        'PC10': '#888888',
+        'PC11': '#888888',
+        'PC12': '#888888',
+    }
 
 
     # Bins the scores by horizontal distance to the perch
     # Filters provided by user, e.g. only obstacle flights or by individual bird
-    binned_info, mean_scores, stdev_scores, med_scores = get_binned_scores(scores_df, **filters)
+    binned_info, mean_scores, stdev_scores, _med_scores = get_binned_scores(
+        scores_df, **filters
+    )
 
     score = mean_scores[PC_name]
     stdev = stdev_scores[PC_name]
     horzDist_bins = binned_info['HorzDistance']
 
-    # If any scores are nan, remove that row and the corresponding row in the horzDist_bins and stdev
+    # If any scores are nan, remove that row and the corresponding row in
+    # horzDist_bins and stdev
     nan_rows = np.isnan(stdev)
     score = score[~nan_rows]
     stdev = stdev[~nan_rows]
@@ -56,10 +68,23 @@ def plot_score(scores_df,
     ax.axhline(y=0, color='#333333', linestyle=':', linewidth=0.5)
 
     # Shade +/-1 standard deviation
-    ax.fill_between(horzDist_bins, score-stdev, score+stdev, color=colour_PC_dict[PC_name], alpha=0.4, edgecolor='none')
+    ax.fill_between(
+        horzDist_bins,
+        score - stdev,
+        score + stdev,
+        color=colour_PC_dict[PC_name],
+        alpha=0.4,
+        edgecolor='none',
+    )
 
     # Plot the mean per bin
-    ax.plot(horzDist_bins, score, color=colour_PC_dict[PC_name], linewidth=2, alpha=alpha)
+    ax.plot(
+        horzDist_bins,
+        score,
+        color=colour_PC_dict[PC_name],
+        linewidth=2,
+        alpha=alpha,
+    )
 
     # Set y-axis limits excluding the perch zone (last 1 m) where
     # extreme values from the grab distort the scale
@@ -75,7 +100,7 @@ def plot_score(scores_df,
 
     return ax
 
-def plot_score_multi_PCs(scores_df, PC_num_list=range(1, 13), **filters):
+def plot_score_multi_PCs(scores_df, PC_num_list=None, **filters):
     """Plot binned score traces for multiple morphing shape modes in a grid.
 
     Creates one panel per PC. When all nine interpretable modes are requested,
@@ -84,7 +109,7 @@ def plot_score_multi_PCs(scores_df, PC_num_list=range(1, 13), **filters):
 
     Args:
         scores_df: DataFrame containing PC scores and per-frame metadata.
-        PC_num_list: PC numbers to include; defaults to 1–12.
+        PC_num_list: PC numbers to include; defaults to 1-12.
         **filters: Keyword arguments forwarded to plot_score(). Must include
             perchDist.
 
@@ -94,8 +119,11 @@ def plot_score_multi_PCs(scores_df, PC_num_list=range(1, 13), **filters):
     Raises:
         ValueError: If perchDist is not included in filters.
     """
+    if PC_num_list is None:
+        PC_num_list = range(1, 13)
     if 'perchDist' not in filters:
-        raise ValueError("perchDist should be in filters")
+        msg = "perchDist should be in filters"
+        raise ValueError(msg)
 
     perch_int = filters['perchDist']
 
@@ -124,8 +152,9 @@ def plot_score_multi_PCs(scores_df, PC_num_list=range(1, 13), **filters):
     fig_w = n_cols * 5 / 3
     fig_h = n_rows * 5 / 3
 
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(fig_w, fig_h), sharex=True,
-                             squeeze=False)
+    fig, axes = plt.subplots(
+        n_rows, n_cols, figsize=(fig_w, fig_h), sharex=True, squeeze=False
+    )
     flat_axes = axes.flatten()
 
     for ii, pc_name in enumerate(PC_names):
@@ -156,7 +185,7 @@ def plot_score_multi_PCs(scores_df, PC_num_list=range(1, 13), **filters):
 
     return fig
 
-def plot_score_multi_distance(scores_df,PC_name, **filters):
+def plot_score_multi_distance(scores_df, PC_name, **filters):
     """Plot a single PC score trace at each of four perch distances (5, 7, 9, 12 m).
 
     Creates a 4x1 stack of subplots with shared axes, one per perch distance.
@@ -176,9 +205,10 @@ def plot_score_multi_distance(scores_df,PC_name, **filters):
         ValueError: If perchDist is included in filters.
     """
     if 'perchDist' in filters:
-        raise ValueError("perchDist should not be in filters")
+        msg = "perchDist should not be in filters"
+        raise ValueError(msg)
 
-    perchDist_list = [ '5m', '7m','9m','12m']
+    perchDist_list = ['5m', '7m', '9m', '12m']
 
     fig, axes = plt.subplots(4, 1, figsize=(5, 6), sharex=True, sharey=True)
 
@@ -195,7 +225,13 @@ def plot_score_multi_distance(scores_df,PC_name, **filters):
         ax.tick_params(axis='x', direction='out')
 
         ax.yaxis.set_label_position("right")
-        ax.set_ylabel(perchDist_list[ii], rotation=0, fontsize=8, va='center', labelpad=10)
+        ax.set_ylabel(
+            perchDist_list[ii],
+            rotation=0,
+            fontsize=8,
+            va='center',
+            labelpad=10,
+        )
 
         if ii != len(perchDist_list) - 1:
             ax.xaxis.set_ticklabels([])
@@ -212,13 +248,25 @@ def plot_score_multi_distance(scores_df,PC_name, **filters):
     fig.subplots_adjust(left=0.15, bottom=0.1, right=0.85, top=0.95)
 
     # Add labels with adjusted positions
-    fig.text(0.06, 0.5, f'{PC_name} score', ha='center', va='center', rotation='vertical')
-    fig.text(0.5, 0.02, 'horizontal distance to perch (m)', ha='center', va='bottom')
+    fig.text(
+        0.06, 0.5, f'{PC_name} score', ha='center', va='center', rotation='vertical'
+    )
+    fig.text(
+        0.5, 0.02, 'horizontal distance to perch (m)', ha='center', va='bottom'
+    )
 
     return fig, axes
 
 
-def plot_pc_comparison_grid(scores_df, score_5, score_95, n_pcs=9, alpha=0.1, bkgrd_color='white', filter_condition=None):
+def plot_pc_comparison_grid(
+    scores_df,
+    score_5,
+    score_95,
+    n_pcs=9,
+    alpha=0.1,
+    bkgrd_color='white',
+    filter_condition=None,
+):
     """Create a pairwise scatter-plot grid for exploring PC score correlations.
 
     Diagonal panels show histograms of each PC score distribution;
@@ -245,18 +293,33 @@ def plot_pc_comparison_grid(scores_df, score_5, score_95, n_pcs=9, alpha=0.1, bk
         filtered_scores = scores_df.copy()
 
     # Create a figure with a grid of subplots
-    fig, axs = plt.subplots(n_pcs, n_pcs, figsize=(20, 20),
-                           sharex='col', sharey='row',
-                           gridspec_kw={'hspace': 0.05, 'wspace': 0.05})
+    fig, axs = plt.subplots(
+        n_pcs,
+        n_pcs,
+        figsize=(20, 20),
+        sharex='col',
+        sharey='row',
+        gridspec_kw={'hspace': 0.05, 'wspace': 0.05},
+    )
 
     # Define colors for each PC
-    colour_list = ['#B5E675', '#6ED8A9', '#51B3D4',
-                  '#4579AA', '#F19EBA', '#BC96C9',
-                  '#917AC2', '#BE607F', '#624E8B',
-                  '#888888', '#888888', '#888888']
+    colour_list = [
+        '#B5E675',
+        '#6ED8A9',
+        '#51B3D4',
+        '#4579AA',
+        '#F19EBA',
+        '#BC96C9',
+        '#917AC2',
+        '#BE607F',
+        '#624E8B',
+        '#888888',
+        '#888888',
+        '#888888',
+    ]
 
     # Get PC column names
-    PC_cols = [f'PC{i:02}' for i in range(1, n_pcs+1)]
+    PC_cols = [f'PC{i:02}' for i in range(1, n_pcs + 1)]
 
     # Loop through each pair of PCs
     for i in range(n_pcs):
@@ -278,9 +341,15 @@ def plot_pc_comparison_grid(scores_df, score_5, score_95, n_pcs=9, alpha=0.1, bk
                 ax.set_title(f'{pc_i}', fontsize=10)
             else:
                 # Plot scatter of PC_i vs PC_j
-                ax.scatter(filtered_scores[pc_j],
-                          filtered_scores[pc_i],
-                          marker='o', s=0.2, c=colour_list[i], alpha=alpha, edgecolors='none')
+                ax.scatter(
+                    filtered_scores[pc_j],
+                    filtered_scores[pc_i],
+                    marker='o',
+                    s=0.2,
+                    c=colour_list[i],
+                    alpha=alpha,
+                    edgecolors='none',
+                )
 
                 # Get axis limits
                 min_val_i = score_5[pc_i]
@@ -311,7 +380,7 @@ def plot_pc_comparison_grid(scores_df, score_5, score_95, n_pcs=9, alpha=0.1, bk
     return fig
 
 
-def plot_score_multi_bird(scores_df,PC_name, birdname_list = ['Drogon', 'Ruby','Toothless', 'Charmander'], **filters):
+def plot_score_multi_bird(scores_df, PC_name, birdname_list=None, **filters):
     """Plot a single PC score trace separately for each individual hawk.
 
     Creates a 4x1 stack of subplots with shared axes, one per bird. Useful for
@@ -328,34 +397,37 @@ def plot_score_multi_bird(scores_df,PC_name, birdname_list = ['Drogon', 'Ruby','
     Returns:
         Tuple of (fig, axes).
     """
-    fig, axes = plt.subplots(4,1,figsize=(5, 4), sharex=True, sharey=True)
+    if birdname_list is None:
+        birdname_list = ['Drogon', 'Ruby', 'Toothless', 'Charmander']
+    fig, axes = plt.subplots(4, 1, figsize=(5, 4), sharex=True, sharey=True)
 
     for ii, bird in enumerate(birdname_list):
         ax = axes.flatten()[ii]
 
-        plot_score(scores_df,  PC_name, ax, hawkname=bird, **filters)
+        plot_score(scores_df, PC_name, ax, hawkname=bird, **filters)
 
-     # Turn off frame
+        # Turn off frame
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         # axes.flatten()[ii].spines['left'].set_visible(False)
         ax.tick_params(axis='x', labelsize=8)
         ax.tick_params(axis='y', labelsize=8)
-        ax.tick_params(axis='y',direction='out')
-        ax.tick_params(axis='x',direction='in')
+        ax.tick_params(axis='y', direction='out')
+        ax.tick_params(axis='x', direction='in')
 
 
 
 
-    # Y label on the right
+        # Y label on the right
         ax.yaxis.set_label_position("right")
-        ax.set_ylabel(bird, rotation=0, fontsize = 8, va = 'center', labelpad = 10)
+        ax.set_ylabel(bird, rotation=0, fontsize=8, va='center', labelpad=10)
 
         # X axis limits
         # ax.set_xlim(-12,0)
 
         # if ii == 3:
-        #     ax.text(1.3,0.5,"perchDist_list[ii]", ha='center', va='center', fontsize=9, transform=ax.transAxes)
+        #     ax.text(1.3,0.5,"perchDist_list[ii]", ha='center', va='center',
+        #             fontsize=9, transform=ax.transAxes)
 
         if ii != 3:
             ax.xaxis.set_ticklabels([])
@@ -368,7 +440,7 @@ def plot_score_multi_bird(scores_df,PC_name, birdname_list = ['Drogon', 'Ruby','
     axes.flatten()[0].set_ylim(global_ymin - padding, global_ymax + padding)
 
     fig.text(0.5, 1, 'horizontal distance to perch (m)', ha='center')
-    fig.text(0,0.5, 'PC score', ha='center', rotation='vertical')
+    fig.text(0, 0.5, 'PC score', ha='center', rotation='vertical')
 
     fig.tight_layout()
 

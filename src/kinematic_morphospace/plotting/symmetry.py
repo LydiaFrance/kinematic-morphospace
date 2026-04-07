@@ -1,11 +1,10 @@
 """Left-right symmetry visualisation for bilateral PC scores."""
 
 import numpy as np
-from matplotlib import pyplot as plt
 import pandas as pd
+from matplotlib import pyplot as plt
 from sklearn.decomposition import PCA
 
-from ..pca_scores import get_binned_scores
 from ..data_filtering import filter_by
 from .markers import plot_raw_markers
 
@@ -39,7 +38,12 @@ def prepare_left_right_comparison(scores_df, **filters):
     right_scores = scores_df[right_filter].set_index('frameID')
 
     # Merge left and right scores
-    left_right_scores = left_scores.merge(right_scores, left_index=True, right_index=True, suffixes=('_left', '_right'))
+    left_right_scores = left_scores.merge(
+        right_scores,
+        left_index=True,
+        right_index=True,
+        suffixes=('_left', '_right'),
+    )
 
     # Calculate score percentiles
     PC_cols = [f'PC{i:02}' for i in np.arange(1, 13)]
@@ -218,13 +222,16 @@ def print_symmetry_summary(left_right_scores, label=''):
               f'{r["variance_pct"]:>6.1f}%  {r["coupling"]}')
 
 
-def plot_left_right(left_right_scores, score_5, score_95, alpha=0.05, bkgrd_color='white'):
-    """Plot a 4x3 grid comparing left vs right PC scores for all 12 morphing modes.
+def plot_left_right(
+    left_right_scores, score_5, score_95, alpha=0.05, bkgrd_color='white'
+):
+    """Plot 4x3 grid comparing left vs right PC scores for all 12 morphing
+    modes.
 
-    Each of the 12 panels shows a scatter of left-wing scores against right-wing
-    scores for one PC, with the major-axis regression line and the line of perfect
-    symmetry (y = x) overlaid. Deviation from the diagonal reveals left-right
-    asymmetry in that morphing mode.
+    Each of the 12 panels shows a scatter of left-wing scores against
+    right-wing scores for one PC, with the major-axis regression line and the
+    line of perfect symmetry (y = x) overlaid. Deviation from the diagonal
+    reveals left-right asymmetry in that morphing mode.
 
     Args:
         left_right_scores: Merged left/right DataFrame as returned by
@@ -286,12 +293,15 @@ def plot_left_right_just_two(left_right_scores, score_5, score_95, alpha=0.05):
     return fig, axs
 
 
-def plot_left_right_empty(score_5, score_95, PC=0, bkgrd_color='white', figsize=(2, 2)):
-    """Create an empty symmetry panel with reference lines for use as a legend or schematic.
+def plot_left_right_empty(
+    score_5, score_95, PC=0, bkgrd_color='white', figsize=(2, 2)
+):
+    """Create empty symmetry panel with reference lines for use as legend or
+    schematic.
 
-    Draws the line of perfect symmetry (y = x, solid grey) and an offset guide
-    line (dotted) without any data. Useful as an explanatory panel showing
-    what the symmetry scatter plots represent.
+    Draws the line of perfect symmetry (y = x, solid grey) and an offset
+    guide line (dotted) without any data. Useful as an explanatory panel
+    showing what the symmetry scatter plots represent.
 
     Args:
         score_5: Per-PC lower axis limits (dict or Series indexed by PC name).
@@ -345,8 +355,8 @@ def plot_left_right_empty(score_5, score_95, PC=0, bkgrd_color='white', figsize=
     ax.set_yticklabels("")
 
     # Labels
-    ax.set_ylabel(f'left scores', fontsize=8)
-    ax.set_xlabel(f'right scores', fontsize=8)
+    ax.set_ylabel('left scores', fontsize=8)
+    ax.set_xlabel('right scores', fontsize=8)
     # Grid
     ax.grid(True)
 
@@ -370,7 +380,12 @@ def plot_symmetry_scores(symmetry_scores, threshold=0.05):
         Tuple of (fig, ax).
     """
     fig, ax = plt.subplots(figsize=(6, 3))
-    ax.scatter(np.arange(1, len(symmetry_scores)+1), symmetry_scores, color='black', s=5)
+    ax.scatter(
+        np.arange(1, len(symmetry_scores) + 1),
+        symmetry_scores,
+        color='black',
+        s=5,
+    )
     ax.axhline(threshold, color='red', linestyle='--')
     ax.set_xticks(np.arange(1, len(symmetry_scores)+1))
     ax.set_xticklabels(np.arange(1, len(symmetry_scores)+1), fontsize=8, rotation=45)

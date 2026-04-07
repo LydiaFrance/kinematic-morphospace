@@ -2,12 +2,11 @@
 
 Combines plotting functions previously in labelling.py and clustering.py.
 """
-import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
+import numpy as np
 
 from ..data_filtering import filter_by
-
 
 # --- From clustering.py ---
 
@@ -39,7 +38,13 @@ def get_cluster_colours(labels, n_clusters=8, noise_colour='blanchedalmond'):
     return colours_by_cluster, colour_map
 
 
-def plot_clusters(selected_scores, cluster_centroids, cluster_colours, PC_pair=None, ax=None):
+def plot_clusters(
+    selected_scores,
+    cluster_centroids,
+    cluster_colours,
+    PC_pair=None,
+    ax=None,
+):
     """Scatter plot of PCA scores coloured by cluster assignment.
 
     Each point represents one frame; colour indicates the cluster it belongs
@@ -59,7 +64,7 @@ def plot_clusters(selected_scores, cluster_centroids, cluster_colours, PC_pair=N
 
     standalone = ax is None
     if standalone:
-        fig, ax = plt.subplots(figsize=(4, 6))
+        _fig, ax = plt.subplots(figsize=(4, 6))
 
     PC_1 = PC_pair[1]
     PC_2 = PC_pair[0]
@@ -150,12 +155,13 @@ def _ax_settings_cluster_diffs(ax, y_lim, y_tick):
 
 
 def plot_cluster_diffs(scores_df, colour_list):
-    """Plot cluster count differences between control and treatment conditions for each hawk.
+    """Plot cluster count differences between control and treatment conditions
+    for each hawk.
 
-    Creates a 4x4 grid of bar charts. Each row is one hawk (Drogon, Toothless,
-    Ruby, Charmander); columns show the absolute control counts followed by
-    differences for weight, obstacle, and experience conditions. Noise frames
-    (cluster == -1) are excluded.
+    Creates a 4x4 grid of bar charts. Each row is one hawk (Drogon,
+    Toothless, Ruby, Charmander); columns show the absolute control counts
+    followed by differences for weight, obstacle, and experience conditions.
+    Noise frames (cluster == -1) are excluded.
 
     Args:
         scores_df: DataFrame containing PC scores, cluster labels, and metadata.
@@ -226,11 +232,13 @@ def plot_cluster_diffs(scores_df, colour_list):
 
 
 def plot_cluster_experience_diffs(scores_df, colour_list):
-    """Plot cluster count differences between naive (2017) and experienced (2020) flights.
+    """Plot cluster count differences between naive (2017) and experienced
+    (2020) flights.
 
-    Creates a 3x2 grid of bar charts: left column shows absolute cluster counts
-    for the experienced year; right column shows the count difference (experienced
-    minus naive). Only hawks with both 2017 and 2020 data are included.
+    Creates a 3x2 grid of bar charts: left column shows absolute cluster
+    counts for the experienced year; right column shows the count difference
+    (experienced minus naive). Only hawks with both 2017 and 2020 data are
+    included.
 
     Args:
         scores_df: DataFrame containing PC scores, cluster labels, and metadata.
@@ -307,21 +315,31 @@ def plot_reconstruction_errors(errors, percentile=98):
     plt.show()
 
     num_bad_frames = np.sum(errors > threshold)
-    print(f"Number of frames above the {percentile}th percentile threshold: {num_bad_frames}")
-    print(f"Error value at the {percentile}th percentile threshold: {threshold}")
+    print(
+        f"Number of frames above the {percentile}th percentile threshold: "
+        f"{num_bad_frames}"
+    )
+    print(
+        f"Error value at the {percentile}th percentile threshold: "
+        f"{threshold}"
+    )
     return threshold, num_bad_frames
 
 
-def plot_marker_errors_with_thresholds(data,
-                                        per_marker_errors,
-                                        per_marker_thresholds,
-                                        marker_labels,
-                                        view_labels):
-    """Scatter plot of per-marker positions highlighting frames with high reconstruction error.
+def plot_marker_errors_with_thresholds(
+    data,
+    per_marker_errors,
+    per_marker_thresholds,
+    marker_labels,
+    view_labels,
+):
+    """Scatter plot of per-marker positions highlighting frames with high
+    reconstruction error.
 
-    Creates a 4x3 grid (one row per marker, three columns for XY, XZ, YZ views).
-    Frames whose reconstruction error exceeds the per-marker threshold are drawn
-    in red at larger size; well-reconstructed frames are drawn in black.
+    Creates a 4x3 grid (one row per marker, three columns for XY, XZ, YZ
+    views). Frames whose reconstruction error exceeds the per-marker
+    threshold are drawn in red at larger size; well-reconstructed frames are
+    drawn in black.
 
     Args:
         data: Marker position array of shape (n_frames, n_markers, 3).
@@ -331,15 +349,21 @@ def plot_marker_errors_with_thresholds(data,
         marker_labels: Names for each marker (used as subplot titles).
         view_labels: Labels for each 2-D projection (e.g. ['XY', 'XZ', 'YZ']).
     """
-    fig, axes = plt.subplots(4, 3, figsize=(12, 12))
+    _fig, axes = plt.subplots(4, 3, figsize=(12, 12))
     base_size, error_size = 0.5, 2
 
     for ii in range(4):
         threshold = per_marker_thresholds[ii]
         for jj, (x, y) in enumerate([(0, 1), (0, 2), (1, 2)]):
-            colors = np.where(per_marker_errors[:, ii] > threshold, 'red', 'black')
-            sizes = np.where(per_marker_errors[:, ii] > threshold, error_size, base_size)
-            alphas = np.where(per_marker_errors[:, ii] > threshold, 0.5, 0.1)
+            colors = np.where(
+                per_marker_errors[:, ii] > threshold, 'red', 'black'
+            )
+            sizes = np.where(
+                per_marker_errors[:, ii] > threshold, error_size, base_size
+            )
+            alphas = np.where(
+                per_marker_errors[:, ii] > threshold, 0.5, 0.1
+            )
 
             axes[ii, jj].scatter(data[:, ii, x], data[:, ii, y],
                                   c=colors, s=sizes, alpha=alphas, edgecolor="none")

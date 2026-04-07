@@ -6,7 +6,7 @@ distances, years, obstacles, and weights).
 """
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib.ticker import MultipleLocator, FixedLocator
+from matplotlib.ticker import FixedLocator, MultipleLocator
 
 from ..data_filtering import filter_by
 
@@ -55,7 +55,15 @@ def plot_trajectory_data(ax,
             print(f"n = {len(x)} points, n_flights = {n_flights}")
 
         # Scatter plot
-        ax.scatter(x, y, marker='o', s=0.2, c='dodgerblue', alpha=0.1, edgecolors='none')
+        ax.scatter(
+            x,
+            y,
+            marker='o',
+            s=0.2,
+            c='dodgerblue',
+            alpha=0.1,
+            edgecolors='none',
+        )
 
     elif plot_type == 'fill_between':
         # This plot type separates the data by hawk.
@@ -78,30 +86,33 @@ def plot_trajectory_data(ax,
                 continue
 
             binned_data = filtered_df.groupby('bins').agg(
-                {y_col: ['count','median', 'std']})
+                {y_col: ['count', 'median', 'std']}
+            )
 
             if min_samples is not None:
                 binned_data = binned_data[binned_data[y_col]['count'] >= min_samples]
 
             x_bins = binned_data.index
             y_median = binned_data[y_col]['median']
-            y_std = binned_data[y_col]['std']
 
             # Not currently used, plots the shading between ±1 standard deviation.
             # ax.fill_between(x_bins, y_mean - y_std, y_mean + y_std,
             #               color=hawk_colors[hawk], alpha=0.1)
 
             # Plots the mean of each bin per hawk.
-            ax.plot(x_bins, y_median, color=hawk_colors[hawk],
-                   label=hawk, linewidth=0.5)
+            ax.plot(
+                x_bins, y_median, color=hawk_colors[hawk], label=hawk, linewidth=0.5
+            )
 
-def plot_traj(traj_df,
+def plot_traj(
+    traj_df,
     x_axis_column='HorzDistance',
     y_axis_column='XYZ_3',
     equal=True,
     print_n_flights=False,
     min_samples=None,
-    save_path=None):
+    save_path=None,
+):
     """Create an 8x2 grid of trajectory plots covering all experimental conditions.
 
     Left column shows raw scatter clouds; right column shows per-hawk binned
@@ -152,27 +163,56 @@ def plot_traj(traj_df,
         setup_trajectory_axis(axes[ii*2+1], equal)
 
         # Plot scatter on left axis
-        plot_trajectory_data(axes[ii*2], traj_df, x_axis_column, y_axis_column,
-                           {'perchDist': perchDist, 'year': year,
-                            'obstacle': obstacle, 'IMU': weight},
-                           print_n_flights=print_n_flights)
+        plot_trajectory_data(
+            axes[ii * 2],
+            traj_df,
+            x_axis_column,
+            y_axis_column,
+            {
+                'perchDist': perchDist,
+                'year': year,
+                'obstacle': obstacle,
+                'IMU': weight,
+            },
+            print_n_flights=print_n_flights,
+        )
 
         # Plot per hawk on right axis.
         #   Left and right turns are separated in the obstacle flights
         #   as the mean between them does not make sense.
         if obstacle == 1:
             for turn in ["left", "right"]:
-                plot_trajectory_data(axes[ii*2+1], traj_df, x_axis_column, y_axis_column,
-                                  {'perchDist': perchDist, 'year': year,
-                                   'obstacle': obstacle, 'turn': turn, 'IMU': weight},
-                                  plot_type='fill_between',
-                                  min_samples=min_samples)
+                plot_trajectory_data(
+                    axes[ii * 2 + 1],
+                    traj_df,
+                    x_axis_column,
+                    y_axis_column,
+                    {
+                        'perchDist': perchDist,
+                        'year': year,
+                        'obstacle': obstacle,
+                        'turn': turn,
+                        'IMU': weight,
+                    },
+                    plot_type='fill_between',
+                    min_samples=min_samples,
+                )
         else:
-            plot_trajectory_data(axes[ii*2+1], traj_df, x_axis_column, y_axis_column,
-                               {'perchDist': perchDist, 'year': year,
-                                'obstacle': obstacle, 'turn': 'straight', 'IMU': weight},
-                               plot_type='fill_between',
-                               min_samples=min_samples)
+            plot_trajectory_data(
+                axes[ii * 2 + 1],
+                traj_df,
+                x_axis_column,
+                y_axis_column,
+                {
+                    'perchDist': perchDist,
+                    'year': year,
+                    'obstacle': obstacle,
+                    'turn': 'straight',
+                    'IMU': weight,
+                },
+                plot_type='fill_between',
+                min_samples=min_samples,
+            )
 
     # Add legends
     axes[9].legend(fontsize=4, frameon=False)
@@ -210,7 +250,7 @@ def save_hybrid_figure(fig, axes, base_filename, dpi=600):
         dpi: Resolution for the raster PNG. Defaults to 600.
     """
     # Store original figure size in inches
-    fig_width, fig_height = fig.get_size_inches()
+    _fig_width, _fig_height = fig.get_size_inches()
 
     # Hide axes elements for raster version
     for ax in axes:
@@ -237,8 +277,13 @@ def save_hybrid_figure(fig, axes, base_filename, dpi=600):
     scatter_artists = []
     for ax in axes:
         for artist in ax.collections + ax.lines:
-            if isinstance(artist, (plt.matplotlib.collections.PathCollection,  # scatter
-                                 plt.matplotlib.collections.PolyCollection)): # fill_between
+            if isinstance(
+                artist,
+                (
+                    plt.matplotlib.collections.PathCollection,  # scatter
+                    plt.matplotlib.collections.PolyCollection,  # fill_between
+                ),
+            ):
                 scatter_artists.append((artist, artist.get_visible()))
                 artist.set_visible(False)
 
@@ -261,9 +306,9 @@ def setup_trajectory_axis(ax, equal=True):
 
     Args:
         ax: Matplotlib Axes object to configure.
-        equal: When True, enforces equal aspect ratio with x-limits −12.5 to
-            0.5 m and y-limits −1.4 to 0.7 m. When False, uses wider y-limits
-            (−30 to 120) suitable for angle data. Defaults to True.
+        equal: When True, enforces equal aspect ratio with x-limits -12.5 to
+            0.5 m and y-limits -1.4 to 0.7 m. When False, uses wider y-limits
+            (-30 to 120) suitable for angle data. Defaults to True.
     """
     if equal:
         ax.set_aspect('equal')
@@ -287,13 +332,20 @@ def setup_trajectory_axis(ax, equal=True):
         ax.set_xlim([-12.5, 0.5])
         ax.grid(True, alpha=0.2)
 
-def plot_traj_scatter(traj_df, x_axis_column='HorzDistance', y_axis_column='XYZ_3',
-                     equal=True, print_n_flights=False, save_path=None):
-    """Create 8 scatter plots of trajectories across experimental conditions in a single column.
+def plot_traj_scatter(
+    traj_df,
+    x_axis_column='HorzDistance',
+    y_axis_column='XYZ_3',
+    equal=True,
+    print_n_flights=False,
+    save_path=None,
+):
+    """Create 8 scatter plots of trajectories across experimental conditions
+    in a single column.
 
     A single-column layout (8x1) where each row corresponds to a different
-    distance/year/obstacle/weight combination. Unlike plot_traj(), no per-hawk
-    median column is shown — useful for a compact overview figure.
+    distance/year/obstacle/weight combination. Unlike plot_traj(), no
+    per-hawk median column is shown — useful for a compact overview figure.
 
     Args:
         traj_df: DataFrame containing the trajectory data.
@@ -329,13 +381,24 @@ def plot_traj_scatter(traj_df, x_axis_column='HorzDistance', y_axis_column='XYZ_
         (9, 2020, 1, 1),
     ]
     # Fill each subplot with the data.
-    for ax, (perchDist, year, obstacle, weight) in zip(axes.flatten(), plot_configs):
+    for ax, (perchDist, year, obstacle, weight) in zip(
+        axes.flatten(), plot_configs, strict=False
+    ):
         print(f"Plotting {perchDist}m, {year}, obstacle={obstacle}, weight={weight}")
         setup_trajectory_axis(ax, equal)
-        plot_trajectory_data(ax, traj_df, x_axis_column, y_axis_column,
-                           {'perchDist': perchDist, 'year': year,
-                            'obstacle': obstacle, 'IMU': weight},
-                           print_n_flights=print_n_flights)
+        plot_trajectory_data(
+            ax,
+            traj_df,
+            x_axis_column,
+            y_axis_column,
+            {
+                'perchDist': perchDist,
+                'year': year,
+                'obstacle': obstacle,
+                'IMU': weight,
+            },
+            print_n_flights=print_n_flights,
+        )
 
     # For the last subplot, add the x-axis label.
     axes[-1].set_xlabel('Horizontal distance to perch (m)')

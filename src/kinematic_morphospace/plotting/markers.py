@@ -5,12 +5,12 @@ projections and 3-D interactive scatter plots, useful for quality-checking
 labelled marker data and inspecting marker cloud geometry.
 """
 import numpy as np
-from matplotlib import pyplot as plt
 import plotly.graph_objects as go
 import plotly.io as pio
+from matplotlib import pyplot as plt
 
 
-def plot_raw_markers(ax, x, y, filter=None, colour='k', alpha=0.1,  grid=False):
+def plot_raw_markers(ax, x, y, filter=None, colour='k', alpha=0.1, grid=False):
     """Scatter plot of raw 2-D marker positions with standardised axis formatting.
 
     Plots marker positions as a translucent scatter cloud with fixed axis limits
@@ -31,9 +31,14 @@ def plot_raw_markers(ax, x, y, filter=None, colour='k', alpha=0.1,  grid=False):
         Axes object containing the scatter plot.
     """
     if filter is not None:
-        ax.scatter(x[filter], y[filter], marker='o', s=0.1, c=colour, alpha=alpha, edgecolors='none')
+        ax.scatter(
+            x[filter], y[filter], marker='o', s=0.1, c=colour, alpha=alpha,
+            edgecolors='none'
+        )
     else:
-        ax.scatter(x, y, marker='o', s=0.1, c=colour, alpha=alpha, edgecolors='none')
+        ax.scatter(
+            x, y, marker='o', s=0.1, c=colour, alpha=alpha, edgecolors='none'
+        )
     # Have both axes ticks as 0, 0.25, 0.5
     ax.set_xticks(np.arange(-0.5, 0.51, 0.25))
     ax.set_yticks(np.arange(-0.5, 0.51, 0.25))
@@ -58,12 +63,14 @@ def plot_raw_markers(ax, x, y, filter=None, colour='k', alpha=0.1,  grid=False):
 
     return ax
 
-def plot_uncorrected_markers(df, bird_configs, fig_size=(10, 20)):
-    """Plot a grid of three-view scatter plots showing raw marker positions for multiple birds.
+def plot_uncorrected_markers(df, bird_configs, fig_size=(10, 20),):
+    """Plot a grid of three-view scatter plots showing raw marker positions for
+    multiple birds.
 
     Each bird occupies one row with XZ, XY, and YZ projections of the raw
-    (uncorrected) labelled marker data. Useful for verifying that marker labelling
-    is consistent across birds before applying any rotation correction.
+    (uncorrected) labelled marker data. Useful for verifying that marker
+    labelling is consistent across birds before applying any rotation
+    correction.
 
     Args:
         df: DataFrame containing the labelled marker data with BirdID, xyz_1,
@@ -90,21 +97,34 @@ def plot_uncorrected_markers(df, bird_configs, fig_size=(10, 20)):
         base_idx = idx * 3
         alpha = config.get('alpha', 0.1)
 
-        plot_raw_markers(axs[base_idx], df['xyz_1'], df['xyz_3'], filter_conditions, grid=True, alpha=alpha)
-        plot_raw_markers(axs[base_idx + 1], df['xyz_1'], df['xyz_2'], filter_conditions, grid=True, alpha=alpha)
-        plot_raw_markers(axs[base_idx + 2], df['xyz_2'], df['xyz_3'], filter_conditions, grid=True, alpha=alpha)
+        plot_raw_markers(
+            axs[base_idx], df['xyz_1'], df['xyz_3'], filter_conditions,
+            grid=True, alpha=alpha
+        )
+        plot_raw_markers(
+            axs[base_idx + 1], df['xyz_1'], df['xyz_2'], filter_conditions,
+            grid=True, alpha=alpha
+        )
+        plot_raw_markers(
+            axs[base_idx + 2], df['xyz_2'], df['xyz_3'], filter_conditions,
+            grid=True, alpha=alpha
+        )
 
         axs[base_idx].set_title(config['name'])
         print(f"{config['name']} Number of points: {len(df[filter_conditions])}")
 
     return fig, axs
 
-def plot_bird_marker_comparisons(frame_info_df, marker_data, birds_config, fig_size=(10, 20), alpha=0.1):
-    """Plot three-view marker scatter plots from array-based marker data for multiple birds.
+def plot_bird_marker_comparisons(
+    frame_info_df, marker_data, birds_config, fig_size=(10, 20), alpha=0.1
+):
+    """Plot three-view marker scatter plots from array-based marker data for
+    multiple birds.
 
-    Each bird occupies one row with XZ, XY, and YZ projections using the first
-    eight markers of the marker_data array (the wing and tail feather markers).
-    Used for quality-checking array-format data after preprocessing.
+    Each bird occupies one row with XZ, XY, and YZ projections using the
+    first eight markers of the marker_data array (the wing and tail feather
+    markers). Used for quality-checking array-format data after
+    preprocessing.
 
     Args:
         frame_info_df: Per-frame metadata DataFrame containing BirdID and any
@@ -130,24 +150,36 @@ def plot_bird_marker_comparisons(frame_info_df, marker_data, birds_config, fig_s
 
         # Plot the three views (XZ, XY, YZ)
         base_idx = idx * 3
-        plot_raw_markers(axs[base_idx],
-                                   marker_data[filter_conditions, 0:8, 0],
-                                   marker_data[filter_conditions, 0:8, 2],
-                                   grid=True, alpha=alpha)
-        plot_raw_markers(axs[base_idx + 1],
-                                   marker_data[filter_conditions, 0:8, 0],
-                                   marker_data[filter_conditions, 0:8, 1],
-                                   grid=True, alpha=alpha)
-        plot_raw_markers(axs[base_idx + 2],
-                                   marker_data[filter_conditions, 0:8, 1],
-                                   marker_data[filter_conditions, 0:8, 2],
-                                   grid=True, alpha=alpha)
+        plot_raw_markers(
+            axs[base_idx],
+            marker_data[filter_conditions, 0:8, 0],
+            marker_data[filter_conditions, 0:8, 2],
+            grid=True,
+            alpha=alpha,
+        )
+        plot_raw_markers(
+            axs[base_idx + 1],
+            marker_data[filter_conditions, 0:8, 0],
+            marker_data[filter_conditions, 0:8, 1],
+            grid=True,
+            alpha=alpha,
+        )
+        plot_raw_markers(
+            axs[base_idx + 2],
+            marker_data[filter_conditions, 0:8, 1],
+            marker_data[filter_conditions, 0:8, 2],
+            grid=True,
+            alpha=alpha,
+        )
 
         # Set title and print number of points
         axs[base_idx].set_title(bird['name'])
         n_points = len(marker_data[filter_conditions, 0:8, 0].flatten())
         n_seq = len(frame_info_df[filter_conditions]['seqID'].unique())
-        print(f"{bird['name']} Number of points: {n_points}, Number of sequences: {n_seq}")
+        print(
+            f"{bird['name']} Number of points: {n_points}, "
+            f"Number of sequences: {n_seq}"
+        )
 
     return fig, axs
 
@@ -176,57 +208,55 @@ def plot_3d_scatter(x, y, z, time=None):
             y=y,
             z=z,
             mode='markers',
-            marker=dict(
-                size=1,
-                color=marker_color,
-                opacity=0.05,
-                colorscale='Viridis' if time is not None else None,
-                showscale=True if time is not None else False
-            )
+            marker={
+                'size': 1,
+                'color': marker_color,
+                'opacity': 0.05,
+                'colorscale': 'Viridis' if time is not None else None,
+                'showscale': time is not None
+            }
         )
     ])
 
-    fig.update_layout(scene=dict(
-            xaxis=dict(
-                range=[-0.6, 0.6],
-                gridcolor="rgba(173, 216, 230, 1)",  # Light blue grid lines
-                backgroundcolor="white",  # White background for the x-axis
-                gridwidth=1,  # Make grid lines thinner
-                zerolinecolor="rgba(173, 216, 230, 1)",
-                tickvals=[-0.6, -0.3, 0, 0.3, 0.6],
-                ticktext=['', '-0.3', '0', '0.3', ''],
-                dtick=0.1
-            ),
-            yaxis=dict(
-                range=[-0.6, 0.6],
-                gridcolor="rgba(173, 216, 230, 1)",  # Light blue grid lines
-                backgroundcolor="white",  # White background for the y-axis
-                gridwidth=1,  # Make grid lines thinner
-                zerolinecolor="rgba(173, 216, 230, 1)",
-                tickvals=[-0.6, -0.3, 0, 0.3, 0.6],
-                ticktext=['', '-0.3', '0', '0.3', ''],
-                dtick=0.1
-            ),
-            zaxis=dict(
-                range=[-0.6, 0.6],
-                gridcolor="rgba(173, 216, 230, 1)",  # Light blue grid lines
-                backgroundcolor="white",  # White background for the z-axis
-                gridwidth=1,  # Make grid lines thinner
-                zerolinecolor="rgba(173, 216, 230, 1)",
-                tickvals=[-0.6, -0.3, 0, 0.3, 0.6],
-                ticktext=['', '-0.3', '0', '0.3', ''],
-                dtick=0.1
-            ),
-        aspectmode='cube'
-    ),
+    fig.update_layout(scene={
+            'xaxis': {
+                'range': [-0.6, 0.6],
+                'gridcolor': "rgba(173, 216, 230, 1)",  # Light blue grid lines
+                'backgroundcolor': "white",  # White background for the x-axis
+                'gridwidth': 1,  # Make grid lines thinner
+                'zerolinecolor': "rgba(173, 216, 230, 1)",
+                'tickvals': [-0.6, -0.3, 0, 0.3, 0.6],
+                'ticktext': ['', '-0.3', '0', '0.3', ''],
+                'dtick': 0.1
+            },
+            'yaxis': {
+                'range': [-0.6, 0.6],
+                'gridcolor': "rgba(173, 216, 230, 1)",  # Light blue grid lines
+                'backgroundcolor': "white",  # White background for the y-axis
+                'gridwidth': 1,  # Make grid lines thinner
+                'zerolinecolor': "rgba(173, 216, 230, 1)",
+                'tickvals': [-0.6, -0.3, 0, 0.3, 0.6],
+                'ticktext': ['', '-0.3', '0', '0.3', ''],
+                'dtick': 0.1
+            },
+            'zaxis': {
+                'range': [-0.6, 0.6],
+                'gridcolor': "rgba(173, 216, 230, 1)",  # Light blue grid lines
+                'backgroundcolor': "white",  # White background for the z-axis
+                'gridwidth': 1,  # Make grid lines thinner
+                'zerolinecolor': "rgba(173, 216, 230, 1)",
+                'tickvals': [-0.6, -0.3, 0, 0.3, 0.6],
+                'ticktext': ['', '-0.3', '0', '0.3', ''],
+                'dtick': 0.1
+            },
+        'aspectmode': 'cube'
+    },
     width=800,
     height=800)
 
     return fig
 
-def plot_3d_scatter_with_animation(x, y, z,
-                                time=None,
-                                browser=True):
+def plot_3d_scatter_with_animation(x, y, z, time=None, browser=True):
     """Create an animated Plotly 3-D scatter plot with slow azimuth rotation.
 
     Builds on plot_3d_scatter() and adds a Plotly animation that rotates the
@@ -252,32 +282,57 @@ def plot_3d_scatter_with_animation(x, y, z,
     initial_elevation = 0
 
     # Define the rotation steps for azimuth angle from 0 to 180 degrees
-    angles = np.radians(np.linspace(95, 130, 15))  # 40 frames for smoother animation
+    # 40 frames for smoother animation
+    angles = np.radians(np.linspace(95, 130, 15))
 
-    frames = [go.Frame(layout=dict(scene_camera=dict(eye=dict(x=1.25*np.cos(angle), y=1.25*np.sin(angle), z=initial_elevation))))
-              for angle in angles]
+    frames = [
+        go.Frame(
+            layout={
+                'scene_camera': {
+                    'eye': {
+                        'x': 1.25 * np.cos(angle),
+                        'y': 1.25 * np.sin(angle),
+                        'z': initial_elevation,
+                    }
+                }
+            }
+        )
+        for angle in angles
+    ]
 
     # Add frames to the figure
     fig.frames = frames
 
     # Add animation options
     fig.update_layout(
-        updatemenus=[dict(
-            type="buttons",
-            showactive=False,
-            buttons=[dict(label="Rotate",
-                          method="animate",
-                          args=[None, dict(frame=dict(duration=100, redraw=True),
-                                           fromcurrent=True, mode='immediate')])]
-        )]
+        updatemenus=[
+            {
+                'type': "buttons",
+                'showactive': False,
+                'buttons': [
+                    {
+                        'label': "Rotate",
+                        'method': "animate",
+                        'args': [
+                            None,
+                            {
+                                'frame': {'duration': 100, 'redraw': True},
+                                'fromcurrent': True,
+                                'mode': 'immediate',
+                            },
+                        ],
+                    }
+                ],
+            }
+        ]
     )
 
     fig.update_layout(
-        scene=dict(
-            xaxis=dict(tickfont=dict(family='Andale Mono')),
-            yaxis=dict(tickfont=dict(family='Andale Mono')),
-            zaxis=dict(tickfont=dict(family='Andale Mono'))
-        )
+        scene={
+            'xaxis': {'tickfont': {'family': 'Andale Mono'}},
+            'yaxis': {'tickfont': {'family': 'Andale Mono'}},
+            'zaxis': {'tickfont': {'family': 'Andale Mono'}}
+        }
     )
 
     # Set the default renderer to 'browser'
