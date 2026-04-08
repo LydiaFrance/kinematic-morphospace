@@ -17,6 +17,12 @@ data/DATA_NOTES.md
 figures/
 logs/
 
+# ── Supplementary materials (kept locally/OneDrive, not on GitHub) ──
+supplementary_materials.md
+supplementary_materials.pdf
+08-Supplementary-Materials.md
+running_questions.md
+
 # ── Python ──
 __pycache__/
 *.py[cod]
