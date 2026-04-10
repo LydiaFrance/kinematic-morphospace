@@ -109,12 +109,11 @@ def plot_flight_phase_overlay(
     ylabel: str = "PC2 score",
     alpha: float = 0.15,
 ) -> Figure:
-    """PC1-PC2 scatter plot of flapping versus gliding frames with KDE contours.
+    """Three-row PC1-PC2 comparison of flapping versus gliding frames.
 
-    Overlays translucent scatter points for each flight phase and draws KDE
-    contour lines to show the density of each phase in the morphospace.
-    Gliding occupies a concentrated subset of the flapping region, consistent
-    with a continuum rather than discrete gaits.
+    Row 1: scatter only (red flapping, blue gliding) for raw distribution.
+    Row 2: muted scatter with prominent KDE contours in darker colours.
+    Row 3: transition frames overlaid on the scatter backdrop.
 
     Args:
         scores: PCA score array of shape (n_frames, n_components).
@@ -133,22 +132,71 @@ def plot_flight_phase_overlay(
         alpha: Scatter-point opacity. Defaults to 0.15.
 
     Returns:
-        Figure containing the overlay plot.
+        Figure containing the three-row overlay plot.
     """
-    fig, ax = plt.subplots(figsize=(6.5, 5.5))
+    # Slightly darker versions of the colours for contours
+    contour_colours = {
+        "flapping": "#b04040",
+        "gliding": "#3070a0",
+    }
+
+    fig, axes = plt.subplots(3, 1, figsize=(6.5, 15))
+
+    # --- Row 1: Scatter only ---
+    ax = axes[0]
     _scatter_flight_phase(ax, scores, flap_idx, colours["flapping"],
                    alpha=alpha, label=flap_label)
     _scatter_flight_phase(ax, scores, glide_idx, colours["gliding"],
                    alpha=alpha, label=glide_label)
-    _draw_kde_contours(ax, scores[flap_kde_idx, :2].T, colours["flapping"])
-    _draw_kde_contours(ax, scores[glide_kde_idx, :2].T, colours["gliding"])
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    ax.set_title(title)
+    ax.set_title("(a) Raw scatter: flapping and gliding distributions")
     ax.legend(loc="lower right", fontsize=9, markerscale=5, framealpha=0.9)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.set_aspect("equal")
+
+    # --- Row 2: Muted scatter with strong contours ---
+    ax = axes[1]
+    _scatter_flight_phase(ax, scores, flap_idx, colours["flapping"],
+                   alpha=0.04, label=flap_label)
+    _scatter_flight_phase(ax, scores, glide_idx, colours["gliding"],
+                   alpha=0.04, label=glide_label)
+    _draw_kde_contours(ax, scores[flap_kde_idx, :2].T,
+                       contour_colours["flapping"],
+                       n_levels=6, linewidth=1.5)
+    _draw_kde_contours(ax, scores[glide_kde_idx, :2].T,
+                       contour_colours["gliding"],
+                       n_levels=6, linewidth=1.5)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title("(b) Density contours: overlapping distributions")
+    ax.legend(loc="lower right", fontsize=9, markerscale=5, framealpha=0.9)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.set_aspect("equal")
+
+    # --- Row 3: Combined scatter + contours (original view) ---
+    ax = axes[2]
+    _scatter_flight_phase(ax, scores, flap_idx, colours["flapping"],
+                   alpha=alpha, label=flap_label)
+    _scatter_flight_phase(ax, scores, glide_idx, colours["gliding"],
+                   alpha=alpha, label=glide_label)
+    _draw_kde_contours(ax, scores[flap_kde_idx, :2].T,
+                       contour_colours["flapping"],
+                       n_levels=5, linewidth=1.2)
+    _draw_kde_contours(ax, scores[glide_kde_idx, :2].T,
+                       contour_colours["gliding"],
+                       n_levels=5, linewidth=1.2)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title("(c) Combined: scatter with density contours")
+    ax.legend(loc="lower right", fontsize=9, markerscale=5, framealpha=0.9)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.set_aspect("equal")
+
+    fig.suptitle(title, fontsize=11, y=1.01)
     fig.tight_layout()
     return fig
 

@@ -109,8 +109,20 @@ def plot_uncorrected_markers(df, bird_configs, fig_size=(10, 20),):
             grid=True, alpha=alpha
         )
 
-        axs[base_idx].set_title(config['name'])
+        axs[base_idx].set_ylabel(config['name'], fontsize=9, rotation=90,
+                                 labelpad=10)
         print(f"{config['name']} Number of points: {len(df[filter_conditions])}")
+
+    # Add column headers (view labels) to the top row
+    view_labels = ['xz (wingspan)', 'xy (wingspan)', 'yz (wingspan)']
+    for col, label in enumerate(view_labels):
+        axs[col].set_title(label, fontsize=9)
+
+    # Add axis labels to the bottom row
+    bottom_start = (n_birds - 1) * 3
+    axs[bottom_start].set_xlabel('x (wingspan)', fontsize=8)
+    axs[bottom_start + 1].set_xlabel('x (wingspan)', fontsize=8)
+    axs[bottom_start + 2].set_xlabel('y (wingspan)', fontsize=8)
 
     return fig, axs
 
@@ -171,13 +183,25 @@ def plot_bird_marker_comparisons(
         )
 
         # Set title and print number of points
-        axs[base_idx].set_title(bird['name'])
+        axs[base_idx].set_ylabel(bird['name'], fontsize=9, rotation=90,
+                                 labelpad=10)
         n_points = len(marker_data[filter_conditions, 0:8, 0].flatten())
         n_seq = len(frame_info_df[filter_conditions]['seqID'].unique())
         print(
             f"{bird['name']} Number of points: {n_points}, "
             f"Number of sequences: {n_seq}"
         )
+
+    # Add column headers (view labels) to the top row
+    view_labels = ['xz (wingspan)', 'xy (wingspan)', 'yz (wingspan)']
+    for col, label in enumerate(view_labels):
+        axs[col].set_title(label, fontsize=9)
+
+    # Add axis labels to the bottom row
+    bottom_start = (n_birds - 1) * 3
+    axs[bottom_start].set_xlabel('x (wingspan)', fontsize=8)
+    axs[bottom_start + 1].set_xlabel('x (wingspan)', fontsize=8)
+    axs[bottom_start + 2].set_xlabel('y (wingspan)', fontsize=8)
 
     return fig, axs
 

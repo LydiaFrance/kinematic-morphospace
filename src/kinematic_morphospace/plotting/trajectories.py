@@ -11,6 +11,52 @@ from matplotlib.ticker import FixedLocator, MultipleLocator
 
 from ..data_filtering import filter_by
 
+# Standard row configurations shared by plot_traj and plot_traj_scatter.
+# Each tuple is (perchDist, year, obstacle, weight).
+_DEFAULT_PLOT_CONFIGS = [
+    (5,  2017, 0, 0),
+    (7,  2017, 0, 0),
+    (9,  2017, 0, 0),
+    (12, 2017, 0, 0),
+    (9,  2020, 0, 0),
+    (9,  2020, 1, 0),
+    (9,  2020, 0, 1),
+    (9,  2020, 1, 1),
+]
+
+
+def _row_label(perch_dist, year, obstacle, weight):
+    """Human-readable row label describing an experimental condition."""
+    parts = [f"{perch_dist} m"]
+    if year == 2020:
+        tags = []
+        if obstacle:
+            tags.append("obstacle")
+        if weight:
+            tags.append("weighted")
+        if not tags:
+            tags.append("control")
+        parts.append("(P2 " + ", ".join(tags) + ")")
+    return " ".join(parts)
+
+
+def _add_row_labels(axes, configs):
+    """Attach a vertical right-side label to each row.
+
+    Uses a secondary-axis y-label so it doesn't collide with the data axes
+    or with the shared y-label used for the physical variable.
+    """
+    for ax, cfg in zip(axes, configs, strict=False):
+        label = _row_label(*cfg)
+        ax.text(
+            1.02, 0.5, label,
+            transform=ax.transAxes,
+            rotation=90,
+            ha='left',
+            va='center',
+            fontsize=7,
+        )
+
 
 def plot_trajectory_data(ax,
                         traj_df,
@@ -139,21 +185,17 @@ def plot_traj(
         Tuple of (fig, axes) where axes is a flat array of 16 Axes.
     """
     # Create the figure and axes.
-    # 8 rows, 2 columns, sharex and sharey.
-    # figsize is 8x8 inches.
-    fig, axes = plt.subplots(8, 2, sharex=True, sharey=True, figsize=(8, 8))
+    # 8 rows, 2 columns, sharex and sharey. Using constrained_layout so that
+    # row heights remain consistent across separate figures (tight_layout
+    # redistributes whitespace unpredictably between figures).
+    fig, axes = plt.subplots(
+        8, 2, sharex=True, sharey=True, figsize=(8, 8),
+        constrained_layout=True,
+    )
+    axes_grid = axes
     axes = axes.flatten()
 
-    # Plot configurations for each subplot.
-    # Each subplot is a different experimental condition.
-    # - The first number is the horizontal distance to the perch.
-    # - The second number is the year of the experiment.
-    # - The third number is whether there is an obstacle.
-    # - The fourth number is whether there is a weight.
-    plot_configs = [
-        (5, 2017, 0, 0), (7, 2017, 0, 0), (9, 2017, 0, 0), (12, 2017, 0, 0),
-        (9, 2020, 0, 0), (9, 2020, 1, 0), (9, 2020, 0, 1), (9, 2020, 1, 1),
-    ]
+    plot_configs = _DEFAULT_PLOT_CONFIGS
 
     # Loop through each subplot and plot the data.
     for ii, (perchDist, year, obstacle, weight) in enumerate(plot_configs):
@@ -222,7 +264,8 @@ def plot_traj(
     # Add x-axis label
     axes[-2].set_xlabel('Horizontal distance to perch (m)')
 
-    plt.tight_layout(rect=(0, 0, 1, 0.95))
+    # Row labels on the right column (one per experimental condition)
+    _add_row_labels(axes_grid[:, 1], plot_configs)
 
     # Save the data as PDF and PNG -- the axes and other elements
     # are saved as vector elements, and the data is saved as raster elements.
@@ -362,24 +405,15 @@ def plot_traj_scatter(
     Returns:
         Tuple of (fig, axes) where axes is an array of 8 Axes.
     """
-    fig, axes = plt.subplots(8, 1, sharex=True, sharey=True, figsize=(4, 6))
+    # constrained_layout gives consistent row heights across repeated figures
+    # (tight_layout redistributes whitespace differently each call).
+    fig, axes = plt.subplots(
+        8, 1, sharex=True, sharey=True, figsize=(4, 6),
+        constrained_layout=True,
+    )
 
-    # Plot configurations for each subplot.
-    # Each subplot is a different experimental condition.
-    # - The first number is the horizontal distance to the perch.
-    # - The second number is the year of the experiment.
-    # - The third number is whether there is an obstacle.
-    # - The fourth number is whether there is a weight.
-    plot_configs = [
-        (5,  2017, 0, 0),
-        (7,  2017, 0, 0),
-        (9,  2017, 0, 0),
-        (12, 2017, 0, 0),
-        (9, 2020, 0, 0),
-        (9, 2020, 1, 0),
-        (9, 2020, 0, 1),
-        (9, 2020, 1, 1),
-    ]
+    plot_configs = _DEFAULT_PLOT_CONFIGS
+
     # Fill each subplot with the data.
     for ax, (perchDist, year, obstacle, weight) in zip(
         axes.flatten(), plot_configs, strict=False
@@ -402,7 +436,9 @@ def plot_traj_scatter(
 
     # For the last subplot, add the x-axis label.
     axes[-1].set_xlabel('Horizontal distance to perch (m)')
-    plt.tight_layout()
+
+    # Row labels on the right side of each panel
+    _add_row_labels(axes, plot_configs)
 
     # Save the figure if a path is provided.
     # This saves the figure as a hybrid PNG and PDF.

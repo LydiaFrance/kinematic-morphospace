@@ -10,7 +10,8 @@ from matplotlib import pyplot as plt
 from ..pca_scores import get_binned_scores
 
 
-def plot_score(scores_df, PC_name='PC01', ax=None, alpha=1, **filters):
+def plot_score(scores_df, PC_name='PC01', ax=None, alpha=1, linestyle='-',
+               **filters):
     """Plot a single PC score trace against horizontal distance to the perch.
 
     Bins the scores by horizontal distance and draws the mean score as a line
@@ -22,6 +23,7 @@ def plot_score(scores_df, PC_name='PC01', ax=None, alpha=1, **filters):
         PC_name: Name of the PC column to plot (e.g. 'PC01'). Defaults to 'PC01'.
         ax: Matplotlib Axes object to draw on; if None, a new figure is created.
         alpha: Opacity of the mean line. Defaults to 1.
+        linestyle: Line style for the mean trace (e.g. '-', '--'). Defaults to '-'.
         **filters: Keyword arguments forwarded to get_binned_scores() for
             subsetting the data (e.g. hawkname='Drogon', obstacle=0).
 
@@ -84,6 +86,7 @@ def plot_score(scores_df, PC_name='PC01', ax=None, alpha=1, **filters):
         color=colour_PC_dict[PC_name],
         linewidth=2,
         alpha=alpha,
+        linestyle=linestyle,
     )
 
     # Set y-axis limits excluding the perch zone (last 1 m) where
@@ -210,7 +213,7 @@ def plot_score_multi_distance(scores_df, PC_name, **filters):
 
     perchDist_list = ['5m', '7m', '9m', '12m']
 
-    fig, axes = plt.subplots(4, 1, figsize=(5, 6), sharex=True, sharey=True)
+    fig, axes = plt.subplots(4, 1, figsize=(4, 5), sharex=True, sharey=True)
 
     # Loop through each distance and plot the scores
     for ii, perch in enumerate(perchDist_list):
@@ -241,18 +244,18 @@ def plot_score_multi_distance(scores_df, PC_name, **filters):
     global_ymax = max(ax.get_ylim()[1] for ax in axes.flatten())
     axes.flatten()[0].set_ylim(global_ymin, global_ymax)
 
-    # First use tight_layout to get good spacing between subplots
-    plt.tight_layout()
+    # Tight layout with minimal margins; leave room for shared labels on
+    # the outer edges.
+    fig.subplots_adjust(
+        left=0.12, bottom=0.09, right=0.9, top=0.98, hspace=0.1
+    )
 
-    # Add extra space for labels
-    fig.subplots_adjust(left=0.15, bottom=0.1, right=0.85, top=0.95)
-
-    # Add labels with adjusted positions
+    # Shared axis labels at outer edges
     fig.text(
-        0.06, 0.5, f'{PC_name} score', ha='center', va='center', rotation='vertical'
+        0.03, 0.53, f'{PC_name} score', ha='center', va='center', rotation='vertical'
     )
     fig.text(
-        0.5, 0.02, 'horizontal distance to perch (m)', ha='center', va='bottom'
+        0.5, 0.01, 'horizontal distance to perch (m)', ha='center', va='bottom'
     )
 
     return fig, axes

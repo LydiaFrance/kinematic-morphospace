@@ -120,7 +120,7 @@ def plot_difference_PC_scores_heatmap(df_control,
     ).T
 
     num_pairs = len(PC_cols)
-    fig = plt.figure(figsize=(8, 8))
+    fig = plt.figure(figsize=(5, 6))
     gs = gridspec.GridSpec(num_pairs, 1, height_ratios=[1] * num_pairs, hspace=0.15)
 
     # Define desired tick positions (-8, -7, ..., -1)
@@ -300,7 +300,7 @@ def plot_difference_exp_scores_heatmap(df_control,
                                           aggfunc='mean', observed=False).T
 
     num_pairs = len(PC_cols)
-    fig = plt.figure(figsize=(8, 8))
+    fig = plt.figure(figsize=(5, 6))
     gs = gridspec.GridSpec(num_pairs, 1, height_ratios=[1] * num_pairs, hspace=0.15)
 
     ax = fig.add_subplot(gs[0])
