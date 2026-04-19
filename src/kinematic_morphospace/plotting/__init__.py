@@ -104,10 +104,21 @@ from .subspaces import plot_bootstrap_cosines as plot_bootstrap_cosines
 from .subspaces import plot_cosine_profile as plot_cosine_profile
 from .subspaces import plot_method_comparison as plot_method_comparison
 
+# Missingness analysis
+from .missingness import plot_cooccurrence_heatmap as plot_cooccurrence_heatmap
+from .missingness import plot_coverage_comparison as plot_coverage_comparison
+from .missingness import plot_density_comparison as plot_density_comparison
+from .missingness import plot_dropout_positions as plot_dropout_positions
+from .missingness import plot_ordering_violations as plot_ordering_violations
+
 # Left-right symmetry
 from .symmetry import plot_left_right as plot_left_right
 from .symmetry import plot_left_right_empty as plot_left_right_empty
 from .symmetry import plot_left_right_just_two as plot_left_right_just_two
+from .symmetry import plot_left_right_just_two_stacked as plot_left_right_just_two_stacked
+from .symmetry import (
+    plot_rotation_correction_comparison as plot_rotation_correction_comparison,
+)
 from .symmetry import plot_symmetry_scores as plot_symmetry_scores
 from .symmetry import prepare_left_right_comparison as prepare_left_right_comparison
 from .symmetry import print_symmetry_summary as print_symmetry_summary
@@ -115,6 +126,7 @@ from .symmetry import summarise_symmetry as summarise_symmetry
 
 # Trajectory plots
 from .trajectories import plot_traj as plot_traj
+from .trajectories import plot_traj_pair as plot_traj_pair
 from .trajectories import plot_traj_scatter as plot_traj_scatter
 from .trajectories import plot_trajectory_data as plot_trajectory_data
 from .trajectories import save_hybrid_figure as save_hybrid_figure
