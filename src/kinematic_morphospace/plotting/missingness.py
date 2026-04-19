@@ -215,91 +215,81 @@ def plot_coverage_comparison(
     marker_names: list[str],
     bins: int = 60,
 ):
-    """Plot coverage comparison: shared, complete-only, and novel (partial-only) bins.
+    """Plot coverage comparison using alpha-blended layers.
 
-    For each marker, bins the x-z positions and classifies each bin as shared
-    (both datasets), complete-only, or novel (partial-only).
+    Blue = complete, red = partial, purple = overlap (50% alpha each).
 
     Args:
-        complete_data: Array of shape (N_complete, n_markers, 3) with frames
-            where all markers were successfully tracked.
-        partial_data: Array of shape (N_partial, n_markers, 3) with frames
-            where at least one marker is missing (NaN).
-        marker_names: Labels for each marker — one panel per marker.
-        bins: Number of histogram bins per axis (default 60).
+        complete_data: Shape (N_complete, n_markers, 3).
+        partial_data: Shape (N_partial, n_markers, 3), may contain NaN.
+        marker_names: One panel per marker.
+        bins: Histogram bins per axis.
 
     Returns:
-        Tuple of (Figure, list of coverage stats dicts).
+        (Figure, list of coverage stats dicts).
     """
     n_markers = len(marker_names)
-    fig, axes = plt.subplots(1, n_markers, figsize=(4.5 * n_markers, 4.5))
-    if n_markers == 1:
-        axes = [axes]
+    extent = (-0.1, 0.55, -0.55, 0.45)
+    hist_range = [(extent[0], extent[1]), (extent[2], extent[3])]
 
+    fig, axes = plt.subplots(
+        1, n_markers, figsize=(3.5 * n_markers, 4),
+        gridspec_kw={'wspace': 0.08},
+    )
+    axes = np.atleast_1d(axes)
+
+    blue = (0.2, 0.4, 0.8, 0.5)
+    red = (0.85, 0.25, 0.25, 0.4)
     coverage_stats = []
 
     for m, (name, ax) in enumerate(zip(marker_names, axes)):
-        xc = complete_data[:, m, 0]
-        zc = complete_data[:, m, 2]
-
-        present = ~np.isnan(partial_data[:, m, 0])
-        xp = partial_data[present, m, 0]
-        zp = partial_data[present, m, 2]
-
-        x_range = (min(xc.min(), xp.min()), max(xc.max(), xp.max()))
-        z_range = (min(zc.min(), zp.min()), max(zc.max(), zp.max()))
-        hist_range = [x_range, z_range]
-
-        H_c, xedges, zedges = np.histogram2d(xc, zc, bins=bins, range=hist_range)
-        H_p, _, _ = np.histogram2d(xp, zp, bins=bins, range=hist_range)
-
-        both = (H_c > 0) & (H_p > 0)
-        complete_only = (H_c > 0) & (H_p == 0)
-        novel = (H_c == 0) & (H_p > 0)
-
-        rgb = np.ones((*H_c.T.shape, 4))
-        rgb[both.T] = [0.75, 0.85, 0.93, 1.0]
-        rgb[complete_only.T] = [0.20, 0.50, 0.55, 1.0]
-        rgb[novel.T] = [0.90, 0.40, 0.35, 1.0]
-
-        ax.imshow(
-            rgb, origin='lower',
-            extent=[x_range[0], x_range[1], z_range[0], z_range[1]],
-            aspect='equal',
+        # Histogram for complete frames
+        H_c, _, _ = np.histogram2d(
+            complete_data[:, m, 0], complete_data[:, m, 2],
+            bins=bins, range=hist_range,
         )
-        # Only set the x label on the bottom row to avoid clutter
+        # Histogram for partial frames (where this marker is present)
+        present = ~np.isnan(partial_data[:, m, 0])
+        H_p, _, _ = np.histogram2d(
+            partial_data[present, m, 0], partial_data[present, m, 2],
+            bins=bins, range=hist_range,
+        )
+
+        # Build RGBA layers
+        shape = (*H_c.T.shape, 4)
+        blue_layer = np.zeros(shape)
+        blue_layer[H_c.T > 0] = blue
+        red_layer = np.zeros(shape)
+        red_layer[H_p.T > 0] = red
+
+        ax.set_facecolor("#ffffff")
+        ax.imshow(blue_layer, origin='lower', extent=extent, aspect='equal')
+        ax.imshow(red_layer, origin='lower', extent=extent, aspect='equal')
+        ax.set_title(name, fontweight='bold')
+        ax.set_xlabel('x (horizontal)')
         if m == 0:
             ax.set_ylabel('z (vertical)')
-        ax.set_title(name, fontweight='bold')
 
-        n_shared = int(both.sum())
-        n_complete_only = int(complete_only.sum())
-        n_novel = int(novel.sum())
-        n_occupied = n_shared + n_complete_only + n_novel
-        frames_novel = H_p[novel].sum()
-        frames_partial_total = H_p[H_p > 0].sum()
+        # Stats
+        both = (H_c > 0) & (H_p > 0)
+        c_only = (H_c > 0) & (H_p == 0)
+        p_only = (H_c == 0) & (H_p > 0)
+        n_total = int(both.sum() + c_only.sum() + p_only.sum())
         coverage_stats.append({
             'Marker': name,
-            'Shared': n_shared,
-            'Complete only': n_complete_only,
-            'Novel (partial)': n_novel,
-            'Novel % bins': f'{n_novel / n_occupied:.1%}' if n_occupied > 0 else '0%',
-            'Frames in novel': f'{frames_novel:,.0f}',
-            '% of partial': f'{frames_novel / frames_partial_total:.2%}' if frames_partial_total > 0 else '0%',
+            'Shared': int(both.sum()),
+            'Complete only': int(c_only.sum()),
+            'Partial only': int(p_only.sum()),
+            'Partial-only %': f'{p_only.sum() / n_total:.1%}' if n_total else '0%',
         })
 
     fig.legend(
-        [
-            Patch(facecolor=[0.75, 0.85, 0.93], edgecolor='0.5'),
-            Patch(facecolor=[0.20, 0.50, 0.55], edgecolor='0.3'),
-            Patch(facecolor=[0.90, 0.40, 0.35], edgecolor='0.3'),
-        ],
-        ['Both datasets', 'Complete only', 'Partial only (novel)'],
-        loc='lower center', ncol=3, bbox_to_anchor=(0.5, -0.02),
-        frameon=False, fontsize=10,
+        [Patch(facecolor=blue), Patch(facecolor=red), Patch(facecolor=(0.52, 0.32, 0.52, 0.75))],
+        ['Complete only', 'Partial only', 'Both'],
+        loc='lower center', ncol=3, bbox_to_anchor=(0.5, -0.02), frameon=False,
     )
-    fig.suptitle('Coverage comparison: do partial frames visit new regions?', y=1.01)
-    fig.tight_layout(rect=[0, 0.06, 1, 1])
+    fig.suptitle('Coverage comparison: do partial frames visit new regions?', y=1.02)
+    fig.subplots_adjust(bottom=0.15, wspace=0.08)
     return fig, coverage_stats
 
 
@@ -387,18 +377,20 @@ def plot_ordering_violations(
             a_all = all_data[present, m, coord_a]
             b_all = all_data[present, m, coord_b]
 
-            ax.hist2d(a_all, b_all, bins=60, cmap='Greys', alpha=0.5, density=True)
+            ax.hist2d(a_all, b_all, bins=60, cmap='Greys', alpha=0.8, density=True)
 
             viol_present = violation_mask & present
             a_viol = all_data[viol_present, m, coord_a]
             b_viol = all_data[viol_present, m, coord_b]
 
-            ax.scatter(a_viol, b_viol, c='red', s=0.1, alpha=0.2, rasterized=True)
+            ax.scatter(a_viol, b_viol, c='red', s=0.1, alpha=0.1, rasterized=True)
             ax.set_xlabel(lab_a)
             ax.set_ylabel(lab_b)
-            ax.set_title(f'{name} positions ({marker_b_name} ≥ {marker_a_name} in x)')
+            ax.set_title(f'{marker_b_name} ≥ {marker_a_name} in x')
             ax.set_aspect('equal')
+            ax.set_xlim(-0.1, 0.55)
+            ax.set_ylim(-0.55, 0.45)
 
-    fig.suptitle(f'Where do {marker_b_name}–{marker_a_name} ordering violations occur?', y=1.02)
+    fig.suptitle(f'Where do {marker_b_name}-{marker_a_name} ordering violations occur?', y=1.02)
     fig.tight_layout()
     return fig
