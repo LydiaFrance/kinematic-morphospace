@@ -64,6 +64,73 @@ def select_max_wingspan_row(df,
     return df.loc[max_idx].reset_index(drop=True)
 
 
+# 2b. Select the best specimen per species from a merged DataFrame.
+def select_best_specimen_per_species(
+    df,
+    species_col='species_common',
+    completeness_cols=None,
+    wingspan_col='wing_span_cm',
+):
+    """Select the most data-complete specimen for each species.
+
+    When multiple specimens exist for the same species, this function
+    first prefers rows that have no NaN values in the key body-measurement
+    columns (``body_width_max_cm``, ``width_at_leg_insert_cm``,
+    ``tail_width_cm``, ``tail_length_cm``).  Within each completeness
+    tier, the specimen with the largest wingspan is chosen.
+
+    This should be called on a **merged** DataFrame (i.e. after
+    :func:`merge_bird_data`) so that both wing and body columns are
+    present.
+
+    Args:
+        df: Merged DataFrame with one row per specimen and both wing and
+            body measurement columns.
+        species_col: Column identifying the species. Defaults to
+            ``'species_common'``.
+        completeness_cols: Columns used to assess data completeness.
+            Defaults to
+            ``['body_width_max_cm', 'width_at_leg_insert_cm',
+            'tail_width_cm', 'tail_length_cm']``.
+        wingspan_col: Numeric column used as a tiebreaker within each
+            completeness tier. Defaults to ``'wing_span_cm'``.
+
+    Returns:
+        DataFrame with one row per species, corresponding to the
+        most data-complete specimen (largest wingspan when tied).
+    """
+    if completeness_cols is None:
+        completeness_cols = [
+            'body_width_max_cm',
+            'width_at_leg_insert_cm',
+            'tail_width_cm',
+            'tail_length_cm',
+        ]
+
+    df = df.copy()
+
+    # Count NaN values in the completeness columns that actually exist
+    present_cols = [c for c in completeness_cols if c in df.columns]
+    df['_nan_count'] = df[present_cols].isna().sum(axis=1)
+
+    # Sort so that fewest NaNs come first, then largest wingspan first
+    df_sorted = df.sort_values(
+        by=['_nan_count', wingspan_col],
+        ascending=[True, False],
+        na_position='last',
+    )
+
+    best = df_sorted.groupby(species_col, sort=False).first().reset_index()
+    best = best.drop(columns=['_nan_count'])
+
+    logger.debug(
+        "select_best_specimen_per_species: %d rows → %d species",
+        len(df),
+        len(best),
+    )
+    return best
+
+
 # 3. Clean the body data by selecting relevant columns specific to this dataset.
 def clean_body_data(body_df):
     """Retain only the morphological columns needed for cross-species analysis.
@@ -87,6 +154,7 @@ def clean_body_data(body_df):
                        'body_width_max_cm',
                        'width_at_leg_insert_cm',
                        'head_length_cm',
+                       'neck_length_cm',
                        'body_length_cm',
                        'wing_span_cm',
                        'tail_width_cm',
@@ -263,6 +331,68 @@ def set_new_origin_and_axes(
 
 # 9. Compute derived markers from existing pt coordinates.
 
+# Typical bird body proportions relative to wingspan, derived from Harvey et al. data.
+# Used as fallbacks when individual measurements are missing.
+_WINGSPAN_PROPORTIONS = {
+    'body_width_max_cm': 0.12,            # max body width ≈ 12 % of wingspan
+    'y_loc_of_humeral_insert_cm': 0.03,   # humeral insert lateral ≈ 3 % of wingspan
+    'width_at_leg_insert_cm': 0.07,       # tailbase width ≈ 7 % of wingspan
+    'tail_width_cm': 0.10,                # tail width ≈ 10 % of wingspan
+    'tail_length_cm': 0.20,               # tail length ≈ 20 % of wingspan
+    'head_length_cm': 0.08,               # head length ≈ 8 % of wingspan
+    'neck_length_cm': 0.10,               # neck length ≈ 10 % of wingspan
+}
+
+
+def fill_missing_body_measurements(df, proportions=None):
+    """Fill missing body measurement columns using wingspan-derived estimates.
+
+    Four species in the Harvey et al. dataset lack direct body measurements
+    (``body_width_max_cm``, ``width_at_leg_insert_cm``, ``tail_width_cm``,
+    ``tail_length_cm``). When these are NaN, downstream marker calculations
+    either propagate NaN (tailtip y-position) or silently skip the distance
+    correction (shoulder, tailbase), leaving those markers at near-zero width.
+
+    This function fills NaN values in each measurement column by scaling the
+    available ``wing_span_cm`` value by a typical proportion drawn from the
+    broader Harvey et al. dataset.
+
+    Args:
+        df: DataFrame containing body measurement columns and ``wing_span_cm``.
+        proportions: Optional dict mapping column name to fraction of wingspan.
+            Defaults to :data:`_WINGSPAN_PROPORTIONS`.
+
+    Returns:
+        Copy of ``df`` with NaN body measurement cells filled by estimates.
+        Rows where ``wing_span_cm`` is also NaN are left unchanged (no data to
+        base an estimate on).
+    """
+    if proportions is None:
+        proportions = _WINGSPAN_PROPORTIONS
+
+    df = df.copy()
+
+    for col, fraction in proportions.items():
+        if col not in df.columns:
+            continue
+
+        missing = df[col].isna()
+        if not missing.any():
+            continue
+
+        has_wingspan = df['wing_span_cm'].notna()
+        fill_mask = missing & has_wingspan
+        if fill_mask.any():
+            estimated = df.loc[fill_mask, 'wing_span_cm'] * fraction
+            df.loc[fill_mask, col] = estimated
+            logger.debug(
+                "Filled %d missing '%s' values using wingspan * %.2f",
+                fill_mask.sum(), col, fraction,
+            )
+
+    return df
+
+
 def mirror_marker(df, right_marker, left_marker, x_source, y_source, z_source):
     """Mirror a right-side marker to produce a symmetric left-side marker.
 
@@ -295,13 +425,18 @@ def compute_derived_markers(df):
     Primary markers are averaged from two source points to approximate
     the primary feather insertion region.
 
+    Missing body measurements (``tail_length_cm``, ``head_length_cm``) are
+    estimated from ``wing_span_cm`` via :func:`fill_missing_body_measurements`
+    before computing derived positions, so that species without direct
+    measurements still receive plausible marker coordinates.
+
     Args:
         df: DataFrame containing the original ``pt*_X/Y/Z`` columns.
 
     Returns:
         Copy of ``df`` with derived marker columns added.
     """
-    df = df.copy()
+    df = fill_missing_body_measurements(df)
 
     # Right wingtip from pt9
     mirror_marker(df, 'right_wingtip', 'left_wingtip', 'pt9_X', 'pt9_Y', 'pt9_Z')
@@ -343,7 +478,8 @@ def compute_derived_markers(df):
 
     # Hood marker
     df['hood_x'] = 0
-    df['hood_y'] = df['head_length_cm'] / 100
+    # Hood position accounts for both neck and head length (forward of shoulder)
+    df['hood_y'] = (df['neck_length_cm'] + df['head_length_cm']) / 100
     df['hood_z'] = 0
 
     # Drop temporary intermediate columns
@@ -403,6 +539,12 @@ def check_and_fix_shoulder_distance(df, tolerance=0.05):
     corrects for the cadaver-measurement offsets that would otherwise distort
     the morphospace representation.
 
+    Missing body measurements are estimated from ``wing_span_cm`` via
+    :func:`fill_missing_body_measurements` before any distance corrections are
+    applied. Without this step, NaN expected distances cause the correction
+    mask to evaluate to False, silently leaving bilateral markers at near-zero
+    width for species that lack direct body measurements.
+
     Args:
         df: DataFrame with bilateral marker columns and morphological measurement
             columns (``body_width_max_cm``, ``wing_span_cm``, ``tail_width_cm``,
@@ -413,7 +555,7 @@ def check_and_fix_shoulder_distance(df, tolerance=0.05):
     Returns:
         Copy of ``df`` with corrected bilateral marker positions.
     """
-    df = df.copy()
+    df = fill_missing_body_measurements(df)
 
     # Calculate shoulder distance
     shoulder_distance = np.linalg.norm(
@@ -421,56 +563,57 @@ def check_and_fix_shoulder_distance(df, tolerance=0.05):
         df[['right_shoulder_x', 'right_shoulder_y', 'right_shoulder_z']].values, axis=1
     )
 
-    expected_distance = df['body_width_max_cm'] / 100  # Convert cm to metres
+    # Use the larger of humeral insert width or body_width_max as minimum.
+    # humeral insert = wing attachment point (often too narrow)
+    # body_width_max = widest body point (can be too wide for some species)
+    # We expand narrow shoulders to body_width_max but don't shrink wide ones.
+    humeral_width = df['y_loc_of_humeral_insert_cm'] * 2 / 100  # cm -> m
+    body_width = df['body_width_max_cm'] / 100  # cm -> m
+    min_expected = np.maximum(humeral_width, body_width)
 
-    deviation = shoulder_distance - expected_distance
+    # Only expand if markers are narrower than the minimum expected width
+    expand_mask = shoulder_distance < min_expected * (1 - tolerance)
 
-    mask = deviation.abs() > tolerance * expected_distance
-
-    if mask.any():
-        logger.debug("Translating markers for %d rows", mask.sum())
-
-        for idx in df.index[mask]:
-            offset = deviation[idx] / 2  # Half goes to left side, half to right side
-
-            markers_to_adjust = [
-                'shoulder', 'wingtip', 'primary', 'secondary', 'tailtip', 'tailbase'
-            ]
-
+    if expand_mask.any():
+        logger.debug("Expanding shoulder markers for %d rows", expand_mask.sum())
+        for idx in df.index[expand_mask]:
+            target = min_expected[idx]
+            current = shoulder_distance[idx]
+            offset = (current - target) / 2
+            markers_to_adjust = ['shoulder', 'wingtip', 'primary', 'secondary']
             for marker in markers_to_adjust:
                 df.at[idx, f'left_{marker}_x'] += offset
                 df.at[idx, f'right_{marker}_x'] -= offset
 
-    # Adjust tail width
+    # Adjust tail width to match tail_width_cm measurement
     tailtip_distance = np.linalg.norm(
         df[['left_tailtip_x', 'left_tailtip_y', 'left_tailtip_z']].values -
         df[['right_tailtip_x', 'right_tailtip_y', 'right_tailtip_z']].values, axis=1
     )
-    expected_tail_distance = (df['tail_width_cm'] / 100) * 2  # cm -> m
+    expected_tail_distance = df['tail_width_cm'] / 100  # cm -> m (full width)
     tail_deviation = tailtip_distance - expected_tail_distance
-    tail_mask = tail_deviation.abs() > tolerance * expected_tail_distance
+    tail_adjust_mask = tail_deviation.abs() > tolerance * expected_tail_distance
 
-    if tail_mask.any():
-        logger.debug("Translating tailtip markers for %d rows", tail_mask.sum())
-        for idx in df.index[tail_mask]:
-            offset = tail_deviation[idx]
+    if tail_adjust_mask.any():
+        logger.debug("Adjusting tailtip markers for %d rows", tail_adjust_mask.sum())
+        for idx in df.index[tail_adjust_mask]:
+            offset = tail_deviation[idx] / 2
             df.at[idx, 'left_tailtip_x'] += offset
             df.at[idx, 'right_tailtip_x'] -= offset
 
-    # Adjust tailbase width
+    # Adjust tailbase width to match width_at_leg_insert_cm measurement
     tailbase_distance = np.linalg.norm(
         df[['left_tailbase_x', 'left_tailbase_y', 'left_tailbase_z']].values -
         df[['right_tailbase_x', 'right_tailbase_y', 'right_tailbase_z']].values, axis=1
     )
-    expected_tail_distance = df['width_at_leg_insert_cm'] / 100  # cm -> m
-    expected_tailbase_distance = expected_tail_distance * 2
-    tail_deviation = tailbase_distance - expected_tailbase_distance
-    tail_mask = tail_deviation.abs() > tolerance * expected_tailbase_distance
+    expected_tailbase_distance = df['width_at_leg_insert_cm'] / 100  # cm -> m (full width)
+    tailbase_deviation = tailbase_distance - expected_tailbase_distance
+    tailbase_adjust_mask = tailbase_deviation.abs() > tolerance * expected_tailbase_distance
 
-    if tail_mask.any():
-        logger.debug("Translating tailbase markers for %d rows", tail_mask.sum())
-        for idx in df.index[tail_mask]:
-            offset = tail_deviation[idx] / 2
+    if tailbase_adjust_mask.any():
+        logger.debug("Adjusting tailbase markers for %d rows", tailbase_adjust_mask.sum())
+        for idx in df.index[tailbase_adjust_mask]:
+            offset = tailbase_deviation[idx] / 2
             df.at[idx, 'left_tailbase_x'] += offset
             df.at[idx, 'right_tailbase_x'] -= offset
 
@@ -513,23 +656,23 @@ def check_and_fix_shoulder_distance(df, tolerance=0.05):
                 df.at[idx, f'left_{marker}_x'] += offset
                 df.at[idx, f'right_{marker}_x'] -= offset
 
-    # Adjust shoulder width using the wing root distance (pt1-pt2 separation)
-    pt1_x = df['pt1_X']
-    pt2_x = df['pt2_X']
-    distance_x = (pt2_x - pt1_x).abs()
-
-    wing_root_offset = distance_x * 1.2
-
-    df['left_shoulder_x'] += wing_root_offset
-    df['right_shoulder_x'] -= wing_root_offset
+    # Flip shoulder z-axis (cadaver convention differs from flight convention)
     df['left_shoulder_z'] = -df['left_shoulder_z']
     df['right_shoulder_z'] = -df['right_shoulder_z']
 
     df['hood_z'] = df['right_shoulder_z']
 
-    # Increase tailtip width to a more relaxed estimate (double the distance)
-    df['left_tailtip_x'] = df['left_tailtip_x'] * 2
-    df['right_tailtip_x'] = df['right_tailtip_x'] * 2
+    # Spread folded tails: cadaver tails are often narrower than in flight.
+    # If tailtip width < shoulder width, double the tailtip spread to
+    # approximate a more functional flight posture. Leave already-spread
+    # tails (wider than shoulders) unchanged.
+    shoulder_width = (df['left_shoulder_x'] - df['right_shoulder_x']).abs()
+    tailtip_width = (df['left_tailtip_x'] - df['right_tailtip_x']).abs()
+    folded_mask = tailtip_width < shoulder_width
+
+    if folded_mask.any():
+        df.loc[folded_mask, 'left_tailtip_x'] *= 2
+        df.loc[folded_mask, 'right_tailtip_x'] *= 2
 
     return df
 

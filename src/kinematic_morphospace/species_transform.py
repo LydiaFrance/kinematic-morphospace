@@ -176,3 +176,105 @@ def create_marker_dict(
     for i, name in enumerate(marker_names):
         marker_dict[name] = bilateral_markers[i].tolist()
     return marker_dict
+
+
+def prepare_long_neck_bird(
+    bird3d: Animal3D,
+    neck_length_cm: float,
+    head_length_cm: float,
+    colour: str = 'blue',
+    neck_threshold: float = 15.0,
+):
+    """Prepare a long-necked bird for visualisation.
+
+    For species with neck length exceeding the threshold:
+
+    1. Moves the hood marker to the shoulder position, hiding the built-in
+       hood triangle that would otherwise extend too far forward.
+    2. Returns a Plotly ``Mesh3d`` trace representing a stylised neck and head
+       polygon that can be added to the figure.
+
+    For short-necked species (below threshold), returns ``None`` and leaves
+    the bird unchanged.
+
+    The neck length is reduced by 1/3 in the polygon to account for the
+    natural S-curve of bird necks that we are not modelling.
+
+    Args:
+        bird3d: Animal3D object (modified in place if long-necked).
+        neck_length_cm: Neck length in centimetres.
+        head_length_cm: Head length in centimetres.
+        colour: Polygon fill colour. Defaults to ``'blue'``.
+        neck_threshold: Minimum neck length (cm) to trigger long-neck
+            handling. Defaults to 15.0.
+
+    Returns:
+        A ``plotly.graph_objects.Mesh3d`` trace if long-necked, otherwise
+        ``None``.
+
+    Example:
+        >>> neck_trace = prepare_long_neck_bird(approx_bird3d, 50.0, 21.0)
+        >>> fig = plot_plotly_compare([hawk3d, approx_bird3d], colours=['red', 'blue'])
+        >>> if neck_trace is not None:
+        ...     fig.add_trace(neck_trace)
+    """
+    if neck_length_cm <= neck_threshold:
+        return None
+
+    try:
+        import plotly.graph_objects as go
+    except ImportError as err:
+        msg = "plotly is required for prepare_long_neck_bird"
+        raise ImportError(msg) from err
+
+    # Get shoulder positions
+    shoulder_l = bird3d.fixed_markers[0, 0]
+    shoulder_r = bird3d.fixed_markers[0, 1]
+
+    shoulder_width = abs(shoulder_r[0] - shoulder_l[0])
+    shoulder_y = (shoulder_l[1] + shoulder_r[1]) / 2
+    shoulder_z = (shoulder_l[2] + shoulder_r[2]) / 2
+
+    # Move hood to shoulders (hides built-in triangle)
+    bird3d.fixed_markers[0, 4, 0] = 0
+    bird3d.fixed_markers[0, 4, 1] = shoulder_y
+    bird3d.fixed_markers[0, 4, 2] = shoulder_z
+
+    # Neck dimensions — reduce by 1/3 to account for S-curve
+    effective_neck = neck_length_cm * 0.67
+    head_width = shoulder_width / 3
+    neck_width = head_width * 0.6
+
+    neck_base_y = shoulder_y + 0.02
+    neck_top_y = neck_base_y + (effective_neck / 100)
+    head_tip_y = neck_top_y + (head_length_cm / 100)
+
+    # Vertices: shoulders → neck base → neck top → head tip
+    x = [
+        shoulder_l[0], shoulder_r[0],
+        -neck_width / 2, neck_width / 2,
+        -neck_width / 2, neck_width / 2,
+        0,
+    ]
+    y = [
+        shoulder_y, shoulder_y,
+        neck_base_y, neck_base_y,
+        neck_top_y, neck_top_y,
+        head_tip_y,
+    ]
+    z = [shoulder_z] * 7
+
+    # Triangle indices
+    i = [0, 0, 2, 2, 4]
+    j = [1, 3, 3, 5, 5]
+    k = [3, 2, 5, 4, 6]
+
+    return go.Mesh3d(
+        x=x, y=y, z=z,
+        i=i, j=j, k=k,
+        color=colour,
+        opacity=0.6,
+        flatshading=True,
+        showlegend=False,
+        hoverinfo='skip',
+    )

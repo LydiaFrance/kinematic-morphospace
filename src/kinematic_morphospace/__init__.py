@@ -13,12 +13,14 @@ from .cross_species import (
     check_and_fix_shoulder_distance,
     clean_body_data,
     compute_derived_markers,
+    fill_missing_body_measurements,
     filter_marker_columns,
     fix_leftright_sign,
     integrate_dataframe_to_bird3D,
     load_harvey_data,
     merge_bird_data,
     process_body_bird_id,
+    select_best_specimen_per_species,
     select_max_wingspan_row,
     set_new_origin_and_axes,
 )
@@ -75,6 +77,9 @@ from .display import (
     print_marker_dropout_rates as print_marker_dropout_rates,
 )
 from .display import (
+    print_per_hawk_dropout as print_per_hawk_dropout,
+)
+from .display import (
     print_method_comparison as print_method_comparison,
 )
 from .display import (
@@ -100,6 +105,9 @@ from .display import (
 )
 from .display import (
     print_violation_breakdown as print_violation_breakdown,
+)
+from .display import (
+    print_imputation_results as print_imputation_results,
 )
 
 # --- Labelling and clustering ---
@@ -138,6 +146,7 @@ from .rotation import (
 )
 from .species_transform import (
     create_marker_dict,
+    prepare_long_neck_bird,
     transform_hawk_to_species,
     transform_principal_components,
 )
@@ -174,6 +183,7 @@ __all__ = [
     "compute_derived_markers",
     "create_marker_dict",
     "extract_euler_angles_from_matrices",
+    "fill_missing_body_measurements",
     "filter_by",
     "filter_low_error_frames",
     "filter_marker_columns",
@@ -196,6 +206,7 @@ __all__ = [
     "pairwise_distance_features",
     "pca_suitability_test",
     "prepare_heatmap_mode_order",
+    "prepare_long_neck_bird",
     "prepare_marker_data",
     "principal_cosines",
     "print_anatomical_violations",
@@ -210,6 +221,7 @@ __all__ = [
     "print_method_comparison",
     "print_occlusion_pca",
     "print_partial_markers_summary",
+    "print_per_hawk_dropout",
     "print_phase_pca_summary",
     "print_projection_validation",
     "print_quintile_rmse",
@@ -227,6 +239,7 @@ __all__ = [
     "run_PCA",
     "run_PCA_birds",
     "scale_data",
+    "select_best_specimen_per_species",
     "select_max_wingspan_row",
     "set_new_origin_and_axes",
     "to_bilateral",
