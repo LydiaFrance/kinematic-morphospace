@@ -3,8 +3,7 @@ CLAUDE.md
 
 *.tex
 
-# ── Large data files (release via Zenodo/Figshare DOI) ──
-data/harvey_2022/
+# ── Large data files (release via Zenodo DOI) ──
 data/raw/
 data/bilateral/
 data/unilateral/
@@ -13,8 +12,13 @@ data/DATA_NOTES.md
 # Keep small reference files
 !data/mean_hawk_shape.csv
 
+# Harvey 2022 cadaver data — redistributed with citation (see README)
+!data/harvey_2022/
+
 # ── Generated outputs ──
-figures/
+figures/*
+!figures/supplementary_images/
+!figures/gifs/
 logs/
 
 # ── Supplementary materials (kept locally/OneDrive, not on GitHub) ──
