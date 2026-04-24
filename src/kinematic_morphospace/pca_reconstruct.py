@@ -81,6 +81,39 @@ def to_unilateral(bilateral, left_indices=None, right_indices=None):
     return np.concatenate([left_mirrored, right], axis=0)
 
 
+def prepare_unilateral(bilateral, frame_info_df, left_indices=None, right_indices=None):
+    """Convert bilateral markers to unilateral and double the frame info.
+
+    Combines :func:`to_unilateral` with the standard frame-info doubling
+    (adding a 'Left' column to distinguish sides). This is the complete
+    pre-processing step for bilateral-to-unilateral PCA.
+
+    Args:
+        bilateral: Bilateral marker data of shape
+            ``(n_frames, n_bilateral_markers, 3)``.
+        frame_info_df: Per-frame metadata DataFrame with one row per
+            bilateral frame.
+        left_indices: Indices of left-side markers. Defaults to [0, 2, 4, 6].
+        right_indices: Indices of right-side markers. Defaults to [1, 3, 5, 7].
+
+    Returns:
+        Tuple of (unilateral_data, unilateral_frame_info) where
+        unilateral_data has shape ``(2 * n_frames, n_markers_per_side, 3)``
+        and unilateral_frame_info has 2 * n_frames rows with a 'Left' column.
+    """
+    import pandas as pd
+
+    unilateral = to_unilateral(bilateral, left_indices, right_indices)
+
+    left_info = frame_info_df.copy()
+    left_info["Left"] = True
+    right_info = frame_info_df.copy()
+    right_info["Left"] = False
+    unilateral_frame_info = pd.concat([left_info, right_info], ignore_index=True)
+
+    return unilateral, unilateral_frame_info
+
+
 def reconstruct(score_frames, principal_components, mu, components_list=None):
     """Reconstruct marker positions from PCA scores and principal components.
 

@@ -26,36 +26,33 @@ _DEFAULT_PLOT_CONFIGS = [
 
 
 def _row_label(perch_dist, year, obstacle, weight):
-    """Human-readable row label describing an experimental condition."""
-    parts = [f"{perch_dist} m"]
+    """Short row label describing an experimental condition."""
+    label = f"{perch_dist} m"
     if year == 2020:
-        tags = []
-        if obstacle:
-            tags.append("obstacle")
-        if weight:
-            tags.append("weighted")
-        if not tags:
-            tags.append("control")
-        parts.append("(P2 " + ", ".join(tags) + ")")
-    return " ".join(parts)
+        if obstacle and weight:
+            label += " obs+wt"
+        elif obstacle:
+            label += " obstacle"
+        elif weight:
+            label += " weight"
+    return label
 
 
-def _add_row_labels(axes, configs):
-    """Attach a vertical right-side label to each row.
+def _add_row_labels(axes, configs, fontsize=7):
+    """Add a right-aligned title above each subplot row.
 
-    Uses a secondary-axis y-label so it doesn't collide with the data axes
-    or with the shared y-label used for the physical variable.
+    Using set_title keeps labels inside the figure bounding box so that
+    constrained_layout can account for them — avoiding the overflow that
+    occurs when text is positioned at x > 1 in axes coordinates.
+
+    Args:
+        axes: Array of Axes to label, one per experimental condition.
+        configs: Sequence of (perch_dist, year, obstacle, weight) tuples
+            matching the axes order.
+        fontsize: Font size for the labels. Defaults to 7.
     """
     for ax, cfg in zip(axes, configs, strict=False):
-        label = _row_label(*cfg)
-        ax.text(
-            1.02, 0.5, label,
-            transform=ax.transAxes,
-            rotation=90,
-            ha='left',
-            va='center',
-            fontsize=7,
-        )
+        ax.set_title(_row_label(*cfg), fontsize=fontsize, loc='right', pad=2)
 
 
 def plot_trajectory_data(ax,
@@ -141,10 +138,11 @@ def plot_trajectory_data(ax,
 
             x_bins = binned_data.index
             y_median = binned_data[y_col]['median']
+            y_std = binned_data[y_col]['std']
 
             # Not currently used, plots the shading between ±1 standard deviation.
-            # ax.fill_between(x_bins, y_mean - y_std, y_mean + y_std,
-            #               color=hawk_colors[hawk], alpha=0.1)
+            ax.fill_between(x_bins, y_median - y_std, y_median + y_std,
+                          color=hawk_colors[hawk], alpha=0.1)
 
             # Plots the mean of each bin per hawk.
             ax.plot(
@@ -264,8 +262,9 @@ def plot_traj(
     # Add x-axis label
     axes[-2].set_xlabel('Horizontal distance to perch (m)')
 
-    # Row labels on the right column (one per experimental condition)
-    _add_row_labels(axes_grid[:, 1], plot_configs)
+    # Labels on the left column, right-aligned — sits at the boundary between
+    # the two columns, reading as centred between both.
+    _add_row_labels(axes_grid[:, 0], plot_configs, fontsize=9)
 
     # Save the data as PDF and PNG -- the axes and other elements
     # are saved as vector elements, and the data is saved as raster elements.
@@ -293,9 +292,6 @@ def save_hybrid_figure(fig, axes, base_filename, dpi=600):
             '_vector.pdf' suffixes are appended automatically.
         dpi: Resolution for the raster PNG. Defaults to 600.
     """
-    # Store original figure size in inches
-    _fig_width, _fig_height = fig.get_size_inches()
-
     # Hide axes elements for raster version
     for ax in axes:
         ax.spines['top'].set_visible(False)
@@ -446,3 +442,92 @@ def plot_traj_scatter(
         save_hybrid_figure(fig, axes, save_path)
 
     return fig, axes
+
+
+def plot_traj_pair(
+    traj_df,
+    x_axis_column='smooth_XYZ_2',
+    left_column='smooth_XYZ_1',
+    right_column='body_pitch',
+    left_equal=True,
+    right_equal=False,
+    print_n_flights=False,
+):
+    """Create a combined 8-row figure with two trajectory variables side by side.
+
+    Placing both variables in a single figure guarantees that corresponding
+    rows are geometrically aligned — something that cannot be achieved with
+    two separately saved figures, especially when the columns have different
+    aspect-ratio constraints.
+
+    The left column can optionally use an equal aspect ratio to preserve
+    spatial proportions (e.g. for XY top-down trajectories). The right column
+    defaults to a free aspect ratio suitable for angle or rate data. Row
+    labels appear only on the right column.
+
+    Args:
+        traj_df: DataFrame containing the trajectory data.
+        x_axis_column: Column name for the shared x-axis variable. Defaults to
+            'smooth_XYZ_2'.
+        left_column: Column name for the y-axis in the left column. Defaults
+            to 'smooth_XYZ_1'.
+        right_column: Column name for the y-axis in the right column. Defaults
+            to 'body_pitch'.
+        left_equal: When True, applies equal aspect ratio to the left column
+            axes. Defaults to True.
+        right_equal: When True, applies equal aspect ratio to the right column
+            axes. Defaults to False.
+        print_n_flights: When True, prints frame and flight counts per
+            condition. Defaults to False.
+
+    Returns:
+        Tuple of (fig, left_axes, right_axes) where each axes array has 8
+        elements corresponding to the 8 experimental conditions.
+    """
+    # Equal-aspect left column needs more horizontal space to display the full
+    # x-range (13 m) without squashing the plot area.
+    width_ratios = [4, 2] if left_equal else [1, 1]
+
+    fig, axes = plt.subplots(
+        8, 2,
+        sharex=True, sharey='col',
+        figsize=(7, 8),
+        constrained_layout=True,
+        gridspec_kw={'width_ratios': width_ratios},
+    )
+
+    left_axes = axes[:, 0]
+    right_axes = axes[:, 1]
+    plot_configs = _DEFAULT_PLOT_CONFIGS
+
+    for ax, (perch_dist, year, obstacle, weight) in zip(
+        left_axes, plot_configs, strict=False
+    ):
+        print(f"Plotting left: {perch_dist}m, {year}, "
+              f"obstacle={obstacle}, weight={weight}")
+        setup_trajectory_axis(ax, equal=left_equal)
+        plot_trajectory_data(
+            ax, traj_df, x_axis_column, left_column,
+            {'perchDist': perch_dist, 'year': year,
+             'obstacle': obstacle, 'IMU': weight},
+            print_n_flights=print_n_flights,
+        )
+
+    for ax, (perch_dist, year, obstacle, weight) in zip(
+        right_axes, plot_configs, strict=False
+    ):
+        print(f"Plotting right: {perch_dist}m, {year}, "
+              f"obstacle={obstacle}, weight={weight}")
+        setup_trajectory_axis(ax, equal=right_equal)
+        plot_trajectory_data(
+            ax, traj_df, x_axis_column, right_column,
+            {'perchDist': perch_dist, 'year': year,
+             'obstacle': obstacle, 'IMU': weight},
+            print_n_flights=print_n_flights,
+        )
+
+    # Labels on the left column, right-aligned — this places them at the
+    # boundary between the two columns, reading as centred between both.
+    _add_row_labels(left_axes, plot_configs, fontsize=9)
+
+    return fig, left_axes, right_axes

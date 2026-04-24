@@ -18,7 +18,6 @@ def plot_explained(
     ax=None,
     colour_before=12,
     annotate=True,
-    _ci=None,
 ):
     """Plot cumulative explained variance ratio as a colour-coded bar chart.
 
@@ -54,9 +53,9 @@ def plot_explained(
     bar_colors = ['#B5E675', '#6ED8A9', '#51B3D4',
               '#4579AA', '#F19EBA', '#BC96C9',
               '#917AC2', '#BE607F', '#624E8B',
-              '#E6E6E6', '#E6E6E6', '#E6E6E6']
+              "#C4C4C4", '#C4C4C4', "#C4C4C4"]
 
-    bar_colour = "#51B3D4" if colour_before == 0 else "#E6E6E6"
+    bar_colour = "#51B3D4" if colour_before == 0 else "#C4C4C4"
 
     barlist = plt.bar(
         range(len(explained_ratio)),
@@ -95,9 +94,9 @@ def plot_explained(
         ax_right.spines['right'].set_visible(False)
         ax_right.spines['left'].set_visible(False)
 
-        ax.annotate('>95%', xy=(0.22, 0.94), xycoords='figure fraction')
-        ax.annotate('>97%', xy=(0.44, 0.94), xycoords='figure fraction')
-        ax.annotate('>98%', xy=(0.68, 0.94), xycoords='figure fraction')
+        ax.annotate('>96%', xy=(0.22, 0.94), xycoords='figure fraction')
+        ax.annotate('>98%', xy=(0.44, 0.94), xycoords='figure fraction')
+        ax.annotate('>99%', xy=(0.68, 0.94), xycoords='figure fraction')
 
     ax.set_xlabel("Component Number")
     ax.set_ylabel("Cumulative Explained variance ratio")
@@ -114,6 +113,140 @@ def plot_explained(
     fig = fig if fig is not None else ax.get_figure()
 
     return fig, ax
+
+
+def plot_explained_overlay(
+    explained_ratio_a,
+    explained_ratio_b,
+    label_a="A",
+    label_b="B",
+    colour_a="#E74C3C",
+    colour_b="#3498DB",
+    alpha=0.5,
+    ax=None,
+):
+    """Plot two cumulative explained variance curves overlaid with transparency.
+
+    Each series is shown as a bar chart with the specified colour and alpha,
+    allowing direct visual comparison of variance concentration between two
+    PCA fits (e.g. before vs after rotation correction).
+
+    Args:
+        explained_ratio_a: Explained variance ratio per component for first series.
+        explained_ratio_b: Explained variance ratio per component for second series.
+        label_a: Legend label for the first series. Defaults to "A".
+        label_b: Legend label for the second series. Defaults to "B".
+        colour_a: Bar colour for first series. Defaults to red (#E74C3C).
+        colour_b: Bar colour for second series. Defaults to blue (#3498DB).
+        alpha: Transparency for both bar sets. Defaults to 0.5.
+        ax: Matplotlib Axes to draw on; if None, a new figure is created.
+
+    Returns:
+        Tuple of (fig, ax).
+    """
+    fig = None
+
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(6.7, 3.5), constrained_layout=False)
+    assert ax is not None
+
+    n_comp = max(len(explained_ratio_a), len(explained_ratio_b))
+    x = np.arange(n_comp)
+
+    cum_a = np.cumsum(explained_ratio_a)
+    cum_b = np.cumsum(explained_ratio_b)
+
+    ax.bar(
+        x[:len(cum_a)],
+        cum_a,
+        color=colour_a,
+        alpha=alpha,
+        width=0.6,
+        edgecolor='none',
+        zorder=2,
+        label=label_a,
+    )
+
+    ax.bar(
+        x[:len(cum_b)],
+        cum_b,
+        color=colour_b,
+        alpha=alpha,
+        width=0.6,
+        edgecolor='none',
+        zorder=2,
+        label=label_b,
+    )
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.tick_params(axis='x', size=0)
+
+    ax.set_xlabel("Component Number")
+    ax.set_ylabel("Cumulative Explained Variance Ratio")
+    ax.set_ylim(0, 1)
+    ax.set_yticks(np.arange(0, 1.05, 0.1))
+    ax.set_xlim(-0.5, n_comp - 0.5)
+    ax.set_xticks(range(n_comp))
+    ax.set_xticklabels([str(i) for i in range(1, n_comp + 1)], fontsize=6)
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc='lower right')
+
+    fig = fig if fig is not None else ax.get_figure()
+
+    return fig, ax
+
+
+def plot_reconstruction_accuracy(rmse, explained_variance, colours=None):
+    """Plot reconstruction RMSE and explained variance against number of modes.
+
+    Creates a dual-axis bar+line chart showing explained variance per mode
+    (bars) and how reconstruction error decreases as more principal
+    components are retained (line).
+
+    Args:
+        rmse: Array of RMSE values for k=1..n modes.
+        explained_variance: Array of explained variance ratio per mode.
+        colours: Optional list of colours for each bar. Defaults to the
+            standard project palette.
+
+    Returns:
+        Tuple of (fig, (ax1, ax2)) where ax1 is the explained variance axis
+        (left, bars) and ax2 is the RMSE axis (right, line).
+    """
+    if colours is None:
+        colours = [
+            '#B5E675', '#6ED8A9', '#51B3D4', '#4579AA',
+            '#BC96C9', '#917AC2', '#51B3D4', '#F19EBA',
+            '#624E8B', '#888888', '#888888', '#888888',
+        ]
+
+    n_modes = len(rmse)
+    modes = np.arange(1, n_modes + 1)
+
+    fig, ax1 = plt.subplots(figsize=(7, 3.5))
+
+    # Explained variance per mode on left axis
+    ax1.bar(modes, explained_variance, color=colours[:n_modes],
+            width=0.6, edgecolor='none', zorder=2)
+    ax1.set_xlabel("Number of Morphing Modes")
+    ax1.set_ylabel("Explained Variance")
+    ax1.set_xticks(modes)
+    ax1.grid(True, alpha=0.3)
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+
+    # RMSE line on right axis
+    ax2 = ax1.twinx()
+    ax2.plot(modes, rmse, 'ko-', markersize=4, zorder=3, label='Reconstruction RMSE')
+    ax2.set_ylabel("RMSE (relative to max wingspan)")
+    ax2.spines['top'].set_visible(False)
+    ax2.legend(loc='upper right')
+
+    plt.tight_layout()
+
+    return fig, (ax1, ax2)
 
 
 def table_cumulative_variance_ratios(
@@ -436,7 +569,7 @@ def plot_hist_similar_shapes(
     mu = marker_data.mean(axis=0).reshape(1, n_markers, 3)
 
     n_rows = len(pc_indices) + 1
-    fig, axes = plt.subplots(n_rows, 2, figsize=(8, n_rows * 2.5), sharey='row')
+    fig, axes = plt.subplots(n_rows, 2, figsize=(8, n_rows * 2.5))
 
     if n_rows == 1:
         axes = np.array([axes])
@@ -622,7 +755,7 @@ def plot_hist_similar_shapes(
             vmax=300,
         )
         fig.colorbar(im_left, ax=ax_left_2d, label='Count')
-        ax_left_2d.set_title('PC1 vs PC2: Score Frequency')
+        ax_left_2d.set_title('PC1 and PC2: Score Frequency')
         ax_left_2d.set_xlabel('PC1 Score')
         ax_left_2d.set_ylabel('PC2 Score')
 
@@ -637,7 +770,7 @@ def plot_hist_similar_shapes(
             vmax=5000,
         )
         fig.colorbar(im_right, ax=ax_right_2d, label='Count')
-        ax_right_2d.set_title('PC1 vs PC2: Similar Shapes')
+        ax_right_2d.set_title('PC1 and PC2: Similar Shapes')
         ax_right_2d.set_xlabel('PC1 Score')
         ax_right_2d.set_ylabel('PC2 Score')
         ax_right_2d.set_ylim(-0.7, 0.3)

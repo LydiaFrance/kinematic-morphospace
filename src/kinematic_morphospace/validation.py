@@ -525,22 +525,22 @@ def print_phase_pca_summary(results, n_cev=4):
         print(_cev_row(phase_labels[p], results["shared_cev"][p]))
     print(_cev_row("All phases", results["shared_cev"]["all"]))
 
-    # --- C) Absolute variance per shared mode ---
+    # --- C) Standard deviation per shared mode ---
     sample_var = results["shared_var"]["all"]["var"]
     n_modes = len(sample_var)
     mode_hdrs = "".join(f"{'Mode ' + str(i + 1):>10}" for i in range(n_cev))
     rest_label = f"{n_cev + 1}-{n_modes}"
     print()
-    print("Variance per shared mode (relative to wingspan)")
+    print("SD per shared mode (fraction of wingspan)")
     print(f'{"Phase":<25} {mode_hdrs} {rest_label:>10} {"Total":>10}')
     print("-" * (25 + 10 * (n_cev + 2)))
     for p in phases:
         v = results["shared_var"][p]["var"]
-        vals = "".join(f"{v[i]:>10.5f}" for i in range(n_cev))
-        print(f"{phase_labels[p]:<25} {vals} {v[n_cev:].sum():>10.5f} {v.sum():>10.5f}")
+        vals = "".join(f"{np.sqrt(v[i]):>10.3f}" for i in range(n_cev))
+        print(f"{phase_labels[p]:<25} {vals} {np.sqrt(v[n_cev:].sum()):>10.3f} {np.sqrt(v.sum()):>10.3f}")
     v = results["shared_var"]["all"]["var"]
-    vals = "".join(f"{v[i]:>10.5f}" for i in range(n_cev))
-    print(f'{"All phases":<25} {vals} {v[n_cev:].sum():>10.5f} {v.sum():>10.5f}')
+    vals = "".join(f"{np.sqrt(v[i]):>10.3f}" for i in range(n_cev))
+    print(f'{"All phases":<25} {vals} {np.sqrt(v[n_cev:].sum()):>10.3f} {np.sqrt(v.sum()):>10.3f}')
 
 
 def analyse_and_report_pca(markers, n_bootstraps=1000, seed=None):

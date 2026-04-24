@@ -5,6 +5,7 @@ perch. Two-row colour images allow direct visual comparison of conditions such a
 obstacle vs control or naive vs experienced flight.
 """
 import matplotlib.gridspec as gridspec
+import matplotlib.ticker as ticker
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -98,26 +99,32 @@ def plot_difference_PC_scores_heatmap(df_control,
     Returns:
         Axes object for the last subplot created.
     """
-    # Convert bins to float when finding common bins
-    control_bins = df_control['bins'].astype(float).unique()
-    exp_bins = df_exp['bins'].astype(float).unique()
+    # Use a numeric bin axis so tick placement is stable and ordered.
+    control_df = df_control.copy()
+    exp_df = df_exp.copy()
+    control_df['bin_float'] = control_df['bins'].astype(float)
+    exp_df['bin_float'] = exp_df['bins'].astype(float)
+
+    control_bins = control_df['bin_float'].unique()
+    exp_bins = exp_df['bin_float'].unique()
     common_bins = sorted(set(control_bins) & set(exp_bins))
 
-    # Calculate means using float bins
-    control_filter = df_control['bins'].astype(float).isin(common_bins)
-    mean_scores_control = df_control[control_filter].pivot_table(
-        index='bins',
+    control_filter = control_df['bin_float'].isin(common_bins)
+    mean_scores_control = control_df[control_filter].pivot_table(
+        index='bin_float',
         values=PC_cols,
         aggfunc='mean',
         observed=True,
     ).T
-    exp_filter = df_exp['bins'].astype(float).isin(common_bins)
-    mean_scores_exp = df_exp[exp_filter].pivot_table(
-        index='bins',
+    exp_filter = exp_df['bin_float'].isin(common_bins)
+    mean_scores_exp = exp_df[exp_filter].pivot_table(
+        index='bin_float',
         values=PC_cols,
         aggfunc='mean',
         observed=True,
     ).T
+    mean_scores_control = mean_scores_control.reindex(sorted(mean_scores_control.columns), axis=1)
+    mean_scores_exp = mean_scores_exp.reindex(sorted(mean_scores_exp.columns), axis=1)
 
     num_pairs = len(PC_cols)
     fig = plt.figure(figsize=(5, 6))
@@ -132,7 +139,6 @@ def plot_difference_PC_scores_heatmap(df_control,
     # Find the nearest actual bin index for each desired tick position
     tick_indices = [np.abs(actual_positions - tick).argmin() for tick in desired_ticks]
 
-    ax = fig.add_subplot(gs[0])
     for ii, PC in enumerate(PC_cols):
         # Get data for this PC
         control_data = mean_scores_control.loc[PC].values
@@ -158,15 +164,13 @@ def plot_difference_PC_scores_heatmap(df_control,
         im = ax.imshow(combined_data.astype(float), cmap='Spectral_r', aspect='auto',
                         vmin=vmin, vmax=vmax, extent=(0, len(actual_positions), 0, 2))
 
-        # Apply x-tick positions for every subplot
-        ax.set_xticks(tick_indices)
         ax.set_xlim(0, len(actual_positions) - 1)
 
         obstacle_idx = np.abs(actual_positions - (-4.5)).argmin()
         ax.axvline(x=obstacle_idx, color='black', linewidth=1.5, alpha=0.2)
 
         if ii == 0:
-            cbar_ax = fig.add_axes((0.134, 0.91, 0.1, 0.02))
+            cbar_ax = fig.add_axes((0.134, 0.92, 0.1, 0.02))
             assert cbar_ax is not None
             cbar = plt.colorbar(im, cax=cbar_ax, orientation='horizontal')
             cbar.set_label('Score percentile', rotation=0, fontsize=9)
@@ -174,29 +178,24 @@ def plot_difference_PC_scores_heatmap(df_control,
             cbar.set_ticks([score_5[PC], 0, score_95[PC]])
             cbar.set_ticklabels(["1%", "", "99%"], rotation=0, fontsize=8)
 
-            ax_right = ax.twinx()
-            ax_right.set_yticks([0.25, 0.75])
-            ax_right.set_yticklabels(['Control', 'Present'], rotation=0, va='center')
-            ax_right.spines['right'].set_visible(False)
-            ax_right.spines['left'].set_visible(False)
-            ax_right.spines['top'].set_visible(False)
-            ax_right.spines['bottom'].set_visible(False)
+            ax.text(1.02, 0.25, 'Control', transform=ax.transAxes,
+                    va='center', ha='left', fontsize=8)
+            ax.text(1.02, 0.75, 'Present', transform=ax.transAxes,
+                    va='center', ha='left', fontsize=8)
 
-            ax_top = ax.twiny()
-            ax_top.set_xticks([0.504])
-            ax_top.tick_params(axis='x', length=6, width=1.5)
-            ax_top.tick_params(axis='x', pad=8)
-            ax_top.set_xticklabels(['Obstacle Position'], rotation=0, va='center',
-                                    ha='center', style='italic')
+            # Mark obstacle position with a text label above the top spine
+            ax.text(obstacle_idx / (len(actual_positions) - 1), 1.02,
+                    'Obstacle Position', transform=ax.transAxes,
+                    va='bottom', ha='center', fontsize=8, style='italic')
 
-            ax.set_xticklabels([])
-            ax.set_xticks([])
+            ax.xaxis.set_major_locator(ticker.NullLocator())
 
         elif ii == len(PC_cols) - 1:
             tick_indices = [
                 np.abs(actual_positions - tick).argmin()
                 for tick in desired_ticks
             ]
+            ax.set_xticks(tick_indices)
             ax.set_xticklabels(
                 [f"{x:.0f}" for x in desired_ticks], rotation=45
             )
@@ -207,14 +206,12 @@ def plot_difference_PC_scores_heatmap(df_control,
             ax.set_xlabel('Binned Horizontal Distance to Perch (m)')
 
         else:
-            ax.set_yticklabels([])
-            ax.set_yticks([])
-            ax.set_xticklabels([])
-            ax.set_xticks([])
+            ax.xaxis.set_major_locator(ticker.NullLocator())
 
-        # PC label on the left
-        ax.set_yticks([1])
-        ax.set_yticklabels([PC_NAMES[PC]], rotation=0, va='center', fontsize=6)
+        # PC label on the left — NullLocator prevents AutoLocator regenerating ticks
+        ax.yaxis.set_major_locator(ticker.NullLocator())
+        ax.text(-0.01, 0.5, PC_NAMES[PC], transform=ax.transAxes,
+                rotation=0, va='center', ha='right', fontsize=6)
 
         # Thin subplot border
         ax.spines['top'].set_linewidth(0.5)
@@ -278,9 +275,8 @@ def plot_difference_exp_scores_heatmap(df_control,
 
     Similar to plot_difference_PC_scores_heatmap() but designed for comparing any
     two labelled conditions (e.g. naive vs experienced) rather than specifically
-    obstacle vs control. Uses 5th/95th percentile colour scaling, which is more
-    appropriate when both conditions may contain outliers. The last five bins are
-    trimmed to exclude the perch-grab phase.
+    obstacle vs control. The last five bins are trimmed to exclude the
+    perch-grab phase.
 
     Args:
         df_control: First (reference) condition scores DataFrame with a 'bins' column.
@@ -288,26 +284,51 @@ def plot_difference_exp_scores_heatmap(df_control,
         df_exp: Second (experimental) condition scores DataFrame with a 'bins' column.
         name_exp: Display label for the second condition (shown on the right axis).
         PC_cols: List of PC column names to include.
-        score_5: Per-PC 5th percentile scores used as vmin.
-        score_95: Per-PC 95th percentile scores used as vmax.
+        score_5: Per-PC lower percentile scores used as vmin.
+        score_95: Per-PC upper percentile scores used as vmax.
 
     Returns:
         Axes object for the last subplot created.
     """
-    mean_scores_control = df_control.pivot_table(index='bins', values=PC_cols,
-                                                  aggfunc='mean', observed=False).T
-    mean_scores_exp = df_exp.pivot_table(index='bins', values=PC_cols,
-                                          aggfunc='mean', observed=False).T
+    # Align both conditions on shared horizontal-distance bins.
+    control_df = df_control.copy()
+    exp_df = df_exp.copy()
+    control_df['bin_float'] = control_df['bins'].astype(float)
+    exp_df['bin_float'] = exp_df['bins'].astype(float)
+
+    control_bins = control_df['bin_float'].unique()
+    exp_bins = exp_df['bin_float'].unique()
+    common_bins = sorted(set(control_bins) & set(exp_bins))
+
+    control_filter = control_df['bin_float'].isin(common_bins)
+    mean_scores_control = control_df[control_filter].pivot_table(
+        index='bin_float',
+        values=PC_cols,
+        aggfunc='mean',
+        observed=True,
+    ).T
+    exp_filter = exp_df['bin_float'].isin(common_bins)
+    mean_scores_exp = exp_df[exp_filter].pivot_table(
+        index='bin_float',
+        values=PC_cols,
+        aggfunc='mean',
+        observed=True,
+    ).T
+    mean_scores_control = mean_scores_control.reindex(sorted(mean_scores_control.columns), axis=1)
+    mean_scores_exp = mean_scores_exp.reindex(sorted(mean_scores_exp.columns), axis=1)
 
     num_pairs = len(PC_cols)
     fig = plt.figure(figsize=(5, 6))
     gs = gridspec.GridSpec(num_pairs, 1, height_ratios=[1] * num_pairs, hspace=0.15)
 
-    ax = fig.add_subplot(gs[0])
+    # Match obstacle heatmap x-axis labels: -8, -7, ..., -1
+    desired_ticks = np.arange(-8, 0, 1)
+    actual_positions = mean_scores_control.columns.astype(float)
+    tick_indices = [np.abs(actual_positions - tick).argmin() for tick in desired_ticks]
+
     for ii, PC in enumerate(PC_cols):
-        min_len = min(mean_scores_control.shape[1], mean_scores_exp.shape[1])
-        control_data = mean_scores_control.loc[PC].values[:min_len]
-        exp_data = mean_scores_exp.loc[PC].values[:min_len]
+        control_data = mean_scores_control.loc[PC].values
+        exp_data = mean_scores_exp.loc[PC].values
 
         combined_data = np.vstack([exp_data, control_data])
         # Remove the last 5 bins (~0.25 m nearest the perch) where the
@@ -315,49 +336,46 @@ def plot_difference_exp_scores_heatmap(df_control,
         combined_data = combined_data[:, :-5]
 
         ax = fig.add_subplot(gs[ii])
-        im = ax.imshow(combined_data, cmap='Spectral_r', aspect='auto',
-                        vmin=score_5[PC], vmax=score_95[PC])
+        im = ax.imshow(
+            combined_data,
+            cmap='Spectral_r',
+            aspect='auto',
+            vmin=score_5[PC],
+            vmax=score_95[PC],
+            extent=(0, len(actual_positions), 0, 2),
+        )
         im.set_clim(score_5[PC], score_95[PC])
-
-        ax.set_yticks([0, 1])
+        ax.set_xlim(0, len(actual_positions) - 1)
 
         if ii == 0:
-            cbar_ax = fig.add_axes((0.134, 0.91, 0.1, 0.02))
+            cbar_ax = fig.add_axes((0.134, 0.92, 0.1, 0.02))
             assert cbar_ax is not None
             cbar = plt.colorbar(im, cax=cbar_ax, orientation='horizontal')
             cbar.set_label('Score percentile', rotation=0, fontsize=9)
             cbar.ax.xaxis.set_label_position('top')
-            # This heatmap uses 5th/95th percentile scaling (vs 1st/99th
-            # in the obstacle heatmap) because it compares conditions
-            # where extreme outliers would compress the colour range.
             cbar.set_ticks([score_5[PC], 0, score_95[PC]])
-            cbar.set_ticklabels(["5%", "50%", "95%"], rotation=0, fontsize=8)
+            cbar.set_ticklabels(["1%", "", "99%"], rotation=0, fontsize=8)
 
-            ax_right = ax.twinx()
-            ax_right.set_yticks([0.25, 0.75])
-            ax_right.set_yticklabels([name_control, name_exp], rotation=0, va='center')
-            ax_right.spines['right'].set_visible(False)
-            ax_right.spines['left'].set_visible(False)
-            ax_right.spines['top'].set_visible(False)
-            ax_right.spines['bottom'].set_visible(False)
+            ax.text(1.02, 0.25, name_control, transform=ax.transAxes,
+                    va='center', ha='left', fontsize=8)
+            ax.text(1.02, 0.75, name_exp, transform=ax.transAxes,
+                    va='center', ha='left', fontsize=8)
 
-            ax.set_xticklabels([])
-            ax.set_xticks([])
+            ax.xaxis.set_major_locator(ticker.NullLocator())
 
         elif ii == len(PC_cols) - 1:
-            ax.set_xticks(ticks=np.arange(5, len(mean_scores_exp.columns), 20),
-                          labels=mean_scores_exp.columns[5::20], rotation=45)
+            ax.set_xticks(tick_indices)
+            ax.set_xticklabels([f"{x:.0f}" for x in desired_ticks], rotation=45)
+            ax.set_xlim(0, len(actual_positions) - 1)
             ax.set_xlabel('Binned Horizontal Distance to Perch (m)')
 
         else:
-            ax.set_yticklabels([])
-            ax.set_yticks([])
-            ax.set_xticklabels([])
-            ax.set_xticks([])
+            ax.xaxis.set_major_locator(ticker.NullLocator())
 
-        # PC label on the left
-        ax.set_yticks([0.5])
-        ax.set_yticklabels([PC_NAMES[PC]], rotation=0, va='center', fontsize=6)
+        # PC label on the left — NullLocator prevents AutoLocator regenerating ticks
+        ax.yaxis.set_major_locator(ticker.NullLocator())
+        ax.text(-0.01, 0.5, PC_NAMES[PC], transform=ax.transAxes,
+                rotation=0, va='center', ha='right', fontsize=6)
 
         ax.spines['top'].set_linewidth(0.5)
         ax.spines['right'].set_linewidth(0.5)

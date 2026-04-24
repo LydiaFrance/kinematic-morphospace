@@ -10,7 +10,7 @@ import plotly.io as pio
 from matplotlib import pyplot as plt
 
 
-def plot_raw_markers(ax, x, y, filter=None, colour='k', alpha=0.1, grid=False):
+def plot_raw_markers(ax, x, y, filter=None, colour='k', alpha=0.1, grid=False, size=0.1):
     """Scatter plot of raw 2-D marker positions with standardised axis formatting.
 
     Plots marker positions as a translucent scatter cloud with fixed axis limits
@@ -32,12 +32,12 @@ def plot_raw_markers(ax, x, y, filter=None, colour='k', alpha=0.1, grid=False):
     """
     if filter is not None:
         ax.scatter(
-            x[filter], y[filter], marker='o', s=0.1, c=colour, alpha=alpha,
+            x[filter], y[filter], marker='o', s=size, c=colour, alpha=alpha,
             edgecolors='none'
         )
     else:
         ax.scatter(
-            x, y, marker='o', s=0.1, c=colour, alpha=alpha, edgecolors='none'
+            x, y, marker='o', s=size, c=colour, alpha=alpha, edgecolors='none'
         )
     # Have both axes ticks as 0, 0.25, 0.5
     ax.set_xticks(np.arange(-0.5, 0.51, 0.25))

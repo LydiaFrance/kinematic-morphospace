@@ -17,11 +17,10 @@ HAWK_COLOURS = {
 def plot_method_comparison(method_results, ref_key, max_k, n_comp, colours=None):
     """Compare cosine sweep and reconstruction RMSE across alternative PCA methods.
 
-    Produces a 2-row figure. The top row shows the minimum principal cosine
-    between each method's subspace and the reference at increasing subspace
-    dimension k=1..max_k. The bottom row shows the reconstruction RMSE at
-    k=1..n_comp. This reveals which alternative methods best preserve the
-    shared morphospace structure.
+    Produces a 4-row × 2-column figure. Each row corresponds to one alternative
+    method, with the left column showing minimum principal cosine at increasing
+    subspace dimension k=1..max_k, and the right column showing reconstruction
+    RMSE at k=1..n_comp.
 
     Args:
         method_results: Dict mapping method name to a dict with keys
@@ -30,13 +29,13 @@ def plot_method_comparison(method_results, ref_key, max_k, n_comp, colours=None)
         ref_key: Key in method_results identifying the reference method, drawn
             in dark grey for comparison.
         max_k: Number of subspace dimensions for the cosine sweep (x-axis of
-            the top row).
-        n_comp: Number of components for the RMSE plot (x-axis of the bottom row).
+            the left column).
+        n_comp: Number of components for the RMSE plot (x-axis of the right column).
         colours: Optional dict mapping method name to hex colour string.
             Unrecognised names fall back to '#51B3D4'. Defaults to None.
 
     Returns:
-        Figure containing the 2-row method comparison.
+        Figure containing the 4-row × 2-column method comparison.
     """
     if colours is None:
         colours = {}
@@ -46,48 +45,48 @@ def plot_method_comparison(method_results, ref_key, max_k, n_comp, colours=None)
     n_alt = len(alt_methods)
 
     fig, axes = plt.subplots(
-        2, n_alt,
-        figsize=(14, 6),
-        gridspec_kw={"hspace": 0.35, "wspace": 0.3},
+        n_alt, 2,
+        figsize=(8, 10),
+        gridspec_kw={"hspace": 0.4, "wspace": 0.3},
     )
     # Ensure axes is always 2-D
     if n_alt == 1:
-        axes = axes.reshape(2, 1)
+        axes = axes.reshape(1, 2)
 
     k_vals_cosine = np.arange(1, max_k + 1)
     k_vals_rmse = np.arange(1, n_comp + 1)
 
-    # Top row: principal cosine sweep
-    for j, (name, r) in enumerate(alt_methods.items()):
-        ax = axes[0, j]
-        ax.plot(k_vals_cosine, ref["min_cosines"], "o-", color="#333333",
-                label=ref_key, markersize=4, linewidth=1.5)
-        ax.plot(k_vals_cosine, r["min_cosines"], "o-",
-                color=colours.get(name, "#51B3D4"),
-                label=name, markersize=4, linewidth=1.5)
-        ax.set_ylim(-0.05, 1.1)
-        ax.set_xlim(0.5, max_k + 0.5)
-        ax.set_title(name, fontsize=9)
-        ax.axhline(y=0.9, color="grey", linestyle=":", linewidth=0.5, alpha=0.5)
-        if j == 0:
-            ax.set_ylabel("Min principal cosine")
-        ax.set_xlabel("k")
-        ax.legend(fontsize=6, loc="lower left")
+    for i, (name, r) in enumerate(alt_methods.items()):
+        colour = colours.get(name, "#51B3D4")
 
-    # Bottom row: reconstruction RMSE
-    for j, (name, r) in enumerate(alt_methods.items()):
-        ax = axes[1, j]
-        ax.plot(k_vals_rmse, ref["errors"], "o-", color="#333333",
-                label=ref_key, markersize=4, linewidth=1.5)
-        ax.plot(k_vals_rmse, r["errors"], "o-",
-                color=colours.get(name, "#51B3D4"),
-                label=name, markersize=4, linewidth=1.5)
-        ax.set_xlim(0.5, n_comp + 0.5)
-        ax.set_title(name, fontsize=9)
-        if j == 0:
-            ax.set_ylabel("Reconstruction RMSE (m)")
-        ax.set_xlabel("k")
-        ax.legend(fontsize=6, loc="upper right")
+        # Left column: principal cosine sweep
+        ax_cos = axes[i, 0]
+        ax_cos.plot(k_vals_cosine, ref["min_cosines"], "o-", color="#333333",
+                    label=ref_key, markersize=4, linewidth=1.5)
+        ax_cos.plot(k_vals_cosine, r["min_cosines"], "o-", color=colour,
+                    label=name, markersize=4, linewidth=1.5)
+        ax_cos.set_ylim(-0.05, 1.1)
+        ax_cos.set_xlim(0.5, max_k + 0.5)
+        ax_cos.set_ylabel(name, fontsize=9)
+        ax_cos.axhline(y=0.9, color="grey", linestyle=":", linewidth=0.5, alpha=0.5)
+        ax_cos.legend(fontsize=6, loc="lower left")
+        if i == 0:
+            ax_cos.set_title("Min principal cosine", fontsize=10)
+        if i == n_alt - 1:
+            ax_cos.set_xlabel("k")
+
+        # Right column: reconstruction RMSE
+        ax_rmse = axes[i, 1]
+        ax_rmse.plot(k_vals_rmse, ref["errors"], "o-", color="#333333",
+                     label=ref_key, markersize=4, linewidth=1.5)
+        ax_rmse.plot(k_vals_rmse, r["errors"], "o-", color=colour,
+                     label=name, markersize=4, linewidth=1.5)
+        ax_rmse.set_xlim(0.5, n_comp + 0.5)
+        ax_rmse.legend(fontsize=6, loc="upper right")
+        if i == 0:
+            ax_rmse.set_title("Reconstruction RMSE (m)", fontsize=10)
+        if i == n_alt - 1:
+            ax_rmse.set_xlabel("k")
 
     fig.tight_layout()
     return fig

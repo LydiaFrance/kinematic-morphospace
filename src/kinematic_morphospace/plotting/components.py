@@ -1,6 +1,5 @@
 """PCA component loading and principal-cosine visualisation."""
 
-import matplotlib as mpl
 import matplotlib.colors
 import matplotlib.gridspec as gridspec
 import numpy as np
@@ -203,6 +202,7 @@ def compare_coeffs_grid(
     colour_before=12,
     fig=None,
     ax=None,
+    annotate_diagonal=False,
 ):
     """Plot a principal-cosine heatmap comparing two PCA component matrices.
 
@@ -223,6 +223,8 @@ def compare_coeffs_grid(
             Defaults to 12.
         fig: Existing Figure to draw into; if None, a new figure is created.
         ax: Existing Axes to draw into; if None, a new axes is created.
+        annotate_diagonal: When True, display the dot product values on the
+            diagonal cells. Defaults to False.
 
     Returns:
         Axes object containing the heatmap.
@@ -314,10 +316,6 @@ def compare_coeffs_grid(
 
     if ax is None:
         fig, ax = plt.subplots(figsize=(5, 5), constrained_layout=True)
-
-        returnAx = False
-    else:
-        returnAx = True
     assert fig is not None
 
     for PC, colour in colour_dict.items():
@@ -381,12 +379,18 @@ def compare_coeffs_grid(
     # Make the ax square
     ax.set_aspect('equal')
 
-    # fig.tight_layout()
-    if returnAx:
-        # plt.show()
+    # Annotate diagonal with dot product values
+    if annotate_diagonal:
+        for i in range(min(maxPCs, len(diagonal_values))):
+            val = diagonal_values[i]
+            text_color = 'white' if val > 0.5 else 'black'
+            ax.text(
+                i + 0.5, i + 0.5, f'{val:.2f}',
+                ha='center', va='center',
+                fontsize=7, color=text_color, fontweight='bold',
+            )
 
-        return ax
-    return None
+    return ax
 
 
 

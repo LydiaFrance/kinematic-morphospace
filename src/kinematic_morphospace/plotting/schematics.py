@@ -451,7 +451,7 @@ def _layout_imputation_schematic(axes, marker_colours=None,
     ]
     subtitles = [
         "252,630 straight-flight frames\nAll markers present",
-        "468,403 straight-flight frames (1.9\u00d7)\n21\u201333% dropout per marker",
+        "669,212 straight-flight frames (2.6×)\n29–46% dropout per marker",
         "Missing values estimated\nvia iterative imputation",
     ]
 
@@ -464,7 +464,7 @@ def _layout_imputation_schematic(axes, marker_colours=None,
         ax.axis("off")
 
         ax.text(panel_w / 2, -0.65, subtitles[ax_idx],
-                ha="center", va="top", fontsize=8, color="0.4",
+                ha="center", va="top", fontsize=14, color="0.4",
                 linespacing=1.4)
 
         if ax_idx == 0:
@@ -472,11 +472,11 @@ def _layout_imputation_schematic(axes, marker_colours=None,
                 mx = m * (marker_w + marker_gap)
                 ax.text(mx + marker_w / 2, n_f * cell_h + 0.55,
                         marker_names[m], ha="center", va="bottom",
-                        fontsize=7.5, color="0.35")
+                        fontsize=10, color="0.35")
                 for a, label in enumerate(["x", "y", "z"]):
                     sx = mx + a * (strip_w + strip_gap) + strip_w / 2
                     ax.text(sx, n_f * cell_h + 0.12, label,
-                            ha="center", va="bottom", fontsize=6.5,
+                            ha="center", va="bottom", fontsize=8,
                             color="0.5")
 
         for f in range(n_f):

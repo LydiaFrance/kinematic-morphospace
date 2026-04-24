@@ -109,6 +109,21 @@ from .display import (
 from .display import (
     print_imputation_results as print_imputation_results,
 )
+from .display import (
+    print_score_correlation as print_score_correlation,
+)
+from .display import (
+    print_array_difference as print_array_difference,
+)
+from .display import (
+    print_data_provenance as print_data_provenance,
+)
+from .display import (
+    print_displacement_summary as print_displacement_summary,
+)
+from .display import (
+    print_rotation_summary as print_rotation_summary,
+)
 
 # --- Labelling and clustering ---
 from .labelling import (
@@ -124,7 +139,7 @@ from .null_testing import pairwise_distance_features, principal_cosines
 
 # --- PCA core ---
 from .pca_core import run_PCA, run_PCA_birds
-from .pca_reconstruct import reconstruct, to_bilateral, to_unilateral
+from .pca_reconstruct import prepare_unilateral, reconstruct, to_bilateral, to_unilateral
 from .pca_scores import (
     SIGN_CONVENTIONS,
     apply_sign_conventions,
@@ -146,7 +161,6 @@ from .rotation import (
 )
 from .species_transform import (
     create_marker_dict,
-    prepare_long_neck_bird,
     transform_hawk_to_species,
     transform_principal_components,
 )
@@ -206,12 +220,15 @@ __all__ = [
     "pairwise_distance_features",
     "pca_suitability_test",
     "prepare_heatmap_mode_order",
-    "prepare_long_neck_bird",
     "prepare_marker_data",
+    "prepare_unilateral",
     "principal_cosines",
     "print_anatomical_violations",
+    "print_array_difference",
     "print_bootstrap_stability",
     "print_cev_comparison",
+    "print_data_provenance",
+    "print_displacement_summary",
     "print_complete_markers_summary",
     "print_dataset_split",
     "print_density_shift_table",
@@ -224,8 +241,10 @@ __all__ = [
     "print_per_hawk_dropout",
     "print_phase_pca_summary",
     "print_projection_validation",
+    "print_score_correlation",
     "print_quintile_rmse",
     "print_residual_eigenvalues",
+    "print_rotation_summary",
     "print_thinned_pca",
     "print_violation_breakdown",
     "process_body_bird_id",

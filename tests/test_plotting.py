@@ -256,6 +256,9 @@ class TestHeatmapPlotting:
         ax = plot_difference_PC_scores_heatmap(
             df_ctrl, df_exp, PC_COLS[:4], score_5, score_95)
         assert isinstance(ax, Axes)
+        fig = ax.figure
+        assert len(fig.axes) == len(PC_COLS[:4]) + 1
+        assert sum(1 for axis in fig.axes if axis.images) == len(PC_COLS[:4])
 
     def test_plot_difference_exp_scores_heatmap(self, score_limits):
         from kinematic_morphospace.plotting.heatmaps import plot_difference_exp_scores_heatmap
@@ -276,6 +279,9 @@ class TestHeatmapPlotting:
             df_ctrl, "Control", df_exp, "Experiment",
             PC_COLS[:4], score_5, score_95)
         assert isinstance(ax, Axes)
+        fig = ax.figure
+        assert len(fig.axes) == len(PC_COLS[:4]) + 1
+        assert sum(1 for axis in fig.axes if axis.images) == len(PC_COLS[:4])
 
 
 # ===========================================================================

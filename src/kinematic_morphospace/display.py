@@ -483,8 +483,8 @@ def print_density_shift_table(
         bins: Number of histogram bins per axis. Defaults to 60.
     """
     print(
-        f'{"Marker":<12} {"Complete in densest 25%":>24} '
-        f'{"Partial in densest 25%":>24} {"Shift":>8}'
+        f'{"Marker":<12} {"% complete in peak bins":>24} '
+        f'{"% partial in peak bins":>24} {"Shift":>8}'
     )
     print('-' * 72)
 
@@ -517,10 +517,10 @@ def print_density_shift_table(
         frac_c = _bin_fraction(xc, zc, dense)
         frac_p = _bin_fraction(xp, zp, dense)
 
-        print(f'{name:<12} {frac_c:>23.1%} {frac_p:>23.1%} {frac_p - frac_c:>+7.1f}pp')
+        print(f'{name:<12} {frac_c:>23.1%} {frac_p:>23.1%} {(frac_p - frac_c) * 100:>+7.1f}pp')
 
     print()
-    print('Densest 25% of bins = gliding/spread-wing region (most complete frames).')
+    print('Peak bins = top quartile of bins by complete-frame count (gliding/spread-wing region).')
     print('Negative shift = partial frames are less concentrated at gliding peak.')
 
 
@@ -547,6 +547,54 @@ def print_marker_dropout_rates(
             f'{name:<12} {missing_count:>10,} {present_count:>10,} '
             f'{dropout_rate:>10.1%}'
         )
+
+
+def print_per_hawk_dropout(
+    partial_bilateral: np.ndarray,
+    partial_info: "pd.DataFrame",
+    hawk_names: dict[int, str],
+    marker_names: Sequence[str],
+    bilateral_left_idx: Sequence[int],
+) -> None:
+    """Print per-hawk, per-period marker dropout rates.
+
+    Args:
+        partial_bilateral: Bilateral partial frames of shape
+            ``(N_partial, n_markers_bilateral, 3)``.
+        partial_info: DataFrame with 'BirdID' and 'Year' columns aligned to
+            ``partial_bilateral``.
+        hawk_names: Mapping from BirdID to hawk name.
+        marker_names: Names for each unilateral marker (e.g. wingtip, primary).
+        bilateral_left_idx: Indices of left-side markers in bilateral array.
+    """
+    import pandas as pd
+
+    year_to_period = {2017: 1, 2020: 2}
+    rows = []
+    for hawk_id, hawk_name in hawk_names.items():
+        for year, period in year_to_period.items():
+            hmask = (
+                (partial_info['BirdID'].astype(int).values == hawk_id)
+                & (partial_info['Year'].astype(int).values == year)
+            )
+            n_total = hmask.sum()
+            if n_total == 0:
+                continue
+            subset = partial_bilateral[hmask]
+            any_miss = np.any(np.isnan(subset), axis=(1, 2)).sum()
+            row = {
+                'Hawk': hawk_name,
+                'Period': period,
+                'Frames': n_total,
+                'Partial %': f'{any_miss / n_total:.1%}',
+            }
+            for name, idx in zip(marker_names, bilateral_left_idx):
+                miss_count = np.isnan(subset[:, idx, 0]).sum()
+                row[f'{name} %'] = f'{miss_count / n_total:.1%}'
+            rows.append(row)
+
+    df = pd.DataFrame(rows)
+    print(df.to_string(index=False))
 
 
 def print_anatomical_violations(
@@ -622,3 +670,257 @@ def print_violation_breakdown(
             f'{key:<25} {n_complete_viol:>6,} ({complete_rate:.2%}) '
             f'{n_partial_viol:>6,} ({partial_rate:.2%})'
         )
+
+
+# ── Matrix completion / imputation ───────────────────────────────────
+
+
+def print_imputation_results(
+    n_frames_complete: int,
+    n_frames_imputed: int,
+    dropout_rates: dict[str, float],
+    cv_rmse: float,
+    cv_rmse_pct: float,
+    cev_complete: np.ndarray,
+    cev_imputed: np.ndarray,
+    cosines: np.ndarray,
+    n_modes: int = 4,
+) -> None:
+    """Print summary of matrix-completion imputation results.
+
+    Args:
+        n_frames_complete: Number of frames in complete-marker baseline.
+        n_frames_imputed: Number of frames after imputation.
+        dropout_rates: Per-marker dropout rates as {marker_name: rate}.
+        cv_rmse: Cross-validation RMSE in metres.
+        cv_rmse_pct: Cross-validation RMSE as percentage of wingspan.
+        cev_complete: Cumulative explained variance for baseline PCA.
+        cev_imputed: Cumulative explained variance for imputed-data PCA.
+        cosines: Principal cosines between baseline and imputed modes.
+        n_modes: Number of modes to display (default 4).
+    """
+    print("Matrix Completion Results")
+    print("=" * 60)
+    print(f"\nDatasets:")
+    print(f"  Complete-marker baseline: {n_frames_complete:>10,} frames")
+    print(f"  Imputed dataset:          {n_frames_imputed:>10,} frames")
+    print(f"  Expansion factor:         {n_frames_imputed / n_frames_complete:>10.1f}×")
+
+    print(f"\nPer-marker dropout rates:")
+    for marker, rate in dropout_rates.items():
+        print(f"  {marker:<12}: {rate:>5.1%}")
+
+    print(f"\nImputation accuracy (10% held-out cross-validation):")
+    print(f"  RMSE: {cv_rmse:.4f} m ({cv_rmse_pct:.1f}% of wingspan)")
+
+    print(f"\nPCA comparison:")
+    header = "  " + " " * 10
+    for k in range(1, n_modes + 1):
+        header += f"  Mode {k}"
+    print(header)
+    print("  " + "-" * (10 + 8 * n_modes))
+
+    cev_line = f"  {'CEV':<10}"
+    for k in range(n_modes):
+        cev_line += f"  {cev_complete[k]:>5.1%}"
+    print(cev_line + "  (baseline)")
+
+    cev_line = f"  {'':<10}"
+    for k in range(n_modes):
+        cev_line += f"  {cev_imputed[k]:>5.1%}"
+    print(cev_line + "  (imputed)")
+
+    cos_line = f"  {'Cosines':<10}"
+    for k in range(n_modes):
+        cos_line += f"  {cosines[k]:>.4f}"
+    print(cos_line)
+
+
+def print_score_correlation(
+    scores_a: np.ndarray,
+    scores_b: np.ndarray,
+    components_a: np.ndarray,
+    components_b: np.ndarray,
+    n_modes: int = 12,
+) -> None:
+    """Print Pearson r and RMSE between two sets of PC scores.
+
+    Sign-aligns modes if they point in opposite directions before
+    computing correlation. Useful for comparing scores from PCA
+    computed on different preprocessing (e.g. with/without rotation).
+
+    Args:
+        scores_a: First score matrix of shape (n_samples, n_components).
+        scores_b: Second score matrix of shape (n_samples, n_components).
+        components_a: First component matrix (n_components, n_features).
+        components_b: Second component matrix (n_components, n_features).
+        n_modes: Number of modes to compare (default 12).
+    """
+    from scipy.stats import pearsonr
+
+    print(f"{'PC':>4}  {'Pearson r':>10}  {'RMSE':>10}  {'Std A':>10}  {'Std B':>10}")
+    print("-" * 50)
+    for i in range(n_modes):
+        a = scores_a[:, i]
+        b = scores_b[:, i].copy()
+        # Sign-align if modes point in opposite directions
+        if components_a[i] @ components_b[i] < 0:
+            b = -b
+        r, _ = pearsonr(a, b)
+        rmse = np.sqrt(np.mean((a - b) ** 2))
+        print(f"PC{i+1:>2}  {r:>10.4f}  {rmse:>10.4f}  {a.std():>10.4f}  {b.std():>10.4f}")
+
+
+def print_array_difference(
+    original: np.ndarray,
+    transformed: np.ndarray,
+    name: str = "Data",
+    expect_different: bool = True,
+) -> bool:
+    """Print summary of differences between two arrays.
+
+    Reports whether arrays are identical (allclose), max and mean absolute
+    differences, and a PASS/FAIL status based on whether they differ as
+    expected.
+
+    Args:
+        original: First array to compare.
+        transformed: Second array to compare.
+        name: Label for the comparison (e.g. "Data file integrity").
+        expect_different: If True, PASS when arrays differ; if False, PASS
+            when arrays are identical.
+
+    Returns:
+        True if the check passed, False otherwise.
+    """
+    identical = np.allclose(original, transformed)
+    max_diff = np.max(np.abs(original - transformed))
+    mean_diff = np.mean(np.abs(original - transformed))
+
+    print(f"Check {name}")
+    print(f"  Arrays identical (allclose): {identical}")
+    print(f"  Max absolute difference:  {max_diff:.6f}")
+    print(f"  Mean absolute difference: {mean_diff:.6f}")
+
+    if expect_different:
+        passed = not identical
+        status = "PASS" if passed else "FAIL"
+        msg = "Arrays differ as expected" if passed else "WARNING — arrays are identical!"
+    else:
+        passed = identical
+        status = "PASS" if passed else "FAIL"
+        msg = "Arrays match as expected" if passed else "WARNING — arrays differ!"
+
+    print(f"  -> {status}: {msg}\n")
+    return passed
+
+
+def print_data_provenance(
+    target: np.ndarray,
+    source_a: np.ndarray,
+    source_b: np.ndarray,
+    name_a: str = "Source A",
+    name_b: str = "Source B",
+    expect_a: bool = True,
+) -> str:
+    """Check which of two sources matches a target array.
+
+    Args:
+        target: The array to check provenance of.
+        source_a: First candidate source.
+        source_b: Second candidate source.
+        name_a: Label for source A.
+        name_b: Label for source B.
+        expect_a: If True, expect source_a to match.
+
+    Returns:
+        "A", "B", or "NEITHER" depending on which source matches.
+    """
+    match_a = np.allclose(source_a, target)
+    match_b = np.allclose(source_b, target)
+
+    print("Check Data Provenance")
+    print(f"  Matches {name_a}: {match_a}")
+    print(f"  Matches {name_b}: {match_b}")
+
+    if match_a and not match_b:
+        result = "A"
+        if expect_a:
+            print(f"  -> PASS: target matches {name_a} as expected\n")
+        else:
+            print(f"  -> FAIL: target matches {name_a} but expected {name_b}\n")
+    elif match_b and not match_a:
+        result = "B"
+        if not expect_a:
+            print(f"  -> PASS: target matches {name_b} as expected\n")
+        else:
+            print(f"  -> FAIL: target matches {name_b} but expected {name_a}\n")
+    elif match_a and match_b:
+        result = "BOTH"
+        print("  -> INCONCLUSIVE: both sources match (they may be identical)\n")
+    else:
+        result = "NEITHER"
+        print("  -> INCONCLUSIVE: neither source matches exactly\n")
+
+    return result
+
+
+def print_rotation_summary(
+    angles_df: "pd.DataFrame",
+    angle_columns: list[str],
+    condition_column: str = "Obstacle",
+    condition_values: dict[int, str] | None = None,
+) -> None:
+    """Print rotation angle summary statistics by condition.
+
+    Args:
+        angles_df: DataFrame with angle columns and condition column.
+        angle_columns: List of column names containing angle values.
+        condition_column: Column to group by (default "Obstacle").
+        condition_values: Optional mapping of values to labels.
+    """
+    if condition_values is None:
+        condition_values = {0: "Straight", 1: "Obstacle"}
+
+    print("Rotation magnitude by condition")
+    for col in angle_columns:
+        print(f"  {col}:")
+        for val, label in condition_values.items():
+            subset = angles_df.loc[angles_df[condition_column] == val, col].abs()
+            print(f"    {label} — median={subset.median():.1f} deg, "
+                  f"95th={subset.quantile(0.95):.1f} deg")
+    print()
+
+
+def print_displacement_summary(
+    original: np.ndarray,
+    transformed: np.ndarray,
+    condition_mask: np.ndarray | None = None,
+    condition_labels: tuple[str, str] = ("Condition A", "Condition B"),
+) -> None:
+    """Print marker displacement statistics between two arrays.
+
+    Args:
+        original: Original marker positions (n_frames, n_markers, 3).
+        transformed: Transformed marker positions.
+        condition_mask: Optional boolean mask splitting frames into two groups.
+        condition_labels: Labels for the two conditions.
+    """
+    displacement = np.linalg.norm(original - transformed, axis=2).mean(axis=1)
+
+    print("Per-frame marker displacement")
+    print(f"  Overall:  mean={displacement.mean():.4f}, "
+          f"median={np.median(displacement):.4f}, "
+          f"95th={np.percentile(displacement, 95):.4f}, "
+          f"max={displacement.max():.4f}")
+
+    if condition_mask is not None:
+        disp_a = displacement[condition_mask]
+        disp_b = displacement[~condition_mask]
+        print(f"  {condition_labels[0]}: mean={disp_a.mean():.4f}")
+        print(f"  {condition_labels[1]}: mean={disp_b.mean():.4f}")
+
+        if disp_a.mean() > 1e-8 and disp_b.mean() > 1e-8:
+            ratio = disp_b.mean() / disp_a.mean()
+            print(f"  -> Ratio ({condition_labels[1]}/{condition_labels[0]}): {ratio:.1f}x")
+    print()

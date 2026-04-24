@@ -103,7 +103,7 @@ def plot_score(scores_df, PC_name='PC01', ax=None, alpha=1, linestyle='-',
 
     return ax
 
-def plot_score_multi_PCs(scores_df, PC_num_list=None, **filters):
+def plot_score_multi_PCs(scores_df, PC_num_list=None, show_mode_name=True, **filters):
     """Plot binned score traces for multiple morphing shape modes in a grid.
 
     Creates one panel per PC. When all nine interpretable modes are requested,
@@ -129,6 +129,7 @@ def plot_score_multi_PCs(scores_df, PC_num_list=None, **filters):
         raise ValueError(msg)
 
     perch_int = filters['perchDist']
+
 
     PC_titles = {
         'PC01': 'wing lifting',
@@ -168,8 +169,9 @@ def plot_score_multi_PCs(scores_df, PC_num_list=None, **filters):
         y_mid = np.round(max(abs(y_min), abs(y_max)) / 2, 2)
         ax.set_yticks([-y_mid, 0, y_mid])
 
-        title = PC_titles.get(pc_name, pc_name)
-        ax.set_title(title, fontsize=8, position=(0.5, 0.9))
+        if show_mode_name:
+            title = PC_titles.get(pc_name, pc_name)
+            ax.set_title(title, fontsize=8, position=(0.5, 0.9))
         ax.tick_params(axis='x', labelsize=8)
         ax.tick_params(axis='y', labelsize=6)
         ax.spines['top'].set_visible(False)
@@ -447,4 +449,45 @@ def plot_score_multi_bird(scores_df, PC_name, birdname_list=None, **filters):
 
     fig.tight_layout()
 
+    return fig, axes
+
+
+def plot_left_right_timeseries(scores_df, PC_name, hawkname, straight_year=2020):
+    """Plot left and right PC score traces for straight and turning flights.
+
+    Produces a 3-row stack comparing left (dashed) and right (solid) traces
+    for a single hawk across straight flights, right turns, and left turns.
+    Straight flights should overlap; turns should show visible left/right
+    separation.
+
+    Args:
+        scores_df: DataFrame of binned PC scores with side and turn metadata.
+        PC_name: Name of the PC column to plot (e.g. 'PC04').
+        hawkname: Bird to restrict the plot to.
+        straight_year: Year filter for the straight-flight panel, matching
+            the subset used elsewhere. Defaults to 2020.
+
+    Returns:
+        Tuple of (fig, axes).
+    """
+    fig, axes = plt.subplots(3, 1, figsize=(6, 6), sharex=True, sharey=True)
+
+    panels = [
+        (axes[0], "Straight flight — left (dashed) & right (solid)",
+         dict(perchDist=9, turn='Straight', year=straight_year)),
+        (axes[1], "Right turn — left (dashed) & right (solid)",
+         dict(turn='Right')),
+        (axes[2], "Left turn — left (dashed) & right (solid)",
+         dict(turn='Left')),
+    ]
+
+    for ax, title, filters in panels:
+        plot_score(scores_df, PC_name, ax=ax, hawkname=hawkname,
+                   left=True, linestyle='--', **filters)
+        plot_score(scores_df, PC_name, ax=ax, hawkname=hawkname,
+                   left=False, **filters)
+        ax.set_title(title, fontsize=8, y=0.85)
+
+    fig.suptitle(f"{PC_name} — {hawkname}", fontsize=10)
+    fig.tight_layout()
     return fig, axes

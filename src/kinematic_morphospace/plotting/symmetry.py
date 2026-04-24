@@ -9,7 +9,7 @@ from ..data_filtering import filter_by
 from .markers import plot_raw_markers
 
 
-def prepare_left_right_comparison(scores_df, **filters):
+def prepare_left_right_comparison(scores_df, *, scores_df_norot=None, **filters):
     """Prepare merged left/right PC scores for bilateral symmetry analysis.
 
     Filters left- and right-wing scores separately, merges them on frameID
@@ -20,6 +20,11 @@ def prepare_left_right_comparison(scores_df, **filters):
     Args:
         scores_df: DataFrame containing PC scores and metadata; must include
             frameID, seqID, and left columns.
+        scores_df_norot: Optional DataFrame of unrotated scores. If provided,
+            PC01 and PC02 columns are taken from this dataset (avoiding the
+            circularity of rotation correction which assumes symmetry for these
+            modes), while PC03+ come from scores_df. Both DataFrames must share
+            the same frameIDs.
         **filters: Keyword arguments forwarded to filter_by() to select the
             subset of flights to include (e.g. obstacle=0, hawkname='Drogon').
 
@@ -44,6 +49,22 @@ def prepare_left_right_comparison(scores_df, **filters):
         right_index=True,
         suffixes=('_left', '_right'),
     )
+
+    # If unrotated scores provided, swap in PC01 and PC02 from that dataset
+    # (avoids circularity: rotation correction assumes symmetry for modes 1-2)
+    if scores_df_norot is not None:
+        left_filter_norot = filter_by(scores_df_norot, left=1, **filters)
+        right_filter_norot = filter_by(scores_df_norot, left=0, **filters)
+        left_norot = scores_df_norot[left_filter_norot].set_index('frameID')
+        right_norot = scores_df_norot[right_filter_norot].set_index('frameID')
+        lr_norot = left_norot.merge(
+            right_norot, left_index=True, right_index=True,
+            suffixes=('_left', '_right'),
+        )
+        # Replace PC01 and PC02 columns with unrotated versions
+        for pc in ['PC01', 'PC02']:
+            left_right_scores[f'{pc}_left'] = lr_norot[f'{pc}_left']
+            left_right_scores[f'{pc}_right'] = lr_norot[f'{pc}_right']
 
     # Calculate score percentiles
     PC_cols = [f'PC{i:02}' for i in np.arange(1, 13)]
@@ -120,7 +141,7 @@ def _major_axis_line(data, major_slope):
 
 
 def _plot_one_pc(ax, left_right_scores, score_5, score_95, PC,
-                 colour, alpha, bkgrd_color='white'):
+                 colour, alpha, bkgrd_color='white', point_size=0.1):
     """Render a single left-vs-right scatter panel for one PC."""
     pc_label = f'PC{PC+1:02}'
 
@@ -132,7 +153,7 @@ def _plot_one_pc(ax, left_right_scores, score_5, score_95, PC,
     plot_raw_markers(ax,
                      left_right_scores[f'{pc_label}_right'],
                      left_right_scores[f'{pc_label}_left'],
-                     colour=colour, alpha=alpha)
+                     colour=colour, alpha=alpha, size=point_size)
 
     ax.plot(x_grid, major_line, ':', c='black', linewidth=0.8)
     ax.set_facecolor(bkgrd_color)
@@ -222,15 +243,22 @@ def print_symmetry_summary(left_right_scores, label=''):
               f'{r["variance_pct"]:>6.1f}%  {r["coupling"]}')
 
 
-def plot_left_right(
-    left_right_scores, score_5, score_95, alpha=0.05, bkgrd_color='white'
-):
-    """Plot 4x3 grid comparing left vs right PC scores for all modes.
+DEFAULT_PC_ORDER = [0, 1, 2, 3, 4, 7, 5, 6, 8, 9, 10, 11]
+"""Thematic display order for morphing modes: PC01-05, then PC08 (collective
+pitching, pitch-related and grouped with PC05 counter-pitching), then the
+handwing trio PC06, PC07, PC09, then PC10-12."""
 
-    Each of the 12 panels shows a scatter of left-wing scores against
-    right-wing scores for one PC, with the major-axis regression line and the
-    line of perfect symmetry (y = x) overlaid. Deviation from the diagonal
-    reveals left-right asymmetry in that morphing mode.
+
+def plot_left_right(
+    left_right_scores, score_5, score_95, alpha=0.05, bkgrd_color='white',
+    highlight_unrotated=False, pc_order=[0, 1, 2, 3, 4, 7, 5, 6, 8], point_size=0.1,
+):
+    """Plot grid comparing left vs right PC scores.
+
+    Each panel shows a scatter of left-wing scores against right-wing scores
+    for one PC, with the major-axis regression line and the line of perfect
+    symmetry (y = x) overlaid. Deviation from the diagonal reveals left-right
+    asymmetry in that morphing mode.
 
     Args:
         left_right_scores: Merged left/right DataFrame as returned by
@@ -239,11 +267,26 @@ def plot_left_right(
         score_95: Per-PC upper axis limits.
         alpha: Scatter-point opacity. Defaults to 0.05.
         bkgrd_color: Background colour for each panel. Defaults to 'white'.
+        highlight_unrotated: If True, draw a dotted box around modes 1-2 to
+            indicate these panels use unrotated (pre-correction) scores.
+            Defaults to False.
+        pc_order: Zero-indexed PC numbers to plot, in display order. Defaults
+            to DEFAULT_PC_ORDER (PC01-05, PC08, PC06, PC07, PC09-12). Pass a
+            9-element list to drop PC10-12 from conditional figures where
+            those higher modes are interpreted as noise.
+        point_size: Scatter marker size passed to matplotlib. Defaults to 0.1
+            (suitable for dense all-flight plots). Increase for sparse subsets
+            such as obstacle flights where individual points are hard to see.
 
     Returns:
-        Tuple of (fig, axs) where axs is a flat array of 12 Axes.
+        Tuple of (fig, axs) where axs is a flat array of Axes.
     """
-    fig, axs = plt.subplots(4, 3, figsize=(8, 8),
+    if pc_order is None:
+        pc_order = list(DEFAULT_PC_ORDER)
+    n = len(pc_order)
+    ncols = 3
+    nrows = (n + ncols - 1) // ncols
+    fig, axs = plt.subplots(nrows, ncols, figsize=(8, 2 * nrows),
                             sharex=False, sharey=False,
                             gridspec_kw={'hspace': 0.15, 'wspace': 0})
     axs = axs.flatten()
@@ -252,11 +295,60 @@ def plot_left_right(
               '#917AC2', '#BE607F', '#624E8B',
               '#888888', '#888888', '#888888']
 
-    for PC in range(12):
-        _plot_one_pc(axs[PC], left_right_scores, score_5, score_95,
-                     PC, colour_list[PC], alpha, bkgrd_color)
+    for i, PC in enumerate(pc_order):
+        _plot_one_pc(axs[i], left_right_scores, score_5, score_95,
+                     PC, colour_list[PC], alpha, bkgrd_color,
+                     point_size=point_size)
+
+    for j in range(n, len(axs)):
+        axs[j].axis('off')
+
+    if highlight_unrotated:
+        _add_unrotated_highlight(fig, axs)
 
     return fig, axs
+
+
+def _add_unrotated_highlight(fig, axs):
+    """Draw a dotted box around modes 1-2 to indicate unrotated scores.
+
+    Args:
+        fig: The figure containing the axes.
+        axs: Flat array of axes from the 4x3 grid.
+    """
+    from matplotlib.patches import FancyBboxPatch
+
+    # Get bounding box around first two axes (PC1 and PC2)
+    bbox0 = axs[0].get_position()
+    bbox1 = axs[1].get_position()
+
+    # Compute rectangle that encompasses both, with small padding
+    pad = 0.01
+    x0 = bbox0.x0 - (pad*4.5)
+    y0 = min(bbox0.y0, bbox1.y0) - pad
+    width = bbox1.x1 - bbox0.x0 + 2 * (pad*2.5)
+    height = max(bbox0.y1, bbox1.y1) - y0 + pad
+
+    rect = FancyBboxPatch(
+        (x0, y0), width, height,
+        boxstyle="round,pad=0.01,rounding_size=0.02",
+        linewidth=1,
+        edgecolor='#666666',
+        facecolor='none',
+        linestyle=':',
+        transform=fig.transFigure,
+        clip_on=False,
+    )
+    fig.patches.append(rect)
+
+    # Add small label
+    fig.text(
+        x0 + width, y0 + height + (pad*2.5),
+        'without rotation correction',
+        ha='center', va='top',
+        fontsize=7, color='#666666',
+        transform=fig.transFigure,
+    )
 
 
 def plot_left_right_just_two(left_right_scores, score_5, score_95, alpha=0.05):
@@ -274,11 +366,11 @@ def plot_left_right_just_two(left_right_scores, score_5, score_95, alpha=0.05):
         alpha: Scatter-point opacity. Defaults to 0.05.
 
     Returns:
-        Tuple of (fig, axs) where axs is a flat array of 12 Axes (10 hidden).
+        Tuple of (fig, axs) where axs is a flat array of 2 Axes.
     """
-    fig, axs = plt.subplots(4, 3, figsize=(8, 8),
+    fig, axs = plt.subplots(1, 2, figsize=(5.5, 2.5),
                             sharex=False, sharey=False,
-                            gridspec_kw={'hspace': 0.15, 'wspace': 0})
+                            gridspec_kw={'wspace': 0})
     axs = axs.flatten()
     colour_list = ['#B5E675', '#6ED8A9']
 
@@ -286,8 +378,147 @@ def plot_left_right_just_two(left_right_scores, score_5, score_95, alpha=0.05):
         _plot_one_pc(axs[PC], left_right_scores, score_5, score_95,
                      PC, colour_list[PC], alpha)
 
-    for PC in range(2, 12):
-        axs[PC].axis('off')
+    return fig, axs
+
+
+def plot_left_right_just_two_stacked(conditions, score_5, score_95, alpha=0.05):
+    """Plot PC1 and PC2 symmetry panels for multiple conditions, stacked vertically.
+
+    Each row shows one condition (e.g. straight flights, obstacle flights) with
+    two panels: PC1 on the left and PC2 on the right. Row labels are added on
+    the left margin from the ``title`` key of each condition dict.
+
+    Args:
+        conditions: List of dicts, each with keys:
+            - ``title``: str label for the row (e.g. ``'Straight flights'``).
+            - ``left_right_scores``: DataFrame from
+              :func:`prepare_left_right_comparison`.
+        score_5: Per-PC lower axis limits (shared across conditions).
+        score_95: Per-PC upper axis limits (shared across conditions).
+        alpha: Scatter-point opacity, either a single float applied to all
+            conditions or a list with one value per condition. Defaults to 0.05.
+
+    Returns:
+        Tuple of (fig, axs) where axs has shape (n_conditions, 2).
+    """
+    n = len(conditions)
+    alphas = alpha if isinstance(alpha, (list, tuple)) else [alpha] * n
+    colour_list = ['#B5E675', '#6ED8A9']
+    fig, axs = plt.subplots(n, 2, figsize=(5.5, 2.5 * n),
+                            sharex=False, sharey=False,
+                            gridspec_kw={'hspace': 0.35, 'wspace': 0})
+    if n == 1:
+        axs = axs[np.newaxis, :]
+
+    for row, (condition, a) in enumerate(zip(conditions, alphas)):
+        for PC in range(2):
+            _plot_one_pc(axs[row, PC], condition['left_right_scores'],
+                         score_5, score_95, PC, colour_list[PC], alpha = a)
+        axs[row, 0].set_title(condition['title'], fontsize=9, loc='left', pad=4)
+
+    return fig, axs
+
+
+def plot_rotation_correction_comparison(scores_df, scores_df_norot, alpha=0.5, **filters):
+    """Compare corrected vs uncorrected scores for modes 1-2.
+
+    Creates a stacked figure showing the effect of rotation correction on
+    bilateral symmetry for the first two modes. The top row shows corrected
+    scores (with artificially forced symmetry), the bottom row shows uncorrected
+    scores (with genuine bilateral coupling).
+
+    This comparison validates the assumption underlying the rotation correction:
+    that modes 1-2 are genuinely bilaterally symmetric.
+
+    Args:
+        scores_df: DataFrame of rotation-corrected scores.
+        scores_df_norot: DataFrame of uncorrected (pre-rotation) scores.
+        alpha: Scatter-point opacity. Defaults to 0.5.
+        **filters: Keyword arguments forwarded to prepare_left_right_comparison()
+            (e.g. obstacle=0, naive=0, perchDist=["9", "12"]).
+
+    Returns:
+        Tuple of (fig, axs) where axs has shape (2, 2).
+    """
+    # Prepare corrected scores
+    lr_corrected, score_5, score_95 = prepare_left_right_comparison(
+        scores_df, **filters
+    )
+    # Prepare uncorrected scores
+    lr_uncorrected, _, _ = prepare_left_right_comparison(
+        scores_df_norot, **filters
+    )
+
+    # Build conditions for stacked plot
+    conditions = [
+        {
+            "title": "Rotation-corrected (modes 1-2 have forced symmetry)",
+            "left_right_scores": lr_corrected,
+        },
+        {
+            "title": "Uncorrected (genuine symmetry for modes 1-2)",
+            "left_right_scores": lr_uncorrected,
+        },
+    ]
+
+    fig, axs = plot_left_right_just_two_stacked(
+        conditions, score_5, score_95, alpha=[alpha, alpha]
+    )
+
+    return fig, axs
+
+
+def plot_symmetry_validation(scores_df, scores_df_norot, alpha_straight=0.5, alpha_obstacle=0.9):
+    """Compare corrected vs uncorrected scores for modes 1-2 across flight types.
+
+    Creates a 4-row stacked figure comparing bilateral symmetry for modes 1-2
+    in both straight and obstacle flights, with and without rotation correction.
+    This validates the assumption that modes 1-2 are genuinely symmetric even
+    during turning flight.
+
+    Rows:
+        1. Straight flights — uncorrected (underlying symmetry)
+        2. Straight flights — corrected (forced symmetry)
+        3. Obstacle flights — uncorrected (loops reflect banking)
+        4. Obstacle flights — corrected (forced symmetry)
+
+    Args:
+        scores_df: DataFrame of rotation-corrected scores.
+        scores_df_norot: DataFrame of uncorrected (pre-rotation) scores.
+        alpha_straight: Scatter-point opacity for straight flights. Defaults to 0.5.
+        alpha_obstacle: Scatter-point opacity for obstacle flights. Defaults to 0.8.
+
+    Returns:
+        Tuple of (fig, axs) where axs has shape (4, 2).
+    """
+    # Uncorrected straight flights
+    lr_straight_uncorr, score_5, score_95 = prepare_left_right_comparison(
+        scores_df_norot, obstacle=0, perchDist=["9", "12"], horzdist="first_half"
+    )
+    # Corrected straight flights
+    lr_straight_corr, _, _ = prepare_left_right_comparison(
+        scores_df, obstacle=0, perchDist=["9", "12"], horzdist="first_half"
+    )
+    # Uncorrected obstacle flights
+    lr_obstacle_uncorr, _, _ = prepare_left_right_comparison(
+        scores_df_norot, obstacle=1
+    )
+    # Corrected obstacle flights
+    lr_obstacle_corr, _, _ = prepare_left_right_comparison(
+        scores_df, obstacle=1
+    )
+
+    conditions = [
+        {"title": "Straight flights — uncorrected (underlying symmetry)", "left_right_scores": lr_straight_uncorr},
+        {"title": "Straight flights — corrected (forced symmetry)", "left_right_scores": lr_straight_corr},
+        {"title": "Obstacle flights — uncorrected (loops reflect banking)", "left_right_scores": lr_obstacle_uncorr},
+        {"title": "Obstacle flights — corrected (forced symmetry)", "left_right_scores": lr_obstacle_corr},
+    ]
+
+    fig, axs = plot_left_right_just_two_stacked(
+        conditions, score_5, score_95,
+        alpha=[alpha_straight, alpha_straight, alpha_obstacle, alpha_obstacle]
+    )
 
     return fig, axs
 

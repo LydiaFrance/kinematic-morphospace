@@ -274,13 +274,20 @@ def plot_coverage_comparison(
         both = (H_c > 0) & (H_p > 0)
         c_only = (H_c > 0) & (H_p == 0)
         p_only = (H_c == 0) & (H_p > 0)
-        n_total = int(both.sum() + c_only.sum() + p_only.sum())
+        n_total_bins = int(both.sum() + c_only.sum() + p_only.sum())
+
+        # Calculate what fraction of partial FRAMES fall in partial-only bins
+        n_partial_frames = int(present.sum())
+        frames_in_novel = int(H_p[p_only].sum())
+        frac_frames_novel = frames_in_novel / n_partial_frames if n_partial_frames else 0
+
         coverage_stats.append({
             'Marker': name,
             'Shared': int(both.sum()),
             'Complete only': int(c_only.sum()),
             'Partial only': int(p_only.sum()),
-            'Partial-only %': f'{p_only.sum() / n_total:.1%}' if n_total else '0%',
+            'Partial-only bins %': f'{p_only.sum() / n_total_bins:.1%}' if n_total_bins else '0%',
+            'Frames in novel %': f'{frac_frames_novel:.1%}',
         })
 
     fig.legend(
@@ -331,7 +338,7 @@ def plot_cooccurrence_heatmap(
 
     for a in range(n_markers):
         for b in range(n_markers):
-            colour = 'white' if co_occur[a, b] > 0.5 else 'black'
+            colour = 'black'
             ax.text(b, a, f'{co_occur[a, b]:.2f}', ha='center', va='center',
                     fontsize=10, color=colour)
 

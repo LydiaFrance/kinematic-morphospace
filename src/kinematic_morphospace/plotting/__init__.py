@@ -91,12 +91,14 @@ from .schematics import plot_subsampling_schematic as plot_subsampling_schematic
 # PC score time traces
 from .scores import plot_pc_comparison_grid as plot_pc_comparison_grid
 from .scores import plot_score as plot_score
+from .scores import plot_left_right_timeseries as plot_left_right_timeseries
 from .scores import plot_score_multi_bird as plot_score_multi_bird
 from .scores import plot_score_multi_distance as plot_score_multi_distance
 from .scores import plot_score_multi_PCs as plot_score_multi_PCs
 
 # Cross-species marker visualisation
 from .species import plot_bird_markers as plot_bird_markers
+from .species import prepare_long_neck_bird as prepare_long_neck_bird
 
 # Individual-vs-shared subspace comparisons
 from .subspaces import HAWK_COLOURS as HAWK_COLOURS
@@ -119,6 +121,7 @@ from .symmetry import plot_left_right_just_two_stacked as plot_left_right_just_t
 from .symmetry import (
     plot_rotation_correction_comparison as plot_rotation_correction_comparison,
 )
+from .symmetry import plot_symmetry_validation as plot_symmetry_validation
 from .symmetry import plot_symmetry_scores as plot_symmetry_scores
 from .symmetry import prepare_left_right_comparison as prepare_left_right_comparison
 from .symmetry import print_symmetry_summary as print_symmetry_summary
@@ -139,7 +142,9 @@ from .variance import (
 from .variance import plot_cumulative_variance_ratios as plot_cumulative_variance_ratios
 from .variance import plot_explained as plot_explained
 from .variance import plot_explained_comparison as plot_explained_comparison
+from .variance import plot_explained_overlay as plot_explained_overlay
 from .variance import plot_hist_similar_shapes as plot_hist_similar_shapes
+from .variance import plot_reconstruction_accuracy as plot_reconstruction_accuracy
 from .variance import (
     table_cumulative_variance_ratios as table_cumulative_variance_ratios,
 )
