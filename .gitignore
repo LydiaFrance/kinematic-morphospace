@@ -57,6 +57,13 @@ ENV/
 htmlcov/
 .coverage
 coverage.xml
+coverage.json
+
+# ── Local-only (not for GitHub) ──
+docs/superpowers/
+*.docx
+scripts/experimental_effects_summary.py
+scripts/nb10_symmetry_table.csv
 
 # ── Built site ──
 site/
