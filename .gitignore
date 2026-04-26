@@ -1,31 +1,32 @@
-AGENTS.md
-CLAUDE.md
+# ── Hidden caches, virtual envs, IDE configs ──
+.[!g]*/
+.[!g]*
 
+# ── Drafts & local notes ──
+manuscript/
+tasks/
+scripts/
+A*.md
+C*.md
+running_questions.md
+*.docx
+~$*
 *.tex
 
-# ── Large data files (release via Zenodo DOI) ──
+# ── Large data (released via Figshare DOI) ──
 data/raw/
 data/bilateral/
 data/unilateral/
 data/DATA_NOTES.md
-
-# Keep small reference files
+figshare_staging/
 !data/mean_hawk_shape.csv
-
-# Harvey 2022 cadaver data — redistributed with citation (see README)
 !data/harvey_2022/
 
-# ── Generated outputs ──
+# ── Generated figures (only ship supplementary + gifs) ──
 figures/*
 !figures/supplementary_images/
 !figures/gifs/
 logs/
-
-# ── Supplementary materials (kept locally/OneDrive, not on GitHub) ──
-supplementary_materials.md
-supplementary_materials.pdf
-08-Supplementary-Materials.md
-running_questions.md
 
 # ── Python ──
 __pycache__/
@@ -36,41 +37,19 @@ dist/
 build/
 *.egg
 
-# ── Virtual environments ──
-.venv/
-venv/
-ENV/
+# ── Coverage ──
+coverage.xml
+coverage.json
+htmlcov/
 
-# ── IDE / OS ──
-.DS_Store
-.vscode/
+# ── Build artefacts ──
+site/
+*.db
+
+# ── Jupyter ──
+*.nbconvert.ipynb
+
+# ── OS / editor ──
 *.swp
 *.swo
 *~
-
-# ── Jupyter ──
-.ipynb_checkpoints/
-*.nbconvert.ipynb
-
-# ── Pytest ──
-.pytest_cache/
-htmlcov/
-.coverage
-coverage.xml
-coverage.json
-
-# ── Local-only (not for GitHub) ──
-docs/superpowers/
-*.docx
-scripts/experimental_effects_summary.py
-scripts/nb10_symmetry_table.csv
-
-# ── Built site ──
-site/
-
-# Beads issue tracker
-.beads/
-
-# Dolt database files (added by bd init)
-.dolt/
-*.db
