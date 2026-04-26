@@ -31,6 +31,8 @@ The dataset (~2.3 GB) lives on Figshare under DOI [`10.6084/m9.figshare.32101528
    When prompted, paste the share token from the manuscript's *Data Availability* section (or paste the full `https://figshare.com/s/…` URL — either works). The script downloads ~2.3 GB into `./data/` (~5 min on Codespaces).
 4. Open any notebook under `examples/hawks/`. Suggested order: `00_ExperimentalSetup.ipynb` → `15_AlternativeMethods.ipynb`. Click *Run All* on each.
 
+> Each notebook starts with a hidden cleanup cell that frees memory and figures from any previous notebook run sharing the same kernel. It is safe to re-run and is a no-op on a cold kernel — its purpose is to let you switch between notebooks without restarting the kernel manually.
+
 **If something fails**: the Codespace is disposable — delete it from <https://github.com/codespaces> and create a fresh one. Free GitHub accounts include 60 hours/month of 4-core Codespaces, which is more than enough for one full review pass.
 
 ---
