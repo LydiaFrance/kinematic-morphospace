@@ -13,6 +13,13 @@ uv sync --frozen
 echo "  ✓ environment ready"
 echo
 
+echo "  → Registering Jupyter kernel for VS Code auto-selection..."
+uv run python -m ipykernel install --user \
+    --name python3 \
+    --display-name "kinematic-morphospace" >/dev/null
+echo "  ✓ kernel registered as 'kinematic-morphospace' (id=python3)"
+echo
+
 # Install the welcome banner so it prints AFTER Codespaces' default
 # welcome message and AFTER the venv auto-activation, ending up at the
 # bottom of the terminal next to the prompt.
