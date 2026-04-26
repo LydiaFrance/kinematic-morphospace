@@ -549,10 +549,19 @@ def plot_hist_similar_shapes(
     Returns:
         Tuple of (fig, axes).
     """
-    def compare_shapes(shapes1, shapes2):
-        """Compute RMS difference between two sets of shapes."""
-        diff = shapes1[:, None, :, :] - shapes2[None, :, :, :]
-        return np.sqrt(np.mean(diff**2, axis=(2, 3)))
+    def count_similar(shapes1, shapes2, threshold, chunk=2048):
+        """Count, per shape in shapes1, frames in shapes2 within RMS threshold.
+
+        Chunks over shapes2 to bound peak memory — avoids OOM on Codespaces
+        when shapes2 has hundreds of thousands of frames.
+        """
+        counts = np.zeros(shapes1.shape[0], dtype=np.int64)
+        for start in range(0, shapes2.shape[0], chunk):
+            block = shapes2[start:start + chunk]
+            diff = shapes1[:, None, :, :] - block[None, :, :, :]
+            d = np.sqrt(np.mean(diff**2, axis=(2, 3)))
+            counts += np.sum(d < threshold, axis=1)
+        return counts
 
     if pc_indices is None:
         pc_indices = [0, 1]
@@ -589,8 +598,7 @@ def plot_hist_similar_shapes(
             mu,
             components_list=[pc_index],
         )
-        distances = compare_shapes(reconstructed_shapes, marker_data)
-        frame_counts = np.sum(distances < threshold, axis=1)
+        frame_counts = count_similar(reconstructed_shapes, marker_data, threshold)
 
         ax_left = axes[i, 0]
         ax_left.hist(
@@ -642,10 +650,9 @@ def plot_hist_similar_shapes(
             mu,
             components_list=[0, 1],
         )
-        distances_coarse = compare_shapes(
-            reconstructed_shapes_coarse, marker_data
+        frame_counts_coarse = count_similar(
+            reconstructed_shapes_coarse, marker_data, threshold
         )
-        frame_counts_coarse = np.sum(distances_coarse < threshold, axis=1)
         frame_counts_coarse_mesh = frame_counts_coarse.reshape(
             pc2_coarse_mesh.shape
         )
@@ -716,8 +723,7 @@ def plot_hist_similar_shapes(
                 mu,
                 components_list=[0, 1],
             )
-            batch_distances = compare_shapes(batch_shapes, marker_data)
-            batch_counts = np.sum(batch_distances < threshold, axis=1)
+            batch_counts = count_similar(batch_shapes, marker_data, threshold)
 
             i_indices = high_res_indices[0][batch_indices]
             j_indices = high_res_indices[1][batch_indices]
