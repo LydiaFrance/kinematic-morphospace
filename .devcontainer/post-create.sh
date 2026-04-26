@@ -56,9 +56,14 @@ if ! grep -qF "$MARKER" "$HOME/.bashrc" 2>/dev/null; then
     cat >> "$HOME/.bashrc" <<'EOF'
 
 # kinematic-morphospace welcome banner
-if [ -z "${KMS_BANNER_SHOWN:-}" ] && [ -f "/workspaces/kinematic-morphospace/.devcontainer/post-attach.sh" ]; then
-    export KMS_BANNER_SHOWN=1
-    bash /workspaces/kinematic-morphospace/.devcontainer/post-attach.sh
-fi
+# Hooked into PROMPT_COMMAND so it prints AFTER any venv auto-activation
+# that Codespaces / VS Code injects after .bashrc has run.
+_kms_show_banner() {
+    if [ -z "${KMS_BANNER_SHOWN:-}" ] && [ -f "/workspaces/kinematic-morphospace/.devcontainer/post-attach.sh" ]; then
+        export KMS_BANNER_SHOWN=1
+        bash /workspaces/kinematic-morphospace/.devcontainer/post-attach.sh
+    fi
+}
+PROMPT_COMMAND="_kms_show_banner;${PROMPT_COMMAND:-}"
 EOF
 fi
