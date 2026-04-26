@@ -6,6 +6,7 @@ distances, years, obstacles, and weights).
 """
 import matplotlib.collections
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.ticker import FixedLocator, MultipleLocator
 
@@ -62,6 +63,7 @@ def plot_trajectory_data(ax,
                         filter_params,
                         plot_type='scatter',
                         min_samples=None,
+                        show_band=False,
                         **kwargs):
     """Plot trajectory data as a scatter cloud or per-hawk binned median lines.
 
@@ -129,20 +131,33 @@ def plot_trajectory_data(ax,
             if filtered_df.empty:
                 continue
 
-            binned_data = filtered_df.groupby('bins').agg(
-                {y_col: ['count', 'median', 'std']}
-            )
+            # Bin against x_col directly. Prebaked 'bins' column was cut on
+            # HorzDistance — using it for any other x produces lines plotted at
+            # the wrong x-coordinate. Compute fresh bins per call.
+            x_vals = filtered_df[x_col]
+            x_bin_edges = np.linspace(x_vals.min(), x_vals.max(), 41)
+            x_bin_idx = pd.cut(x_vals, bins=x_bin_edges, include_lowest=True)
+            grouped = filtered_df.groupby(x_bin_idx, observed=True)
+            binned_data = grouped.agg({y_col: ['count', 'median', 'std']})
 
             if min_samples is not None:
                 binned_data = binned_data[binned_data[y_col]['count'] >= min_samples]
 
-            x_bins = binned_data.index
-            y_median = binned_data[y_col]['median']
-            y_std = binned_data[y_col]['std']
+            if binned_data.empty:
+                continue
 
-            # Not currently used, plots the shading between ±1 standard deviation.
-            ax.fill_between(x_bins, y_median - y_std, y_median + y_std,
-                          color=hawk_colors[hawk], alpha=0.1)
+            x_bins = np.array([interval.mid for interval in binned_data.index])
+            order = np.argsort(x_bins)
+            x_bins = x_bins[order]
+            y_median = binned_data[y_col]['median'].to_numpy()[order]
+            y_std = binned_data[y_col]['std'].to_numpy()[order]
+
+            # Optional ±1σ band. Off by default — thin polygons at low alpha
+            # render as two parallel edge lines, and high-variance signals
+            # (e.g. TotalSpeed) produce sprawling shading.
+            if show_band:
+                ax.fill_between(x_bins, y_median - y_std, y_median + y_std,
+                              color=hawk_colors[hawk], alpha=0.1)
 
             # Plots the mean of each bin per hawk.
             ax.plot(
@@ -156,6 +171,7 @@ def plot_traj(
     equal=True,
     print_n_flights=False,
     min_samples=None,
+    show_band=False,
     save_path=None,
 ):
     """Create an 8x2 grid of trajectory plots covering all experimental conditions.
@@ -237,6 +253,7 @@ def plot_traj(
                     },
                     plot_type='fill_between',
                     min_samples=min_samples,
+                    show_band=show_band,
                 )
         else:
             plot_trajectory_data(
@@ -253,6 +270,7 @@ def plot_traj(
                 },
                 plot_type='fill_between',
                 min_samples=min_samples,
+                show_band=show_band,
             )
 
     # Add legends
