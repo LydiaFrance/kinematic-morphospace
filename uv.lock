@@ -15,7 +15,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-04-14T13:23:30.430075Z"
+exclude-newer = "2026-04-17T18:51:58.562768Z"
 exclude-newer-span = "P7D"
 
 [[package]]
@@ -1707,7 +1707,7 @@ requires-dist = [
     { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.5" },
     { name = "mkdocs-section-index", marker = "extra == 'docs'", specifier = ">=0.3" },
     { name = "mkdocstrings", extras = ["python"], marker = "extra == 'docs'", specifier = ">=0.27" },
-    { name = "morphing-birds", git = "https://github.com/LydiaFrance/morphing_birds.git?rev=main" },
+    { name = "morphing-birds", git = "https://github.com/LydiaFrance/morphing_birds.git" },
     { name = "notebook", marker = "extra == 'notebook'" },
     { name = "numpy", specifier = ">=1.24,<3" },
     { name = "pandas", specifier = ">=1.5,<3" },
@@ -2212,7 +2212,7 @@ wheels = [
 [[package]]
 name = "morphing-birds"
 version = "0.2.0"
-source = { git = "https://github.com/LydiaFrance/morphing_birds.git?rev=main#a2d045611869a31e4ef18e4d24a9beb7fa2fc907" }
+source = { git = "https://github.com/LydiaFrance/morphing_birds.git#a2d045611869a31e4ef18e4d24a9beb7fa2fc907" }
 dependencies = [
     { name = "dash" },
     { name = "imageio" },
