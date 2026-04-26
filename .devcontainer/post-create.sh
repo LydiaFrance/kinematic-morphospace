@@ -20,15 +20,32 @@ uv run python -m ipykernel install --user \
 echo "  ✓ kernel registered as 'kinematic-morphospace' (id=python3)"
 echo
 
-echo "  → Installing Microsoft core fonts (incl. Andale Mono)..."
-echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" \
-    | sudo debconf-set-selections
-sudo apt-get update -qq
-sudo apt-get install -y -qq ttf-mscorefonts-installer >/dev/null 2>&1 \
-    && fc-cache -f >/dev/null 2>&1 \
-    && rm -rf "$HOME/.cache/matplotlib" \
-    && echo "  ✓ fonts installed (matplotlib cache cleared)" \
-    || echo "  ⚠ font install failed — notebooks will fall back to default monospace"
+echo "  → Installing fonts (Andale Mono via Microsoft Core Fonts)..."
+# Run in a subshell so any apt failure here does NOT abort post-create
+# (notebooks still render with the default monospace fallback if install fails).
+(
+    set +e
+    # ttf-mscorefonts-installer lives in Debian 'contrib', not the default 'main'.
+    if [ -f /etc/apt/sources.list ]; then
+        sudo sed -i -E 's/^(deb .* main)$/\1 contrib/' /etc/apt/sources.list || true
+    fi
+    for f in /etc/apt/sources.list.d/*.sources; do
+        [ -f "$f" ] || continue
+        sudo sed -i -E 's/^(Components: .*\bmain\b)$/\1 contrib/' "$f" || true
+    done
+    echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" \
+        | sudo debconf-set-selections
+    sudo apt-get update -qq >/dev/null 2>&1
+    sudo apt-get install -y -qq ttf-mscorefonts-installer fonts-liberation >/dev/null 2>&1
+    rc=$?
+    fc-cache -f >/dev/null 2>&1 || true
+    rm -rf "$HOME/.cache/matplotlib" || true
+    if [ $rc -eq 0 ]; then
+        echo "  ✓ fonts installed (matplotlib cache cleared)"
+    else
+        echo "  ⚠ font install failed — notebooks will fall back to default monospace"
+    fi
+)
 echo
 
 # Install the welcome banner so it prints AFTER Codespaces' default
