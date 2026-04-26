@@ -45,6 +45,7 @@ dependencies = [
   "seaborn>=0.13.2",
   "ipympl>=0.10.0",
   "requests>=2.32.5",
+  "kaleido>=1.0",
 ]
 
 [project.optional-dependencies]
@@ -52,7 +53,7 @@ plot = [
   "matplotlib>=3.6",
   "seaborn>=0.12",
   "plotly>=5.0",
-  "kaleido>=0.2",
+  "kaleido>=1.0",
   "ipympl>=0.9",
   "Pillow>=9.0",
 ]

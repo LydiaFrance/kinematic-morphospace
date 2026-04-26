@@ -136,11 +136,11 @@ Either the bare token or the whole URL works when the script prompts you.
 | `01_MarkerReconstructionTrajectories` | ~2 min | Trajectory visualisations |
 | `02_BilateralShapePCA` | ~2 min | Bilateral PCA results |
 | `03_RotationCorrection` | ~2 min | Body-rotation correction |
-| `04_MorphingShapeModes` | ~5 min | Main morphing-shape PCA + permutation tests |
+| `04_MorphingShapeModes` | ~2 min (PAPER_MODE: ~5 min) | Main morphing-shape PCA + permutation tests |
 | `05_BeforeAfterRotation` | ~1 min | Rotation visualisation |
-| `06_RobustnessValidation` | ~15–25 min | Permutation + bootstrap robustness checks |
+| `06_RobustnessValidation` | ~3–5 min (PAPER_MODE: ~15–25 min) | Permutation + bootstrap robustness checks |
 | `07_MissingnessAndSamplingBias` | ~5 min | Missingness diagnostics |
-| `08_IndividualVsSharedModes` | ~10–20 min | Bird-level vs shared modes (n=2000 perm/boot) |
+| `08_IndividualVsSharedModes` | ~2–3 min (PAPER_MODE: ~10–20 min) | Bird-level vs shared modes |
 | `09_VisualisingModes` | ~2 min | Mode visualisation figures |
 | `10_MorphingSymmetry` | ~5 min | Bilateral symmetry tests |
 | `11_MorphingScoresOverTime` | ~3 min | Temporal score profiles |
@@ -151,7 +151,7 @@ Either the bare token or the whole URL works when the script prompts you.
 
 Wall times are approximate, measured on a 4-core Codespace. A modern laptop is roughly 1.5–2× faster.
 
-Each notebook has a `PAPER_MODE` flag near the top of its config cell. Set it to `True` to run the full permutation/bootstrap counts used in the manuscript; `False` runs a faster, lower-resolution version (figures still render but p-values are coarser). Default is `True`.
+Notebooks 04, 06, and 08 expose a `PAPER_MODE` flag near the top of their setup cell. **Default is `False`** — a faster, lower-resolution run (~5–10× speedup) that still renders every figure but uses coarser p-values from fewer permutation/bootstrap iterations. Set it to `True` to reproduce the exact iteration counts used in the manuscript.
 
 ---
 

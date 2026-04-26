@@ -27,7 +27,11 @@
           "**/__pycache__": true,
           "**/.pytest_cache": true,
           "**/.ruff_cache": true
-        }
+        },
+        "workbench.editorLargeFileConfirmation": 4096,
+        "notebook.output.textLineLimit": 1000,
+        "notebook.output.scrolling": true,
+        "jupyter.maxOutputSize": 50000000
       }
     }
   },

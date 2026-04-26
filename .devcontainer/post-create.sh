@@ -48,6 +48,19 @@ echo "  → Installing fonts (Andale Mono via Microsoft Core Fonts)..."
 )
 echo
 
+echo "  → Installing Chromium (kaleido 1.x needs a browser for plotly write_image)..."
+(
+    set +e
+    sudo apt-get install -y -qq chromium chromium-driver >/dev/null 2>&1
+    rc=$?
+    if [ $rc -eq 0 ]; then
+        echo "  ✓ chromium installed"
+    else
+        echo "  ⚠ chromium install failed — plotly figure exports (write_image) will not work"
+    fi
+)
+echo
+
 echo "  → Warming import + font caches (avoids 30-90s stall on first notebook run)..."
 uv run python -c "
 import matplotlib
