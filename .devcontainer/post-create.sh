@@ -48,6 +48,22 @@ echo "  → Installing fonts (Andale Mono via Microsoft Core Fonts)..."
 )
 echo
 
+echo "  → Warming import + font caches (avoids 30-90s stall on first notebook run)..."
+uv run python -c "
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import kinematic_morphospace  # noqa: F401
+# Force matplotlib to build its font cache now, not on first notebook cell.
+fig, ax = plt.subplots()
+ax.plot([0, 1], [0, 1])
+plt.close(fig)
+print('  ✓ caches warm')
+" || echo "  ⚠ warmup failed (notebooks will rebuild caches on first run)"
+echo
+
 # Install the welcome banner so it prints AFTER Codespaces' default
 # welcome message and AFTER the venv auto-activation, ending up at the
 # bottom of the terminal next to the prompt.
