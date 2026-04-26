@@ -20,6 +20,17 @@ uv run python -m ipykernel install --user \
 echo "  ✓ kernel registered as 'kinematic-morphospace' (id=python3)"
 echo
 
+echo "  → Installing Microsoft core fonts (incl. Andale Mono)..."
+echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" \
+    | sudo debconf-set-selections
+sudo apt-get update -qq
+sudo apt-get install -y -qq ttf-mscorefonts-installer >/dev/null 2>&1 \
+    && fc-cache -f >/dev/null 2>&1 \
+    && rm -rf "$HOME/.cache/matplotlib" \
+    && echo "  ✓ fonts installed (matplotlib cache cleared)" \
+    || echo "  ⚠ font install failed — notebooks will fall back to default monospace"
+echo
+
 # Install the welcome banner so it prints AFTER Codespaces' default
 # welcome message and AFTER the venv auto-activation, ending up at the
 # bottom of the terminal next to the prompt.

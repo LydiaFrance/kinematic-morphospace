@@ -2,6 +2,9 @@
 .[!g]*/
 .[!g]*
 !.devcontainer/
+!.vscode/
+.vscode/*
+!.vscode/settings.json
 
 # ── Drafts & local notes ──
 manuscript/
