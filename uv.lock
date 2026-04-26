@@ -15,7 +15,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-04-17T18:51:58.562768Z"
+exclude-newer = "2026-04-19T17:40:43.535435Z"
 exclude-newer-span = "P7D"
 
 [[package]]
@@ -1631,6 +1631,7 @@ dependencies = [
     { name = "numpy", version = "2.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pandas" },
     { name = "pyyaml" },
+    { name = "requests" },
     { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scikit-learn", version = "1.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "seaborn" },
@@ -1719,6 +1720,7 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=3" },
     { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=3" },
     { name = "pyyaml", specifier = ">=6.0" },
+    { name = "requests", specifier = ">=2.32.5" },
     { name = "scikit-learn", specifier = ">=1.2,<2" },
     { name = "scipy", marker = "extra == 'preprocessing'", specifier = ">=1.10" },
     { name = "seaborn", specifier = ">=0.13.2" },

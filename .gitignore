@@ -1,11 +1,14 @@
 # ── Hidden caches, virtual envs, IDE configs ──
 .[!g]*/
 .[!g]*
+!.devcontainer/
 
 # ── Drafts & local notes ──
 manuscript/
 tasks/
-scripts/
+scripts/*
+!scripts/download_figshare_data.py
+!scripts/_figshare_manifest.json
 A*.md
 C*.md
 running_questions.md
@@ -18,6 +21,8 @@ data/raw/
 data/bilateral/
 data/unilateral/
 data/DATA_NOTES.md
+data/README.md
+data/total_wingspans.yml
 figshare_staging/
 !data/mean_hawk_shape.csv
 !data/harvey_2022/

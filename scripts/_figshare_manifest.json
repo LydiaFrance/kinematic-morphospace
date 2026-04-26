@@ -1,0 +1,122 @@
+{
+  "README.md": {
+    "id": 64019728,
+    "md5": "2e87c396d04f2ac99b2b14719e294ab9",
+    "size": 17309
+  },
+  "bilateral/frame_info.csv": {
+    "id": 64019371,
+    "md5": "99b620caeeeb99168b6d276678628a28",
+    "size": 16136012
+  },
+  "bilateral/frame_info_with_angles.csv": {
+    "id": 64019374,
+    "md5": "eed80a05b3781550a9b7bca9b0feab1e",
+    "size": 21656766
+  },
+  "bilateral/rotation_corrected_markers.npy": {
+    "id": 64019377,
+    "md5": "727f9e32eed45174549f990f10a2fbd4",
+    "size": 31269152
+  },
+  "bilateral/scaled_markers.npy": {
+    "id": 64019383,
+    "md5": "3e928ac7808ec453444dd5e0f0d07eef",
+    "size": 29386304
+  },
+  "bilateral/scaled_markers_with_tailpack.npy": {
+    "id": 64019386,
+    "md5": "cad3a92ac5c79cac55ab07d516fc252d",
+    "size": 31269152
+  },
+  "bilateral/whole_body_pca_results.npy": {
+    "id": 64019389,
+    "md5": "26dedf0a5372568a57ee71c8ea214496",
+    "size": 31275802
+  },
+  "mean_hawk_shape.csv": {
+    "id": 64019392,
+    "md5": "04d6fc574d573ec63ea6459fc3327c27",
+    "size": 1290
+  },
+  "raw/bilateral_markers.csv": {
+    "id": 64019395,
+    "md5": "5638867f1446889200fec67bc584878a",
+    "size": 86644810
+  },
+  "raw/labelled_markers_with_missing.npz": {
+    "id": 64019398,
+    "md5": "3ea5a5232cf812d17a8e30272785b9fd",
+    "size": 167673797
+  },
+  "raw/obstacle_turns.csv": {
+    "id": 64019407,
+    "md5": "fd2e8f63cb1772d4ee6ded5778f5c2e6",
+    "size": 41229
+  },
+  "raw/tailpack.csv": {
+    "id": 64019410,
+    "md5": "f9980603d4473c9f57eb61f3653dfb37",
+    "size": 111423494
+  },
+  "raw/trajectories.csv": {
+    "id": 64019758,
+    "md5": "9f85d7310cb749301acdd88495f5aa0e",
+    "size": 298052233
+  },
+  "raw/unlabelled_markers.csv": {
+    "id": 64019572,
+    "md5": "5db165cde7f3bd60fb208f2e35c50656",
+    "size": 1165540166
+  },
+  "total_wingspans.yml": {
+    "id": 64019584,
+    "md5": "c71c1a2432aeecec149fb42a3b97c025",
+    "size": 166
+  },
+  "unilateral/data.npy": {
+    "id": 64019587,
+    "md5": "846ee442ff90edabb650edb22854717d",
+    "size": 27794816
+  },
+  "unilateral/frame_info.csv": {
+    "id": 64019590,
+    "md5": "185775e7441ea8512b00cd13bb188819",
+    "size": 33864327
+  },
+  "unilateral/mean_shape.npy": {
+    "id": 64019593,
+    "md5": "a263a5a3f19805134de8e9d5b7837161",
+    "size": 224
+  },
+  "unilateral/mean_shape_no_correction.npy": {
+    "id": 64019596,
+    "md5": "706a196d46373dfaa0ce25b782e0dd9d",
+    "size": 224
+  },
+  "unilateral/principal_components.npy": {
+    "id": 64019599,
+    "md5": "751d9a4997b168e18439e6d600910ba0",
+    "size": 1280
+  },
+  "unilateral/principal_components_no_correction.npy": {
+    "id": 64019602,
+    "md5": "bbc0b1dd04e7f37d81d77bc7d53d5393",
+    "size": 1280
+  },
+  "unilateral/scores.npy": {
+    "id": 64019605,
+    "md5": "2155156c9616d2df379f2f0fbdabfb15",
+    "size": 27794816
+  },
+  "unilateral/scores_binned.csv": {
+    "id": 64019608,
+    "md5": "cf3b20d01e0780069c2838edb63a0fc1",
+    "size": 109256280
+  },
+  "unilateral/scores_binned_no_correction.csv": {
+    "id": 64019611,
+    "md5": "5169034caa87c8a8edc9b86bc1f53d49",
+    "size": 109108998
+  }
+}
