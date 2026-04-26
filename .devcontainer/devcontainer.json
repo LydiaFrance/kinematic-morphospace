@@ -12,7 +12,6 @@
     "storage": "32gb"
   },
   "postCreateCommand": "bash .devcontainer/post-create.sh",
-  "postAttachCommand": "bash .devcontainer/post-attach.sh",
   "waitFor": "postCreateCommand",
   "customizations": {
     "vscode": {
