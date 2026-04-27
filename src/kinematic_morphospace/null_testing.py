@@ -419,15 +419,31 @@ def load_unlabelled_csv(
         labelled_ids contains frame IDs (as ints) with exactly 8 markers, and
         unlabelled_ids contains frame IDs (as ints) with fewer than 8 markers.
     """
-    df = pd.read_csv(csv_path)
-    frame_counts = df.groupby("frameID").size()
-    labelled_ids = [int(fid) for fid in frame_counts.index[frame_counts == 8]]
-    unlabelled_ids = [int(fid) for fid in frame_counts.index[frame_counts != 8]]
+    try:
+        df = pd.read_csv(csv_path, engine="pyarrow")
+    except (ImportError, ValueError):
+        df = pd.read_csv(csv_path)
 
     xyz_cols = [c for c in df.columns if c.startswith("rot_xyz")]
-    frame_groups: dict[int, np.ndarray] = {}
-    for fid, group in df.groupby("frameID"):
-        frame_groups[int(str(fid))] = group[xyz_cols].to_numpy().reshape(-1, 3)
+
+    # Sort once by frameID, then carve groups by contiguous slice — avoids
+    # the per-group Python iteration of pandas groupby (slow on large CSVs).
+    df = df.sort_values("frameID", kind="stable", ignore_index=True)
+    fids = df["frameID"].to_numpy()
+    coords = df[xyz_cols].to_numpy()
+
+    unique_fids, starts, counts = np.unique(fids, return_index=True, return_counts=True)
+    order = np.argsort(starts)
+    unique_fids = unique_fids[order]
+    starts = starts[order]
+    counts = counts[order]
+
+    frame_groups: dict[int, np.ndarray] = {
+        int(fid): coords[s:s + c].reshape(-1, 3)
+        for fid, s, c in zip(unique_fids, starts, counts)
+    }
+    labelled_ids = [int(fid) for fid, c in zip(unique_fids, counts) if c == 8]
+    unlabelled_ids = [int(fid) for fid, c in zip(unique_fids, counts) if c != 8]
     return frame_groups, labelled_ids, unlabelled_ids
 
 
