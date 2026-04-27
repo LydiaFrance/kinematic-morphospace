@@ -6,34 +6,40 @@ PCA-based decomposition of morphing shape changes in animal locomotion from moti
 
 ---
 
-## Reviewers start here
+## Reproducing the analysis
 
-Two routes — pick whichever feels easier.
+An [interactive project page](https://lydiafrance.github.io/LydiaFrance/projects/morphing-wings/) provides an overview of the morphing shape modes without requiring any code to be run.
 
-| Route | What you do | Setup time | Best if you… |
-|---|---|---|---|
-| **A. Browser (GitHub Codespaces)** | Click a button, wait, paste a token, run notebooks in the browser. | ~5 min | …want zero local install. |
-| **B. Local machine** | Install [uv](https://docs.astral.sh/uv/), clone, run a couple of commands. | ~10 min | …prefer your own editor / faster reruns. |
+To reproduce the full analysis, the notebooks can be run either in a browser via GitHub Codespaces (Route A) or on a local machine (Route B).
 
-The dataset (~2.3 GB) lives on Figshare under DOI [`10.6084/m9.figshare.32101528`](https://doi.org/10.6084/m9.figshare.32101528). It is currently **embargoed**; access requires a private share token printed in the manuscript's *Data Availability* section. Once the dataset is published the token is no longer needed.
+| Route | Requirements | Setup time |
+|---|---|---|
+| **A. GitHub Codespaces** | GitHub account | ~5 min |
+| **B. Local machine** | [uv](https://docs.astral.sh/uv/) package manager | ~10 min |
+
+The dataset (~2.3 GB) is archived on Figshare under DOI [`10.6084/m9.figshare.32101528`](https://doi.org/10.6084/m9.figshare.32101528). It is currently **embargoed**; access requires a private share token provided in the manuscript's *Data Availability* section. Once the dataset is published the token will no longer be needed.
 
 ---
 
-### Route A — GitHub Codespaces (browser, no install)
+### Route A — GitHub Codespaces
 
 1. Click **[Open in GitHub Codespaces](https://codespaces.new/LydiaFrance/kinematic-morphospace?quickstart=1)**.
    Sign in with GitHub if prompted, then click *Create codespace on main*.
-2. Wait ~3–5 min while the environment builds. A VS Code window opens in the browser. The terminal at the bottom prints a green welcome banner when it's ready.
-3. In that terminal, run:
+2. Wait ~3–5 min for the environment to build. A VS Code editor opens in the browser. The terminal prints a green welcome banner when ready.
+3. In the terminal, run:
    ```bash
    uv run python scripts/download_figshare_data.py
    ```
-   When prompted, paste the share token from the manuscript's *Data Availability* section (or paste the full `https://figshare.com/s/…` URL — either works). The script downloads ~2.3 GB into `./data/` (~5 min on Codespaces).
-4. Open any notebook under `examples/hawks/`. Suggested order: `00_ExperimentalSetup.ipynb` → `15_AlternativeMethods.ipynb`. Click *Run All* on each.
+   When prompted, paste the share token from the manuscript's *Data Availability* section (the full `https://figshare.com/s/…` URL also works). The script downloads ~2.3 GB into `./data/` (~5 min on Codespaces).
+4. Open any notebook under `examples/hawks/`. The notebooks can be used in three ways:
 
-> Each notebook starts with a hidden cleanup cell that frees memory and figures from any previous notebook run sharing the same kernel. It is safe to re-run and is a no-op on a cold kernel — its purpose is to let you switch between notebooks without restarting the kernel manually.
+   - **Overview** — `04_MorphingShapeModes.ipynb` contains interactive 3D visualisations of the principal morphing shape modes and provides the most direct view of the main results.
+   - **Supplementary companion** — each notebook header states which supplementary section it accompanies (e.g. "Supplementary §5"). The corresponding notebook can be run alongside the supplementary materials document.
+   - **Sequential** — the notebooks are numbered `00` through `15` and can be run in order from `00_ExperimentalSetup.ipynb` to `15_AlternativeMethods.ipynb`.
 
-**If something fails**: the Codespace is disposable — delete it from <https://github.com/codespaces> and create a fresh one. Free GitHub accounts include 60 hours/month of 4-core Codespaces, which is more than enough for one full review pass.
+> Each notebook begins with a cleanup cell that frees memory from any previous notebook run in the same kernel. This cell is safe to re-run and is a no-op on a fresh kernel.
+
+If the Codespace enters a bad state, it can be deleted from <https://github.com/codespaces> and recreated. Free GitHub accounts include 60 hours/month of 4-core Codespaces.
 
 ---
 
@@ -41,141 +47,130 @@ The dataset (~2.3 GB) lives on Figshare under DOI [`10.6084/m9.figshare.32101528
 
 #### Step 1 — Install [uv](https://docs.astral.sh/uv/)
 
-uv is a single-binary Python package manager. No admin/sudo needed; it installs into your home folder.
+uv is a single-binary Python package manager. No admin/sudo privileges are required.
 
-<details><summary><b>macOS / Linux</b> (open Terminal)</summary>
+<details><summary><b>macOS / Linux</b></summary>
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-Then close and reopen Terminal so `uv` is on your `PATH`.
+Close and reopen the terminal so `uv` is on your `PATH`.
 </details>
 
-<details><summary><b>Windows</b> (open PowerShell — search the Start menu for "PowerShell")</summary>
+<details><summary><b>Windows</b> (PowerShell)</summary>
 
 ```powershell
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-Then close and reopen PowerShell.
+Close and reopen PowerShell.
 </details>
 
-Verify (any OS):
+Verify the installation:
 ```bash
 uv --version
 ```
-You should see something like `uv 0.5.x`. If you get *"command not found"*, close and reopen the terminal.
 
 #### Step 2 — Get the code
 
-If you have `git`:
 ```bash
 git clone https://github.com/LydiaFrance/kinematic-morphospace.git
 cd kinematic-morphospace
 ```
 
-<details><summary>No git? Download the ZIP instead</summary>
+<details><summary>Alternative: download as ZIP</summary>
 
-On the GitHub page, click the green **Code** button → **Download ZIP** → unzip it, then `cd` into the folder:
-
-```bash
-# macOS / Linux
-cd ~/Downloads/kinematic-morphospace-main
-
-# Windows (PowerShell)
-cd $env:USERPROFILE\Downloads\kinematic-morphospace-main
-```
+On the GitHub page, click **Code** → **Download ZIP**, extract, then `cd` into the resulting directory.
 </details>
 
-#### Step 3 — Install dependencies (all OS)
+#### Step 3 — Install dependencies
 
 ```bash
 uv sync
 ```
 
-Takes ~2 min. Reads `uv.lock` so the environment is bit-identical to the one used for the manuscript.
+This reads `uv.lock` and creates an environment identical to the one used to produce the manuscript figures (~2 min).
 
-#### Step 4 — Download the dataset (all OS)
+#### Step 4 — Download the dataset
 
 ```bash
 uv run python scripts/download_figshare_data.py
 ```
 
-You'll be prompted for the share token from the manuscript's *Data Availability* section. The script accepts either the bare token or the full `https://figshare.com/s/…` URL. Downloads ~2.3 GB into `./data/`. The script can be re-run safely — already-downloaded files are skipped.
+When prompted, enter the share token from the manuscript's *Data Availability* section. The script accepts both the bare token and the full URL. Downloads ~2.3 GB into `./data/`. The script is idempotent; already-downloaded files are skipped on re-run.
 
-#### Step 5 — Launch the notebooks (all OS)
+#### Step 5 — Launch the notebooks
 
 ```bash
 uv run jupyter lab
 ```
 
-Your browser opens JupyterLab. Open `examples/hawks/00_ExperimentalSetup.ipynb` first.
+JupyterLab opens in the browser. `04_MorphingShapeModes.ipynb` provides the most direct overview of the results; `00_ExperimentalSetup.ipynb` is the starting point for a sequential run. Each notebook header states which supplementary section it accompanies.
 
 ---
 
-### Where to find the share token
+### Share token
 
-Open the manuscript PDF → **Data Availability** section. The share URL ends with a 20-character hex string, e.g.
+The share token is in the manuscript's **Data Availability** section. The share URL ends with a 20-character hex string:
 
 ```
 https://figshare.com/s/abcdef0123456789abcd
                        └────────┬─────────┘
-                       this is the token
+                            share token
 ```
 
-Either the bare token or the whole URL works when the script prompts you.
+Either the bare token or the full URL is accepted by the download script.
 
 ---
 
-### What to expect
+### Notebook summary
 
-| Notebook | Approximate wall time | Produces |
+| Notebook | Approximate run time | Description |
 |---|---|---|
-| `00_ExperimentalSetup` | <1 min | Dataset overview, sanity checks |
-| `01_MarkerReconstructionTrajectories` | ~2 min | Trajectory visualisations |
-| `02_BilateralShapePCA` | ~2 min | Bilateral PCA results |
+| `00_ExperimentalSetup` | <1 min | Dataset overview and validation |
+| `01_MarkerReconstructionTrajectories` | ~2 min | Marker trajectory visualisation |
+| `02_BilateralShapePCA` | ~2 min | Bilateral PCA |
 | `03_RotationCorrection` | ~2 min | Body-rotation correction |
-| `04_MorphingShapeModes` | ~2 min (PAPER_MODE: ~5 min) | Main morphing-shape PCA + permutation tests |
-| `05_BeforeAfterRotation` | ~1 min | Rotation visualisation |
-| `06_RobustnessValidation` | ~3–5 min (PAPER_MODE: ~15–25 min) | Permutation + bootstrap robustness checks |
+| `04_MorphingShapeModes` | ~2 min (PAPER_MODE: ~5 min) | Morphing-shape PCA and permutation tests |
+| `05_BeforeAfterRotation` | ~1 min | Effect of rotation correction |
+| `06_RobustnessValidation` | ~3–5 min (PAPER_MODE: ~15–25 min) | Permutation and bootstrap robustness |
 | `07_MissingnessAndSamplingBias` | ~5 min | Missingness diagnostics |
-| `08_IndividualVsSharedModes` | ~2–3 min (PAPER_MODE: ~10–20 min) | Bird-level vs shared modes |
-| `09_VisualisingModes` | ~2 min | Mode visualisation figures |
-| `10_MorphingSymmetry` | ~5 min | Bilateral symmetry tests |
+| `08_IndividualVsSharedModes` | ~2–3 min (PAPER_MODE: ~10–20 min) | Individual vs shared morphing modes |
+| `09_VisualisingModes` | ~2 min | Mode visualisation |
+| `10_MorphingSymmetry` | ~5 min | Bilateral symmetry analysis |
 | `11_MorphingScoresOverTime` | ~3 min | Temporal score profiles |
-| `12_FlightBehaviourContinuum` | ~5 min | Behaviour-continuum analysis |
+| `12_FlightBehaviourContinuum` | ~5 min | Flight behaviour continuum |
 | `13_ExperimentalEffects` | ~2 min | Experimental-design effects |
 | `14_CrossSpeciesGeneralisation` | ~3 min | Cross-species comparison |
 | `15_AlternativeMethods` | ~5 min | Comparison with alternative methods |
 
-Wall times are approximate, measured on a 4-core Codespace. A modern laptop is roughly 1.5–2× faster.
+Run times measured on a 4-core Codespace. Local machines are typically 1.5–2× faster.
 
-Notebooks 04, 06, and 08 expose a `PAPER_MODE` flag near the top of their setup cell. **Default is `False`** — a faster, lower-resolution run (~5–10× speedup) that still renders every figure but uses coarser p-values from fewer permutation/bootstrap iterations. Set it to `True` to reproduce the exact iteration counts used in the manuscript.
+Notebooks 04, 06, and 08 include a `PAPER_MODE` flag near the top of their setup cell. The default (`False`) uses fewer permutation/bootstrap iterations for faster execution (~5–10× speedup) while still producing all figures. Set to `True` to reproduce the exact iteration counts used in the manuscript.
 
 ---
 
-### OS troubleshooting
+### Troubleshooting
 
-| Symptom | Fix |
+| Symptom | Solution |
 |---|---|
-| Windows: *"running scripts is disabled on this system"* | Run the install command exactly as printed, including `-ExecutionPolicy ByPass`. |
-| macOS: *"<binary> cannot be opened because the developer cannot be verified"* | System Settings → Privacy & Security → click *Allow anyway* next to the blocked binary. |
-| Any OS: `uv: command not found` after install | Close and reopen the terminal — the installer adds uv to your `PATH`, but existing shells don't pick it up until restart. |
-| `uv sync` hangs or times out | You may be behind a corporate proxy. The Codespaces route bypasses local network restrictions. |
-| Token rejected by Figshare | Re-check there are no leading/trailing spaces. The token is exactly 20 hex characters. Re-run the download script and paste again. |
-| Out of memory in a notebook | The default Codespace machine has 16 GB RAM. If a notebook runs out, in Codespaces switch to a 32 GB machine via *…* menu → *Change machine type*. |
+| Windows: *"running scripts is disabled on this system"* | Use the install command as printed, including `-ExecutionPolicy ByPass`. |
+| macOS: *"cannot be opened because the developer cannot be verified"* | System Settings → Privacy & Security → Allow. |
+| `uv: command not found` after install | Close and reopen the terminal. |
+| `uv sync` hangs or times out | A corporate proxy may be blocking connections. The Codespaces route bypasses local network restrictions. |
+| Token rejected by Figshare | Ensure there are no leading/trailing spaces. The token is exactly 20 hex characters. |
+| Out of memory | The default Codespace has 16 GB RAM. Switch to 32 GB via the *…* menu → *Change machine type*. |
 
 ---
 
-## Library API (for code reuse)
+## Library API
 
-If you only want to use the package as a library on your own data, install it
-into a uv-managed project:
+To use the package as a library on other data:
 
 ```bash
 uv add kinematic-morphospace
-# or, with plotting extras:
+# with plotting extras:
 uv add "kinematic-morphospace[plot]"
 ```
 
@@ -201,9 +196,9 @@ uv run pytest tests/
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## License
+## Licence
 
-Distributed under the terms of the [MIT license](LICENSE).
+Distributed under the terms of the [MIT licence](LICENSE).
 
 <!-- prettier-ignore-start -->
 [actions-badge]:            https://github.com/LydiaFrance/kinematic-morphospace/workflows/CI/badge.svg
