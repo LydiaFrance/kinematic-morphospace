@@ -4,6 +4,22 @@
 
 PCA-based decomposition of morphing shape changes in animal locomotion from motion capture data.
 
+<p align="center">
+  <img src="figures/gifs/PC04_morphingmode.gif" alt="Morphing shape mode 4 — tail spreading and folding" width="320">
+  <img src="figures/gifs/dim_reduced_flights/reconstruction_04_modes.gif" alt="4-mode flight reconstruction (purple) vs original (grey)" width="320">
+</p>
+<p align="center">
+  <em>Left:</em> Morphing shape mode 4 (tail spreading). <em>Right:</em> 4-mode reconstruction (purple) overlaid on original data (grey).
+</p>
+
+<p align="center">
+  <img src="figures/gifs/species/_harrishawk_hawk_flight.gif" alt="Harris' hawk flight" width="220">
+  <img src="figures/gifs/species/barnowl_hawk_flight.gif" alt="Barn owl — hawk morphing modes projected" width="220">
+</p>
+<p align="center">
+  <em>Left:</em> Harris' hawk wingbeat from motion capture. <em>Right:</em> Same morphing modes projected onto a barn owl morphology (from Harvey 2022 measurements of a cadaver.).
+</p>
+
 ---
 
 ## Reproducing the analysis
@@ -25,13 +41,24 @@ The dataset (~2.3 GB) is archived on Figshare under DOI [`10.6084/m9.figshare.32
 
 1. Click **[Open in GitHub Codespaces](https://codespaces.new/LydiaFrance/kinematic-morphospace?quickstart=1)**.
    Sign in with GitHub if prompted, then click *Create codespace on main*.
+
+   <img src="figures/instructions/codespaces_create.png" alt="Create new codespace dialog" width="500">
+
 2. Wait ~3–5 min for the environment to build. A VS Code editor opens in the browser. The terminal prints a green welcome banner when ready.
 3. In the terminal, run:
    ```bash
    uv run python scripts/download_figshare_data.py
    ```
    When prompted, paste the share token from the manuscript's *Data Availability* section (the full `https://figshare.com/s/…` URL also works). The script downloads ~2.3 GB into `./data/` (~5 min on Codespaces).
-4. Open any notebook under `examples/hawks/`. The notebooks can be used in three ways:
+
+   <img src="figures/instructions/terminal_paste.png" alt="Terminal showing download command and token prompt" width="600">
+
+4. Open any notebook under `examples/hawks/`. Click **Run All** to execute.
+
+   <img src="figures/instructions/notebook_list.png" alt="File browser showing notebooks" width="180">
+   <img src="figures/instructions/codespaces_run_all.png" alt="Run All button in notebook toolbar" width="500">
+
+   The notebooks can be used in three ways:
 
    - **Overview** — `04_MorphingShapeModes.ipynb` contains interactive 3D visualisations of the principal morphing shape modes and provides the most direct view of the main results.
    - **Supplementary companion** — each notebook header states which supplementary section it accompanies (e.g. "Supplementary §5"). The corresponding notebook can be run alongside the supplementary materials document.
