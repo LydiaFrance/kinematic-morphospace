@@ -135,6 +135,33 @@ def get_binned_scores(scores_df, **filters):
     return binned_info, mean_scores, stdev_scores, median_scores
 
 
+def get_binned_raw_scores(scores, scores_df, **filters):
+    """Bin raw PCA scores by horizontal distance, bypassing sign conventions.
+
+    Uses ``scores_df`` only for filtering and bin assignments, then indexes
+    into the raw ``scores`` array so that the returned values are
+    sign-convention-free and safe to pass directly to :func:`reconstruct`.
+
+    Args:
+        scores: Raw PCA score array of shape ``(n_frames, n_components)``.
+        scores_df: Score DataFrame with ``bins`` column (used for filtering
+            and bin membership only; its PC columns are ignored).
+        **filters: Keyword filter arguments forwarded to ``filter_by``.
+
+    Returns:
+        DataFrame of per-bin mean scores indexed by distance bin, with
+        columns ``0, 1, …, n_components - 1``.  Call ``.to_numpy()`` to
+        obtain a raw array suitable for :func:`reconstruct`.
+    """
+    mask = filter_by(scores_df, **filters)
+    bins = scores_df.loc[mask, "bins"]
+
+    raw_df = pd.DataFrame(scores[mask.values], index=bins.index)
+    raw_df["bins"] = bins.values
+
+    return raw_df.groupby("bins", observed=True).mean()
+
+
 def get_score_range(scores, num_frames=30):
     """Generate a triangle-wave sweep of scores for shape-mode animation.
 
