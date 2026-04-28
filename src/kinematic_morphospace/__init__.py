@@ -160,6 +160,7 @@ from .rotation import (
     vectorised_kabsch,
 )
 from .species_transform import (
+    align_body_axis,
     create_marker_dict,
     transform_hawk_to_species,
     transform_principal_components,

@@ -68,6 +68,80 @@ def compute_transformation_matrix(
     return scale * rotation_matrix
 
 
+def _get_body_axis(markers_dict: dict) -> np.ndarray:
+    """Return the shoulder-midpoint → tailbase-midpoint vector from a marker dict."""
+    ls = np.array(markers_dict["left_shoulder"])
+    rs = np.array(markers_dict["right_shoulder"])
+    lt = np.array(markers_dict["left_tailbase"])
+    rt = np.array(markers_dict["right_tailbase"])
+    shoulder_mid = (ls + rs) / 2
+    tailbase_mid = (lt + rt) / 2
+    return tailbase_mid - shoulder_mid
+
+
+def align_body_axis(
+    markers_dict: dict,
+    hawk_3d: Any,
+) -> dict:
+    """Rigidly rotate species markers so body pitch matches the hawk reference.
+
+    The body axis is defined as shoulder-midpoint → tailbase-midpoint.
+    Both vectors lie in the y-z plane (x ≈ 0 by bilateral symmetry),
+    so a single pitch rotation around the x-axis is sufficient.
+    Rotation is applied about the shoulder midpoint.
+
+    Args:
+        markers_dict: Marker name → [x, y, z] dictionary from
+            :func:`~.cross_species.integrate_dataframe_to_bird3D`.
+        hawk_3d: Animal3D object containing the hawk reference shape.
+
+    Returns:
+        New marker dictionary with all positions pitch-corrected.
+    """
+    target_body = _get_body_axis(markers_dict)
+    target_angle = np.arctan2(target_body[2], target_body[1])
+
+    all_markers = np.concatenate(
+        [hawk_3d.markers.reshape(-1, 3), hawk_3d.fixed_markers.reshape(-1, 3)]
+    )
+    names = hawk_3d.skeleton.all_marker_names
+    hawk_smid = (all_markers[names.index("left_shoulder")]
+                 + all_markers[names.index("right_shoulder")]) / 2
+    hawk_tmid = (all_markers[names.index("left_tailbase")]
+                 + all_markers[names.index("right_tailbase")]) / 2
+    hawk_body = hawk_tmid - hawk_smid
+    hawk_angle = np.arctan2(hawk_body[2], hawk_body[1])
+
+    theta = hawk_angle - target_angle
+    if abs(theta) < 1e-8:
+        return dict(markers_dict)
+
+    cos_t, sin_t = np.cos(theta), np.sin(theta)
+    rot_x = np.array([
+        [1, 0, 0],
+        [0, cos_t, -sin_t],
+        [0, sin_t, cos_t],
+    ])
+
+    ls = np.array(markers_dict["left_shoulder"])
+    rs = np.array(markers_dict["right_shoulder"])
+    pivot = (ls + rs) / 2
+
+    rotated = {}
+    for name, coords in markers_dict.items():
+        v = np.array(coords) - pivot
+        rotated[name] = (rot_x @ v + pivot).tolist()
+
+    # Translate so shoulder midpoint z matches the hawk
+    rotated_smid = (np.array(rotated["left_shoulder"])
+                    + np.array(rotated["right_shoulder"])) / 2
+    z_offset = hawk_smid[2] - rotated_smid[2]
+    for name in rotated:
+        rotated[name][2] += z_offset
+
+    return rotated
+
+
 def transform_hawk_to_species(
     hawk_3d: Any,
     species_idx: int,
@@ -96,6 +170,8 @@ def transform_hawk_to_species(
         row_idx=species_idx
     )
     logger.info("Species selected: %s", species_df['species_common'].iloc[species_idx])
+
+    markers_dict = align_body_axis(markers_dict, hawk_3d)
 
     target_bird_3d = Animal3D('hawk', data=markers_dict)
 
