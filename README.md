@@ -48,7 +48,7 @@ The dataset (~2.3 GB) is archived on Figshare under DOI [`10.6084/m9.figshare.32
 
    <img src="figures/instructions/codespaces_create.png" alt="Create new codespace dialog" width="500">
 
-2. Wait ~3–5 min for the environment to build. A VS Code editor opens in the browser. The terminal prints a green welcome banner when ready.
+2. Wait ~3–5 min for the environment to build. A VS Code editor opens in the browser. The terminal prints a welcome banner when ready.
 3. In the terminal, run:
    ```bash
    uv run python scripts/download_figshare_data.py
@@ -71,6 +71,8 @@ The dataset (~2.3 GB) is archived on Figshare under DOI [`10.6084/m9.figshare.32
 > Each notebook begins with a cleanup cell that frees memory from any previous notebook run in the same kernel. This cell is safe to re-run and is a no-op on a fresh kernel.
 
 If the Codespace enters a bad state, it can be deleted from <https://github.com/codespaces> and recreated. Free GitHub accounts include 60 hours/month of 4-core Codespaces.
+
+If you close your browser you can return to it later without needing to repeat the setup steps.
 
 ---
 
@@ -159,22 +161,22 @@ Either the bare token or the full URL is accepted by the download script.
 
 | Notebook | Approximate run time | Description |
 |---|---|---|
-| `00_ExperimentalSetup` | <1 min | Dataset overview and validation |
+| `00_ExperimentalSetup` | ~1 min | Dataset overview and validation |
 | `01_MarkerReconstructionTrajectories` | ~2 min | Marker trajectory visualisation |
-| `02_BilateralShapePCA` | ~2 min | Bilateral PCA |
+| `02_BilateralShapePCA` | ~1 min | Bilateral PCA |
 | `03_RotationCorrection` | ~2 min | Body-rotation correction |
-| `04_MorphingShapeModes` | ~2 min (PAPER_MODE: ~5 min) | Morphing-shape PCA and permutation tests |
-| `05_BeforeAfterRotation` | ~1 min | Effect of rotation correction |
-| `06_RobustnessValidation` | ~3–5 min (PAPER_MODE: ~15–25 min) | Permutation and bootstrap robustness |
-| `07_MissingnessAndSamplingBias` | ~5 min | Missingness diagnostics |
-| `08_IndividualVsSharedModes` | ~2–3 min (PAPER_MODE: ~10–20 min) | Individual vs shared morphing modes |
-| `09_VisualisingModes` | ~2 min | Mode visualisation |
-| `10_MorphingSymmetry` | ~5 min | Bilateral symmetry analysis |
-| `11_MorphingScoresOverTime` | ~3 min | Temporal score profiles |
+| `04_MorphingShapeModes` | ~1 min (PAPER_MODE: ~5 min) | Morphing-shape PCA and permutation tests |
+| `05_BeforeAfterRotation` | <1 min | Effect of rotation correction |
+| `06_RobustnessValidation` | ~8–10 min (PAPER_MODE: ~15–25 min) | Permutation and bootstrap robustness |
+| `07_MissingnessAndSamplingBias` | ~11–12 min | Missingness diagnostics |
+| `08_IndividualVsSharedModes` | ~2 min (PAPER_MODE: ~10–20 min) | Individual vs shared morphing modes |
+| `09_VisualisingModes` | <1 min | Mode visualisation |
+| `10_MorphingSymmetry` | ~1 min | Bilateral symmetry analysis |
+| `11_MorphingScoresOverTime` | <1 min | Temporal score profiles |
 | `12_FlightBehaviourContinuum` | ~5 min | Flight behaviour continuum |
-| `13_ExperimentalEffects` | ~2 min | Experimental-design effects |
+| `13_ExperimentalEffects` | <1 min | Experimental-design effects |
 | `14_CrossSpeciesGeneralisation` | ~3 min | Cross-species comparison |
-| `15_AlternativeMethods` | ~5 min | Comparison with alternative methods |
+| `15_AlternativeMethods` | ~15 min | Comparison with alternative methods |
 
 Run times measured on a 4-core Codespace. Local machines are typically 1.5–2× faster.
 

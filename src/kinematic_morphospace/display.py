@@ -693,7 +693,7 @@ def print_imputation_results(
         n_frames_imputed: Number of frames after imputation.
         dropout_rates: Per-marker dropout rates as {marker_name: rate}.
         cv_rmse: Cross-validation RMSE in metres.
-        cv_rmse_pct: Cross-validation RMSE as percentage of wingspan.
+        cv_rmse_pct: Cross-validation RMSE as percentage of mean wingspan.
         cev_complete: Cumulative explained variance for baseline PCA.
         cev_imputed: Cumulative explained variance for imputed-data PCA.
         cosines: Principal cosines between baseline and imputed modes.
@@ -711,7 +711,7 @@ def print_imputation_results(
         print(f"  {marker:<12}: {rate:>5.1%}")
 
     print(f"\nImputation accuracy (10% held-out cross-validation):")
-    print(f"  RMSE: {cv_rmse:.4f} m ({cv_rmse_pct:.1f}% of wingspan)")
+    print(f"  RMSE: {cv_rmse:.4f} m ({cv_rmse_pct:.1f}% of mean wingspan)")
 
     print(f"\nPCA comparison:")
     header = "  " + " " * 10
