@@ -9,7 +9,7 @@
 PCA-based decomposition of morphing shape changes in animal locomotion from motion capture data. Uses data from the wings and tails of 5 Harris' hawks in flights. 
 
 <p align="center">
-  <img src="figures/gifs/PC04_morphingmode.gif" alt="Morphing shape mode 4 — tail spreading and folding" width="320">
+  <img src="figures/gifs/PC04_tail_spreading.gif" alt="Morphing shape mode 4 — tail spreading and folding" width="320">
   <img src="figures/gifs/dim_reduced_flights/reconstruction_04_modes.gif" alt="4-mode flight reconstruction (purple) vs original (grey)" width="320">
 </p>
 <p align="center">
