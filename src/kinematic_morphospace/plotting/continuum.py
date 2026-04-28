@@ -357,7 +357,7 @@ def plot_bic_sweep(
     fig, ax = plt.subplots(figsize=(5.5, 3.5))
     ax.plot(list(k_values), bic_curve, "ko-", markersize=3)
     ax.axvline(x=2, color=colours["flapping"], linestyle="--", alpha=0.6,
-               label="k = 2 (two gaits)")
+               label="k = 2 elbow")
     ax.axvline(x=best_k, color=colours["gliding"], linestyle="--", alpha=0.6,
                label=f"BIC minimum (k = {best_k})")
     ax.set_xlabel("Number of GMM clusters (k)")
