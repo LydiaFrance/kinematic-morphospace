@@ -6,7 +6,9 @@
 <img src="https://lydiafrance.github.io/LydiaFrance/assets/img/publication_preview/morphing_preview.gif" alt="hawk obstacle avoidance" />
 
 
-PCA-based decomposition of morphing shape changes in animal locomotion from motion capture data. Uses data from the wings and tails of 5 Harris' hawks in flights. 
+PCA-based decomposition of morphing shape changes in animal locomotion from motion capture data. Uses data from the wings and tails of 5 Harris' hawks in flights.
+
+**[Interactive overview](https://lydiafrance.github.io/LydiaFrance/projects/morphing-wings/)** — explore the morphing modes and results in your browser.
 
 <p align="center">
   <img src="figures/gifs/PC04_tail_spreading.gif" alt="Morphing shape mode 4 — tail spreading and folding" width="320">
