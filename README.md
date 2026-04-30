@@ -23,7 +23,7 @@ PCA-based decomposition of morphing shape changes in animal locomotion from moti
   <img src="figures/gifs/species/barnowl_hawk_flight.gif" alt="Barn owl — hawk morphing modes projected" width="220">
 </p>
 <p align="center">
-  <em>Left:</em> Harris' hawk wingbeat from motion capture. <em>Right:</em> Same morphing modes projected onto a barn owl morphology (from Harvey 2022 measurements of a cadaver.).
+  <em>Left:</em> Harris' hawk wingbeat from motion capture. <em>Right:</em> Same morphing modes projected onto a barn owl morphology (from Harvey 2022 specimen measurements).
 </p>
 
 ---
@@ -32,25 +32,25 @@ PCA-based decomposition of morphing shape changes in animal locomotion from moti
 
 An [interactive project page](https://lydiafrance.github.io/LydiaFrance/projects/morphing-wings/) provides an overview of the morphing shape modes without requiring any code to be run.
 
-To reproduce the full analysis, the notebooks can be run either in a browser via GitHub Codespaces (Route A) or on a local machine (Route B).
+To reproduce the full analysis, the notebooks can be run either in a browser via GitHub Codespaces or on a local machine.
 
 | Route | Requirements | Setup time |
 |---|---|---|
-| **A. GitHub Codespaces** | GitHub account | ~5 min |
-| **B. Local machine** | [uv](https://docs.astral.sh/uv/) package manager | ~10 min |
+| **GitHub Codespaces** | GitHub account | ~5 min |
+| **Local machine** | [uv](https://docs.astral.sh/uv/) package manager | ~10 min |
 
 The dataset (~2.3 GB) is archived on Figshare under DOI [`10.6084/m9.figshare.32101528`](https://doi.org/10.6084/m9.figshare.32101528). It is currently **embargoed**; access requires a private share token provided in the manuscript's *Data Availability* section. Once the dataset is published the token will no longer be needed.
 
 ---
 
-### Route A — GitHub Codespaces
+### GitHub Codespaces
 
 1. Click **[Open in GitHub Codespaces](https://codespaces.new/LydiaFrance/kinematic-morphospace?quickstart=1)**.
-   Sign in with GitHub if prompted, then click *Create codespace on main*.
+   Sign in with GitHub if prompted, then click *Create codespace*.
 
    <img src="figures/instructions/codespaces_create.png" alt="Create new codespace dialog" width="500">
 
-2. Wait ~3–5 min for the environment to build. A VS Code editor opens in the browser. The terminal prints a welcome banner when ready.
+2. Wait ~3–5 min for the environment to build. A VS Code editor opens in the browser. The terminal (bottom) prints a welcome banner when ready.
 3. In the terminal, run:
    ```bash
    uv run python scripts/download_figshare_data.py
@@ -59,7 +59,7 @@ The dataset (~2.3 GB) is archived on Figshare under DOI [`10.6084/m9.figshare.32
 
    <img src="figures/instructions/terminal_paste.png" alt="Terminal showing download command and token prompt" width="600">
 
-4. Open any notebook under `examples/hawks/`. Click **Run All** to execute.
+4. Open any notebook under `examples/hawks/`. Notebook 04 has interactive visualisations of the results. Click **Run All** to execute every cell.
 
    <img src="figures/instructions/notebook_list.png" alt="File browser showing notebooks" width="180">
    <img src="figures/instructions/codespaces_run_all.png" alt="Run All button in notebook toolbar" width="500">
@@ -78,11 +78,13 @@ If you close your browser you can return to it later without needing to repeat t
 
 ---
 
-### Route B — Local machine
+### Installation on Local machine
 
 #### Step 1 — Install [uv](https://docs.astral.sh/uv/)
 
 uv is a single-binary Python package manager. No admin/sudo privileges are required.
+
+Instructions per operating system:
 
 <details><summary><b>macOS / Linux</b></summary>
 
@@ -108,6 +110,8 @@ uv --version
 ```
 
 #### Step 2 — Get the code
+
+If you already use git on your computer:
 
 ```bash
 git clone https://github.com/LydiaFrance/kinematic-morphospace.git
