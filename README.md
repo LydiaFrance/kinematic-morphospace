@@ -1,6 +1,6 @@
 # kinematic-morphospace
 
-<a href="https://doi.org/10.5281/zenodo.19169784"><img src="https://zenodo.org/badge/1183862622.svg" alt="DOI"></a>
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19169784.svg)](https://doi.org/10.5281/zenodo.19169784)
 
 
 <img src="https://lydiafrance.github.io/LydiaFrance/assets/img/publication_preview/morphing_preview.gif" alt="hawk obstacle avoidance" />
