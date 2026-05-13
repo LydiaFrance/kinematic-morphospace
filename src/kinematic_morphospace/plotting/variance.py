@@ -18,6 +18,7 @@ def plot_explained(
     ax=None,
     colour_before=12,
     annotate=True,
+    xlim_max=None,
 ):
     """Plot cumulative explained variance ratio as a colour-coded bar chart.
 
@@ -33,6 +34,9 @@ def plot_explained(
             Defaults to 12 (all components coloured).
         annotate: When True, annotates the x-axis with >95%, >97%, and >98%
             cumulative-variance threshold markers. Defaults to True.
+        xlim_max: Upper x-axis limit. When None (default), uses
+            ``len(explained_ratio) - 0.5``. Set to crop the plot to a
+            subset of leading components.
         ci: Reserved for future bootstrap confidence-interval bands; currently
             unused. Defaults to None.
 
@@ -105,7 +109,8 @@ def plot_explained(
     ax.set_yticks(np.arange(0,1.05,0.1))
     # ax.set_xlim(-0.5,11.5)
 
-    ax.set_xlim(-0.5, len(explained_ratio)-0.5)
+    xmax = (len(explained_ratio) - 0.5) if xlim_max is None else xlim_max
+    ax.set_xlim(-0.5, xmax)
     ax.set_xticks(range(len(explained_ratio)))
     ax.set_xticklabels([str(i) for i in range(1, len(explained_ratio)+1)], fontsize=6)
     ax.grid(True, alpha=0.3)

@@ -182,7 +182,7 @@ def undo_body_pitch_rotation(markers, body_pitch):
     return corrected_markers
 
 
-def undo_body_rotation(markers, whole_body_angle, which_axis='z'):
+def undo_body_rotation(markers, whole_body_angle, which_axis='z', degrees=True):
     """Remove a whole-body rotation around a specified axis from marker coordinates.
 
     ``which_axis`` selects which plane the measured body angle lies in,
@@ -197,11 +197,14 @@ def undo_body_rotation(markers, whole_body_angle, which_axis='z'):
 
     Args:
         markers: Marker array of shape ``(n_frames, n_markers, 3)``.
-        whole_body_angle: Array of body rotation angles in degrees, shape
-            ``(n_frames,)``.
+        whole_body_angle: Array of body rotation angles, shape
+            ``(n_frames,)``. Units controlled by ``degrees``.
         which_axis: Correction plane (``'x'``, ``'y'``, or ``'z'``). See
             the note above for the mapping to geometric rotation axes.
             Defaults to ``'z'``.
+        degrees: When True (default), ``whole_body_angle`` is interpreted
+            as degrees and converted to radians internally. When False,
+            angles are assumed to already be in radians.
 
     Returns:
         Marker array of the same shape with the body rotation removed.
@@ -209,7 +212,7 @@ def undo_body_rotation(markers, whole_body_angle, which_axis='z'):
     Raises:
         ValueError: If ``which_axis`` is not ``'x'``, ``'y'``, or ``'z'``.
     """
-    body_pitch_rad = np.radians(whole_body_angle)
+    body_pitch_rad = np.radians(whole_body_angle) if degrees else np.asarray(whole_body_angle)
 
     n_instances = markers.shape[0]
     corrected_markers = np.empty_like(markers)
