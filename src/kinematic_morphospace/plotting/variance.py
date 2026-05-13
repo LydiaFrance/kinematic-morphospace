@@ -13,12 +13,25 @@ from ..data_filtering import filter_by
 from ..pca_reconstruct import reconstruct
 
 
+DEFAULT_BAR_COLOURS = [
+    '#B5E675', '#6ED8A9', '#51B3D4',
+    '#4579AA', '#F19EBA', '#BC96C9',
+    '#917AC2', '#BE607F', '#624E8B',
+    "#C4C4C4", '#C4C4C4', "#C4C4C4",
+]
+
+DEFAULT_ANNOTATE_LABELS = ('>96%', '>98%', '>99%')
+
+
 def plot_explained(
     explained_ratio,
     ax=None,
     colour_before=12,
     annotate=True,
     xlim_max=None,
+    bar_colors=None,
+    default_colour=None,
+    annotate_labels=None,
 ):
     """Plot cumulative explained variance ratio as a colour-coded bar chart.
 
@@ -32,11 +45,18 @@ def plot_explained(
         ax: Matplotlib Axes to draw on; if None, a new figure is created.
         colour_before: Number of leading components to colour individually.
             Defaults to 12 (all components coloured).
-        annotate: When True, annotates the x-axis with >95%, >97%, and >98%
-            cumulative-variance threshold markers. Defaults to True.
+        annotate: When True, annotates the x-axis with cumulative-variance
+            threshold markers (defaults to >96%, >98%, >99%). Defaults to True.
         xlim_max: Upper x-axis limit. When None (default), uses
             ``len(explained_ratio) - 0.5``. Set to crop the plot to a
             subset of leading components.
+        bar_colors: Sequence of colours for leading components. When None
+            (default), uses :data:`DEFAULT_BAR_COLOURS`. Provide a different
+            palette to restyle for a specific dataset.
+        default_colour: Fill colour for bars beyond ``colour_before``. When
+            None (default), uses ``"#C4C4C4"`` (light grey).
+        annotate_labels: Three-string tuple of threshold labels to place above
+            the chart. When None (default), uses :data:`DEFAULT_ANNOTATE_LABELS`.
         ci: Reserved for future bootstrap confidence-interval bands; currently
             unused. Defaults to None.
 
@@ -49,17 +69,14 @@ def plot_explained(
         fig, ax = plt.subplots(figsize=(6.7, 3.5), constrained_layout=False)
     assert ax is not None
 
-    # bar_colors = [
-    #     '#CEEEA4', '#89E0B9', '#51B3D4', '#4579AA',
-    #     '#BC96C9', '#917AC2', '#5A488B'
-    # ]
+    if bar_colors is None:
+        bar_colors = DEFAULT_BAR_COLOURS
+    if default_colour is None:
+        default_colour = "#C4C4C4"
+    if annotate_labels is None:
+        annotate_labels = DEFAULT_ANNOTATE_LABELS
 
-    bar_colors = ['#B5E675', '#6ED8A9', '#51B3D4',
-              '#4579AA', '#F19EBA', '#BC96C9',
-              '#917AC2', '#BE607F', '#624E8B',
-              "#C4C4C4", '#C4C4C4', "#C4C4C4"]
-
-    bar_colour = "#51B3D4" if colour_before == 0 else "#C4C4C4"
+    bar_colour = "#51B3D4" if colour_before == 0 else default_colour
 
     barlist = plt.bar(
         range(len(explained_ratio)),
@@ -98,9 +115,9 @@ def plot_explained(
         ax_right.spines['right'].set_visible(False)
         ax_right.spines['left'].set_visible(False)
 
-        ax.annotate('>96%', xy=(0.22, 0.94), xycoords='figure fraction')
-        ax.annotate('>98%', xy=(0.44, 0.94), xycoords='figure fraction')
-        ax.annotate('>99%', xy=(0.68, 0.94), xycoords='figure fraction')
+        ax.annotate(annotate_labels[0], xy=(0.22, 0.94), xycoords='figure fraction')
+        ax.annotate(annotate_labels[1], xy=(0.44, 0.94), xycoords='figure fraction')
+        ax.annotate(annotate_labels[2], xy=(0.68, 0.94), xycoords='figure fraction')
 
     ax.set_xlabel("Component Number")
     ax.set_ylabel("Cumulative Explained variance ratio")
