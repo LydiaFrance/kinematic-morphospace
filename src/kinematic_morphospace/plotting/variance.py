@@ -88,7 +88,7 @@ def plot_explained(
         zorder=2,
     )
 
-    for i in range(colour_before):
+    for i in range(min(colour_before, len(barlist), len(bar_colors))):
         barlist[i].set_color(bar_colors[i])
 
     ax.spines['top'].set_visible(False)
