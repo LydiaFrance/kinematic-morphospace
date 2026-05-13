@@ -138,7 +138,13 @@ from .labelling import (
 from .null_testing import pairwise_distance_features, principal_cosines
 
 # --- PCA core ---
-from .pca_core import run_PCA, run_PCA_birds
+from .pca_core import (
+    get_PCA_input,
+    get_PCA_input_sizes,
+    run_PCA,
+    run_PCA_birds,
+    test_PCA_output,
+)
 from .pca_reconstruct import prepare_unilateral, reconstruct, to_bilateral, to_unilateral
 from .pca_scores import (
     SIGN_CONVENTIONS,
@@ -258,8 +264,11 @@ __all__ = [
     "reorder_cluster_labels",
     "restrict_cluster_labels",
     # PCA core
+    "get_PCA_input",
+    "get_PCA_input_sizes",
     "run_PCA",
     "run_PCA_birds",
+    "test_PCA_output",
     "scale_data",
     "select_best_specimen_per_species",
     "select_max_wingspan_row",
